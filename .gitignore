@@ -1,0 +1,74 @@
+# Unity 团队项目 .gitignore
+# 基于 Unity 官方推荐配置
+
+# =========== UNITY ===========
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Uu]ser[Ss]ettings/
+
+# Unity 2020+
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Unity Cloud Build
+build/
+build_reports/
+
+# =========== MONO DEVELOP ===========
+*.pidb
+*.userprefs
+
+# =========== VISUAL STUDIO ===========
+.vs/
+.vscode/
+*.vsidx
+*.vsidxmeta
+*.pidb
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# =========== JETBRAINS RIDER ===========
+.idea/
+*.sln.iml
+
+# =========== RESharper ===========
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# =========== OS GENERATED FILES ===========
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# =========== LFS CACHED FILES (just in case) ===========
+.git/lfs/objects/*
+
+# =========== LOCAL CONFIGURATION ===========
+# 团队成员可以在此添加本地特定忽略项
+# 如：本地测试文件、临时导出等
