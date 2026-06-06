@@ -2,6 +2,18 @@
 # 基于 Unity 官方推荐配置
 
 # =========== UNITY ===========
+# Game1/ 目录中的 Unity 临时文件
+Game1/[Ll]ibrary/
+Game1/[Tt]emp/
+Game1/[Oo]bj/
+Game1/[Bb]uild/
+Game1/[Bb]uilds/
+Game1/[Ll]ogs/
+Game1/[Mm]emoryCaptures/
+Game1/[Uu]ser[Ss]ettings/
+Game1/.vsconfig
+
+# 通用 Unity 忽略（向后兼容）
 [Ll]ibrary/
 [Tt]emp/
 [Oo]bj/
@@ -14,7 +26,6 @@
 # Unity 2020+
 *.csproj
 *.unityproj
-*.sln
 *.suo
 *.tmp
 *.user
@@ -26,6 +37,9 @@
 *.mdb
 *.opendb
 *.VC.db
+
+# 允许跟踪项目解决方案文件
+!Game1.sln
 
 # Unity Cloud Build
 build/

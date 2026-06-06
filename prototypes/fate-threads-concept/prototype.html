@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>命运的织线 — 原型</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+
+        .game-container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .scene {
+            position: relative;
+            height: 400px;
+            background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+            overflow: hidden;
+        }
+
+        .background {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .cafe-counter {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(180deg, #8b7355 0%, #6b5344 100%);
+            border-top: 4px solid #a08060;
+        }
+
+        .character {
+            position: absolute;
+            bottom: 120px;
+            width: 80px;
+            height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .character:hover {
+            transform: scale(1.05);
+        }
+
+        .emma {
+            left: 200px;
+        }
+
+        .tom {
+            right: 250px;
+        }
+
+        .character-body {
+            width: 60px;
+            height: 120px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .emma .character-body {
+            background: linear-gradient(180deg, #74b9ff 0%, #0984e3 100%);
+        }
+
+        .tom .character-body {
+            background: linear-gradient(180deg, #e17055 0%, #d63031 100%);
+        }
+
+        .character-head {
+            width: 50px;
+            height: 50px;
+            background: #ffeaa7;
+            border-radius: 50%;
+            margin-bottom: -10px;
+            position: relative;
+        }
+
+        .emma .character-head {
+            background: #ffeaa7;
+        }
+
+        .tom .character-head {
+            background: #dfe6e9;
+        }
+
+        .character-name {
+            position: absolute;
+            top: -30px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .clickable-item {
+            position: absolute;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .clickable-item:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        .cup {
+            right: 200px;
+            bottom: 140px;
+            width: 40px;
+            height: 50px;
+            background: linear-gradient(180deg, #636e72 0%, #2d3436 100%);
+            border-radius: 4px 4px 8px 8px;
+        }
+
+        .cup::after {
+            content: '';
+            position: absolute;
+            right: -12px;
+            top: 15px;
+            width: 12px;
+            height: 20px;
+            border: 3px solid #2d3436;
+            border-left: none;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .fate-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .fate-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(116, 185, 255, 0.8));
+            transform-origin: left center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .dialogue-box {
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 3px solid #74b9ff;
+        }
+
+        .dialogue-content {
+            min-height: 80px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .response-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .tag-preset {
+            background: #00b894;
+            color: white;
+        }
+
+        .tag-ai {
+            background: #e84393;
+            color: white;
+        }
+
+        .options-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .option-btn {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .option-btn:active {
+            transform: translateY(0);
+        }
+
+        .custom-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .custom-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .custom-input:focus {
+            border-color: #74b9ff;
+        }
+
+        .custom-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .fate-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 250px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+            padding: 15px;
+            border: 2px solid #74b9ff;
+            z-index: 100;
+        }
+
+        .fate-panel h3 {
+            color: #74b9ff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .fate-entries {
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .fate-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .fate-entry:last-child {
+            border-bottom: none;
+        }
+
+        .fate-entry .name {
+            color: #74b9ff;
+            font-weight: bold;
+        }
+
+        .fate-entry .change {
+            color: #00b894;
+            margin-left: 5px;
+        }
+
+        .fate-entry .negative {
+            color: #e17055;
+        }
+
+        .prototype-header {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="prototype-header">
+        PROTOTYPE — NOT FOR PRODUCTION | Question: 混合叙事系统是否能让玩家理解预设与AI的边界？ | Date: 2026-06-03
+    </div>
+
+    <div class="fate-panel">
+        <h3>🧵 命运线</h3>
+        <div class="fate-entries" id="fateEntries">
+            <div class="fate-entry">
+                <span class="name">艾玛</span>：<span>焦虑 ↑</span>
+            </div>
+            <div class="fate-entry">
+                <span class="name">汤姆</span>：<span>暴躁 ↑</span>
+            </div>
+            <div class="fate-entry">
+                <span class="name">萨拉</span>：<span>平静</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="scene">
+            <div class="background">
+                <div class="fate-lines">
+                    <div class="fate-line" style="top: 100px; left: 200px; width: 200px; transform: rotate(15deg);"></div>
+                    <div class="fate-line" style="top: 150px; left: 400px; width: 150px; transform: rotate(-10deg);"></div>
+                </div>
+
+                <div class="cafe-counter"></div>
+
+                <div class="character emma" onclick="handleCharacterClick('emma')">
+                    <div class="character-name">艾玛</div>
+                    <div class="character-head"></div>
+                    <div class="character-body"></div>
+                </div>
+
+                <div class="character tom" onclick="handleCharacterClick('tom')">
+                    <div class="character-name">汤姆</div>
+                    <div class="character-head"></div>
+                    <div class="character-body"></div>
+                </div>
+
+                <div class="clickable-item cup" onclick="handleItemClick('cup')"></div>
+            </div>
+        </div>
+
+        <div class="dialogue-box">
+            <div class="dialogue-content" id="dialogueContent">
+                <span class="response-tag tag-preset">预设</span>
+                <strong>艾玛</strong>（焦虑地擦拭杯子）："明天就是考试了...我还没准备好..."
+            </div>
+
+            <div class="options-container" id="optionsContainer">
+                <button class="option-btn" onclick="handleOption(1)">艾玛："马上就来！"（预设）</button>
+                <button class="option-btn" onclick="handleItemClick('cup')">移动汤姆面前的杯子</button>
+            </div>
+
+            <div class="custom-input-container">
+                <input type="text" class="custom-input" id="customInput" placeholder="输入你想说的话..." onkeypress="handleKeyPress(event)">
+                <button class="send-btn" onclick="handleCustomInput()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ 原型状态 ============
+        let currentScene = 1;
+        let fateValues = {
+            emma: { anxiety: 5, confidence: 2 },
+            tom: { anger: 4, patience: 2 },
+            sara: { calm: 4 }
+        };
+
+        // ============ 预设剧情数据 ============
+        const scenes = {
+            1: {
+                dialogue: {
+                    speaker: "艾玛",
+                    text: "（焦虑地擦拭杯子）\"明天就是考试了...我还没准备好...\"",
+                    type: "preset"
+                },
+                options: [
+                    { id: 1, text: "艾玛：\"马上就来！\"（预设）", action: "emma_apologize" },
+                    { id: 2, text: "移动汤姆面前的杯子", action: "move_cup" }
+                ]
+            },
+            2: {
+                dialogue: {
+                    speaker: "汤姆",
+                    text: "（不耐烦地敲桌子）\"我的咖啡怎么还没来？你们这的服务越来越差了！\"",
+                    type: "preset"
+                },
+                options: [
+                    { id: 1, text: "艾玛：\"请稍等一下...\"（预设）", action: "emma_wait" },
+                    { id: 2, text: "汤姆：深呼吸（点击角色）", action: "tom_breathe" }
+                ]
+            },
+            3: {
+                dialogue: {
+                    speaker: "艾玛",
+                    text: "（眼神闪烁）\"萨拉，你说我这次能通过吗？\"",
+                    type: "preset"
+                },
+                options: [
+                    { id: 1, text: "萨拉：\"你一定行的！\"（预设）", action: "sara_encourage" },
+                    { id: 2, text: "给艾玛递一张纸条（点击角色）", action: "give_note" }
+                ]
+            }
+        };
+
+        // ============ 关键词匹配规则 ============
+        const keywordRules = [
+            { keywords: ["道歉", "对不起", "抱歉"], response: { speaker: "艾玛", text: "（微微低头）\"对不起，我会更努力的。\"", type: "preset" }, effect: { emma: { anxiety: -1, confidence: 1 }, tom: { anger: -1, patience: 1 } } },
+            { keywords: ["冷静", "深呼吸", "放松"], response: { speaker: "系统", text: "汤姆的表情稍微缓和了一些...", type: "preset" }, effect: { tom: { anger: -1, patience: 1 } } },
+            { keywords: ["考试", "成绩", "学习"], response: { speaker: "艾玛", text: "（叹气）\"是啊...这次考试真的太重要了。\"", type: "preset" }, effect: { emma: { anxiety: 1 } } },
+            { keywords: ["笨蛋", "没用", "慢"], response: { speaker: "汤姆", text: "（脸色更难看）\"你们就是这种人！\"", type: "preset" }, effect: { tom: { anger: 2 }, emma: { anxiety: 2 } } }
+        ];
+
+        // ============ AI 响应模拟 ============
+        const aiResponses = {
+            generic: [
+                { speaker: "艾玛", text: "（若有所思）\"嗯...这倒是个有趣的想法...\"" },
+                { speaker: "汤姆", text: "（皱眉）\"这算什么意思？\"" },
+                { speaker: "萨拉", text: "（微笑）" "我想你说的有道理...\"" }
+            ],
+            emma: [
+                "（眼中闪过一丝希望）" "你是说...还有办法？"",
+                "（点头）" "谢谢你愿意听我说..."",
+                "（轻轻咬唇）" "我不知道...我很害怕...""
+            ],
+            tom: [
+                "（冷哼）" "哼，你们这些外行懂什么..."",
+                "（暴躁地）" "少说废话，赶紧给我咖啡！"",
+                "（愣了一下）" "这...这算什么？""
+            ],
+            sara: [
+                "（温和地）" "我觉得你说得对..."",
+                "（思考）" "这是一个值得考虑的角度..."",
+                "（鼓励地）" "继续说，我愿意听...""
+            ]
+        };
+
+        // ============ 函数实现 ============
+
+        function updateDialogue(speaker, text, type) {
+            const content = document.getElementById('dialogueContent');
+            const tag = type === 'ai' ? '<span class="response-tag tag-ai">AI</span>' : '<span class="response-tag tag-preset">预设</span>';
+            content.innerHTML = `${tag}<strong>${speaker}</strong>${text}`;
+        }
+
+        function updateFatePanel() {
+            const entries = document.getElementById('fateEntries');
+            entries.innerHTML = `
+                <div class="fate-entry">
+                    <span class="name">艾玛</span>：<span>焦虑 ${fateValues.emma.anxiety}</span> | <span>自信 ${fateValues.emma.confidence}</span>
+                </div>
+                <div class="fate-entry">
+                    <span class="name">汤姆</span>：<span class="${fateValues.tom.anger > 5 ? 'negative' : ''}">暴躁 ${fateValues.tom.anger}</span> | <span>耐心 ${fateValues.tom.patience}</span>
+                </div>
+                <div class="fate-entry">
+                    <span class="name">萨拉</span>：<span>平静 ${fateValues.sara.calm}</span>
+                </div>
+            `;
+        }
+
+        function applyEffect(effect) {
+            if (!effect) return;
+
+            if (effect.emma) {
+                if (effect.emma.anxiety) fateValues.emma.anxiety += effect.emma.anxiety;
+                if (effect.emma.confidence) fateValues.emma.confidence += effect.emma.confidence;
+            }
+            if (effect.tom) {
+                if (effect.tom.anger) fateValues.tom.anger += effect.tom.anger;
+                if (effect.tom.patience) fateValues.tom.patience += effect.tom.patience;
+            }
+            if (effect.sara) {
+                if (effect.sara.calm) fateValues.sara.calm += effect.sara.calm;
+            }
+
+            // 限制范围 1-10
+            Object.keys(fateValues).forEach(char => {
+                Object.keys(fateValues[char]).forEach(stat => {
+                    fateValues[char][stat] = Math.max(1, Math.min(10, fateValues[char][stat]));
+                });
+            });
+
+            updateFatePanel();
+        }
+
+        function loadScene(sceneId) {
+            currentScene = sceneId;
+            const scene = scenes[sceneId];
+            if (!scene) return;
+
+            updateDialogue(scene.dialogue.speaker, scene.dialogue.text, scene.dialogue.type);
+
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = scene.options.map(opt =>
+                `<button class="option-btn" onclick="handleOption(${opt.id})">${opt.text}</button>`
+            ).join('');
+        }
+
+        function handleOption(optionId) {
+            const scene = scenes[currentScene];
+            const option = scene.options.find(o => o.id === optionId);
+            if (!option) return;
+
+            // 执行预设动作
+            const actions = {
+                emma_apologize: () => {
+                    updateDialogue("艾玛", "（微微低头）" "马上就来，实在抱歉！"", "preset");
+                    applyEffect({ emma: { anxiety: -1, confidence: 1 }, tom: { anger: -1, patience: 1 } });
+                    setTimeout(() => loadScene(2), 2000);
+                },
+                move_cup: () => {
+                    updateDialogue("系统", "你轻轻移动了汤姆面前的杯子...\n（汤姆的注意力被转移，没有继续催促）", "preset");
+                    applyEffect({ tom: { anger: -2, patience: 2 } });
+                    setTimeout(() => loadScene(3), 2500);
+                },
+                emma_wait: () => {
+                    updateDialogue("艾玛", "（快速擦拭杯子）" "请稍等一下，马上就好！"", "preset");
+                    applyEffect({ emma: { anxiety: 1, confidence: -1 } });
+                    setTimeout(() => {
+                        updateDialogue("汤姆", "（不耐烦地敲桌子）" "你们的服务越来越差了！"", "preset");
+                        applyEffect({ tom: { anger: 2, patience: -1 } });
+                    }, 2000);
+                },
+                tom_breathe: () => {
+                    updateDialogue("系统", "你让汤姆深呼吸...\n（汤姆的表情稍微缓和了一些）", "preset");
+                    applyEffect({ tom: { anger: -1, patience: 1 } });
+                },
+                sara_encourage: () => {
+                    updateDialogue("萨拉", "（微笑着握住艾玛的手）" "你一定行的！我相信你！"", "preset");
+                    applyEffect({ emma: { anxiety: -2, confidence: 2 }, sara: { calm: 5 } });
+                    setTimeout(() => {
+                        updateDialogue("系统", "【原型结束】\n\n回顾：\n- 你使用了 1 次预设选项\n- 你使用了 1 次物品点击干预\n- 命运线变化：艾玛焦虑降低，汤姆暴躁降低\n\n假设验证：你理解了预设与 AI 的边界吗？", "preset");
+                    document.getElementById('optionsContainer').innerHTML = `
+                        <button class="option-btn" onclick="location.reload()">重新开始原型</button>
+                    `;
+                    document.getElementById('customInput').disabled = true;
+                }, 2500);
+                },
+                give_note: () => {
+                    updateDialogue("系统", "你递给艾玛一张纸条...\n（艾玛眼睛亮了起来）", "preset");
+                    applyEffect({ emma: { anxiety: -1, confidence: 1 } });
+                    setTimeout(() => loadScene(2), 2000);
+                }
+            };
+
+            if (actions[option.action]) {
+                actions[option.action]();
+            }
+        }
+
+        function handleItemClick(item) {
+            if (item === 'cup') {
+                handleOption(2); // 移动杯子的动作
+            }
+        }
+
+        function handleCharacterClick(character) {
+            const responses = {
+                emma: [
+                    "（艾玛抬头看了你一眼）" "你...你是谁？"",
+                    "（艾玛轻轻擦去眼泪）" "谢谢你的关心..."",
+                    "（艾玛深吸一口气）" "我会努力的...""
+                ],
+                tom: [
+                    "（汤姆瞪着你）" "看什么看？还不快点服务！"",
+                    "（汤姆哼了一声）" "你们这些外行..."",
+                    "（汤姆不耐烦地摆手）" "别废话！""
+                ],
+                sara: [
+                    "（萨拉温和地微笑）" "你好，我是萨拉..."",
+                    "（萨拉思考着）" "这是一个有趣的想法..."",
+                    "（萨拉鼓励地）" "继续说，我愿意听...""
+                ]
+            };
+
+            const responseList = responses[character] || responses.emma;
+            const response = responseList[Math.floor(Math.random() * responseList.length)];
+
+            updateDialogue(character === 'emma' ? '艾玛' : character === 'tom' ? '汤姆' : '萨拉',
+                          response, 'ai');
+            updateFatePanel();
+        }
+
+        function handleCustomInput() {
+            const input = document.getElementById('customInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = '';
+
+            // 检查关键词匹配
+            let matched = false;
+            for (const rule of keywordRules) {
+                if (rule.keywords.some(kw => text.includes(kw))) {
+                    updateDialogue(rule.response.speaker, rule.response.text, rule.response.type);
+                    applyEffect(rule.effect);
+                    matched = true;
+                    break;
+                }
+            }
+
+            // 没有匹配，使用 AI 响应
+            if (!matched) {
+                const speaker = Math.random() < 0.5 ? '艾玛' : Math.random() < 0.5 ? '汤姆' : '萨拉';
+                const responses = aiResponses[speaker.toLowerCase()] || aiResponses.generic;
+                const response = responses[Math.floor(Math.random() * responses.length)];
+                updateDialogue(speaker, response.text, 'ai');
+            }
+
+            updateFatePanel();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                handleCustomInput();
+            }
+        }
+
+        // ============ 初始化 ============
+        updateFatePanel();
+    </script>
+</body>
+</html>

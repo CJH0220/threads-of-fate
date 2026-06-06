@@ -52,7 +52,8 @@ git lfs track "*.mat"
 
 # 6. 保存 LFS 配置
 git add .gitattributes
-
+git config user.name cjh0220
+git config user.email 1005741898@qq.com
 # 7. 配置用户信息（如果未配置）
 git config user.name "你的名字"
 git config user.email "你的邮箱"
@@ -79,7 +80,7 @@ git add .
 git add file1.cs file2.cs
 
 # 4. 提交
-git commit -m "feat: 实现命运的织线界面"
+git commit -m "第一次测试"
 
 # 5. 推送到远程仓库
 git push origin main
