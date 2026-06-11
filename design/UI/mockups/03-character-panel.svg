@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#2e4b5f"/>
+  <rect x="28" y="24" width="1224" height="672" fill="#d5b17a" stroke="#3b2a1f" stroke-width="6"/>
+  <rect x="48" y="44" width="1184" height="56" fill="#8a5a32" stroke="#3b2a1f" stroke-width="4"/>
+  <text x="76" y="80" font-family="sans-serif" font-size="26" fill="#fff1cf">人物面板</text>
+  <text x="1150" y="80" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#fff1cf">返回</text>
+
+  <rect x="58" y="126" width="300" height="526" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <rect x="86" y="154" width="140" height="140" fill="#c88752" stroke="#3b2a1f" stroke-width="5"/>
+  <circle cx="156" cy="204" r="34" fill="#6b3f24"/>
+  <rect x="118" y="240" width="76" height="42" fill="#3f6b3f"/>
+  <text x="246" y="186" font-family="sans-serif" font-size="26" fill="#3b2a1f">林潮音</text>
+  <text x="246" y="222" font-family="sans-serif" font-size="18" fill="#5b3928">学校教师</text>
+  <text x="246" y="252" font-family="sans-serif" font-size="18" fill="#5b3928">状态：焦虑</text>
+
+  <text x="86" y="336" font-family="sans-serif" font-size="22" fill="#3b2a1f">今日行程</text>
+  <rect x="86" y="356" width="236" height="42" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <text x="104" y="384" font-family="sans-serif" font-size="18" fill="#3b2a1f">早：学校</text>
+  <rect x="86" y="406" width="236" height="42" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <text x="104" y="434" font-family="sans-serif" font-size="18" fill="#3b2a1f">午：商业街</text>
+  <rect x="86" y="456" width="236" height="42" fill="#7b2e2e" stroke="#3b1111" stroke-width="3"/>
+  <text x="104" y="484" font-family="sans-serif" font-size="18" fill="#ffe6c7">晚：寺庙附近</text>
+
+  <rect x="390" y="126" width="404" height="526" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <text x="420" y="166" font-family="sans-serif" font-size="24" fill="#3b2a1f">人物信息</text>
+  <text x="420" y="210" font-family="sans-serif" font-size="19" fill="#3b2a1f">性格：温和、责任感强、容易自责</text>
+  <text x="420" y="246" font-family="sans-serif" font-size="19" fill="#3b2a1f">关注：学生安全、家人健康、寺庙传闻</text>
+  <text x="420" y="282" font-family="sans-serif" font-size="19" fill="#3b2a1f">近期线索：夜间常去寺庙附近查看香火</text>
+
+  <text x="420" y="340" font-family="sans-serif" font-size="24" fill="#3b2a1f">业线进度</text>
+  <rect x="420" y="366" width="320" height="26" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <rect x="420" y="366" width="202" height="26" fill="#b8753c"/>
+  <text x="752" y="388" font-family="sans-serif" font-size="18" fill="#3b2a1f">63%</text>
+  <rect x="420" y="418" width="330" height="72" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <text x="438" y="448" font-family="sans-serif" font-size="18" fill="#3b2a1f">下一节点：寺庙香火异常</text>
+  <text x="438" y="474" font-family="sans-serif" font-size="16" fill="#5b3928">风险：若无人干预，可能进入不幸分支</text>
+
+  <rect x="826" y="126" width="396" height="526" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <text x="856" y="166" font-family="sans-serif" font-size="24" fill="#3b2a1f">缘线</text>
+  <rect x="856" y="194" width="318" height="54" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <text x="876" y="228" font-family="sans-serif" font-size="18" fill="#3b2a1f">陈远舟 · 信任 +45</text>
+  <rect x="856" y="260" width="318" height="54" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <text x="876" y="294" font-family="sans-serif" font-size="18" fill="#3b2a1f">周阿婆 · 关心 +30</text>
+
+  <text x="856" y="366" font-family="sans-serif" font-size="24" fill="#3b2a1f">可用干预</text>
+  <rect x="856" y="392" width="140" height="48" fill="#b8753c" stroke="#3b2a1f" stroke-width="3"/>
+  <text x="926" y="423" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#fff1cf">托梦</text>
+  <rect x="1014" y="392" width="140" height="48" fill="#b8753c" stroke="#3b2a1f" stroke-width="3"/>
+  <text x="1084" y="423" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#fff1cf">赐福</text>
+  <rect x="856" y="458" width="298" height="70" fill="#7b2e2e" stroke="#3b1111" stroke-width="4"/>
+  <text x="1005" y="502" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#ffe6c7">查看当前事件</text>
+
+  <text x="30" y="710" font-family="sans-serif" font-size="16" fill="#e8d7b5">03 Character Panel · portrait, schedule, destiny progress, relationships, intervention actions</text>
+</svg>
