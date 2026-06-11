@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#243447"/>
+  <rect x="32" y="28" width="1216" height="664" fill="#d5b17a" stroke="#3b2a1f" stroke-width="6"/>
+  <rect x="58" y="54" width="1164" height="56" fill="#8a5a32" stroke="#3b2a1f" stroke-width="4"/>
+  <text x="88" y="90" font-family="sans-serif" font-size="28" fill="#fff1cf">组件样式板</text>
+  <text x="1042" y="90" font-family="sans-serif" font-size="18" fill="#fff1cf">暖木色 · 像素边框 · 高对比文本</text>
+
+  <rect x="70" y="138" width="350" height="226" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <text x="98" y="176" font-family="sans-serif" font-size="24" fill="#3b2a1f">按钮状态</text>
+  <rect x="100" y="202" width="220" height="46" fill="#b8753c" stroke="#3b2a1f" stroke-width="4"/>
+  <text x="210" y="232" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#fff1cf">默认按钮</text>
+  <rect x="100" y="262" width="220" height="46" fill="#d08a4a" stroke="#fff1cf" stroke-width="4"/>
+  <text x="210" y="292" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#fff1cf">焦点 / Hover</text>
+  <rect x="100" y="322" width="220" height="46" fill="#714432" stroke="#3b2a1f" stroke-width="4"/>
+  <text x="210" y="352" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#d6c08d">禁用</text>
+
+  <rect x="456" y="138" width="350" height="226" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <text x="484" y="176" font-family="sans-serif" font-size="24" fill="#3b2a1f">资源与标签</text>
+  <rect x="486" y="202" width="132" height="44" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <text x="552" y="231" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#3b2a1f">香火 63</text>
+  <rect x="638" y="202" width="132" height="44" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <text x="704" y="231" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#3b2a1f">神力 4</text>
+  <rect x="486" y="266" width="132" height="44" fill="#f1d05a" stroke="#3b2a1f" stroke-width="3"/>
+  <text x="552" y="295" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#3b2a1f">阳德 +20</text>
+  <rect x="638" y="266" width="132" height="44" fill="#7b2e2e" stroke="#3b1111" stroke-width="3"/>
+  <text x="704" y="295" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#ffe6c7">阴德 +8</text>
+
+  <rect x="842" y="138" width="350" height="226" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <text x="870" y="176" font-family="sans-serif" font-size="24" fill="#3b2a1f">提示与警告</text>
+  <rect x="872" y="202" width="278" height="56" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <text x="1011" y="237" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#3b2a1f">普通提示：已保存</text>
+  <rect x="872" y="276" width="278" height="66" fill="#7b2e2e" stroke="#3b1111" stroke-width="4"/>
+  <circle cx="908" cy="309" r="18" fill="#b3222a" stroke="#fff1cf" stroke-width="3"/>
+  <text x="908" y="316" text-anchor="middle" font-family="sans-serif" font-size="21" fill="#fff">!</text>
+  <text x="1028" y="316" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#ffe6c7">危险事件未查看</text>
+
+  <rect x="70" y="396" width="350" height="226" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <text x="98" y="434" font-family="sans-serif" font-size="24" fill="#3b2a1f">卡片</text>
+  <rect x="100" y="462" width="280" height="112" fill="#d6c08d" stroke="#6b4a2f" stroke-width="4"/>
+  <rect x="118" y="482" width="58" height="58" fill="#c88752" stroke="#3b2a1f" stroke-width="3"/>
+  <text x="194" y="504" font-family="sans-serif" font-size="18" fill="#3b2a1f">林潮音</text>
+  <text x="194" y="530" font-family="sans-serif" font-size="15" fill="#5b3928">状态：焦虑 · 业线63%</text>
+  <rect x="194" y="548" width="140" height="12" fill="#b8753c"/>
+
+  <rect x="456" y="396" width="350" height="226" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <text x="484" y="434" font-family="sans-serif" font-size="24" fill="#3b2a1f">进度 / 滑条</text>
+  <rect x="486" y="472" width="260" height="28" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <rect x="486" y="472" width="166" height="28" fill="#b8753c"/>
+  <text x="756" y="494" font-family="sans-serif" font-size="17" fill="#3b2a1f">64%</text>
+  <rect x="486" y="540" width="260" height="24" fill="#d6c08d" stroke="#6b4a2f" stroke-width="3"/>
+  <rect x="618" y="532" width="28" height="40" fill="#8a5a32" stroke="#3b2a1f" stroke-width="3"/>
+
+  <rect x="842" y="396" width="350" height="226" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="5"/>
+  <text x="870" y="434" font-family="sans-serif" font-size="24" fill="#3b2a1f">颜色板</text>
+  <g font-family="sans-serif" font-size="14" fill="#3b2a1f">
+    <rect x="872" y="466" width="54" height="54" fill="#d5b17a" stroke="#3b2a1f" stroke-width="3"/><text x="872" y="540">parchment</text>
+    <rect x="950" y="466" width="54" height="54" fill="#8a5a32" stroke="#3b2a1f" stroke-width="3"/><text x="950" y="540">wood</text>
+    <rect x="1028" y="466" width="54" height="54" fill="#b8753c" stroke="#3b2a1f" stroke-width="3"/><text x="1028" y="540">button</text>
+    <rect x="1106" y="466" width="54" height="54" fill="#7b2e2e" stroke="#3b1111" stroke-width="3"/><text x="1106" y="540">danger</text>
+  </g>
+
+  <text x="74" y="658" font-family="sans-serif" font-size="18" fill="#3b2a1f">组件原则：所有可点击元素需要默认 / 焦点 / 按下 / 禁用状态；危险信息必须有图标或文字，不只依赖颜色。</text>
+  <text x="30" y="710" font-family="sans-serif" font-size="16" fill="#e8d7b5">07 Component Style Board · buttons, labels, warnings, cards, progress, palette, accessibility reminders</text>
+</svg>
