@@ -8,6 +8,16 @@
 
 ---
 
+## 0. 全局规范引用
+
+本组件必须遵循：
+
+- `ui-accessibility-guidelines.md`
+- `ui-interaction-patterns.md`
+- `ui-localization-guidelines.md`
+
+---
+
 ## 1. 用途
 
 通用确认弹窗用于所有需要玩家二次确认的操作，尤其是会导致资源消耗、进度丢失、存档覆盖或退出游戏的操作。

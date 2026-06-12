@@ -8,6 +8,16 @@
 
 ---
 
+## 0. 全局规范引用
+
+本界面必须遵循：
+
+- `ui-accessibility-guidelines.md`
+- `ui-interaction-patterns.md`
+- `ui-localization-guidelines.md`
+
+---
+
 ## 1. 用途
 
 Game Over 界面用于在香火失败、强硬不幸结局或关键失败事件触发时，清楚告诉玩家失败原因，并提供读档、返回主菜单或重新开始的选择。

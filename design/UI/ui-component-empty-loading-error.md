@@ -8,6 +8,16 @@
 
 ---
 
+## 0. 全局规范引用
+
+本组件必须遵循：
+
+- `ui-accessibility-guidelines.md`
+- `ui-interaction-patterns.md`
+- `ui-localization-guidelines.md`
+
+---
+
 ## 1. 用途
 
 空 / 加载 / 错误状态组件用于所有列表、面板、异步流程和数据缺失场景，保证玩家不会看到空白界面或误以为游戏卡死。

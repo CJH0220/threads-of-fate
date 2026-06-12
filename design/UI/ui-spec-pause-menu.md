@@ -8,6 +8,16 @@
 
 ---
 
+## 0. 全局规范引用
+
+本界面必须遵循：
+
+- `ui-accessibility-guidelines.md`
+- `ui-interaction-patterns.md`
+- `ui-localization-guidelines.md`
+
+---
+
 ## 1. 用途
 
 暂停菜单用于游戏内暂停、保存、加载、设置、返回主菜单和退出游戏。

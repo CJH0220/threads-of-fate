@@ -1,0 +1,16 @@
+LocationId,DisplayName,Category,UnlockDay,PrimaryTimeSlots,CoreNpcIds,Function,VisualPriority,MvpPriority,Description
+temple,寺庙,Faith,Day1,"Morning;Night","huiyuan;lin_chaoyin;tudi_gong",香火、巫女线、周结算和终局聚集核心地点,P0,P0,山顶旧土地庙，是土地公神位和香火压力的主要舞台
+school,学校,Daily,Day1,"Morning;Afternoon","lin_chaoyin;chen_yuanzhou;xu_qing",青春线、学习压力、校园日常,P0,P0,林潮音和陈远舟的主要日常地点
+coffee_shop,咖啡店,Daily,Day1,Afternoon,"ye_keke;lin_chaoyin;chen_yuanzhou",日常社交、八卦、轻松缓冲,P0,P0,年轻人聚集的温暖地点，可承载日常事件
+port,港口,Risk,Day1,"Morning;Night","he_laosan;gu_chenzhou;zhou_xingzhi",外来者、偷渡、夜船记录和离岛机会,P0,P0,归潮镇与外界连接的关键地点
+seafood_shop,海鲜店,Family,Day1,"Morning;Afternoon;Night","chen_haisheng;su_wan;chen_yuanzhou",家庭冲突、经济压力、陈海生线,P0,P0,陈海生一家经营的海鲜店，是家庭线主要地点
+clinic,诊所,Medical,Day8,"Morning;Afternoon","jiang_xueyi;xu_qing",医疗线、邪教渗透和可疑记录,P1,P1,江雪仪接手后成为信任与控制并存的地点
+wine_bar,酒屋,Adult,Day1,Night,"lin_yueqin;chen_haisheng;gu_chenzhou;he_laosan",成人秘密、暧昧、邪教接触,P1,P1,夜晚信息和秘密聚会的中转地点
+plaza,广场,Public,Day1,"Afternoon;Night","town_representative;gu_chenzhou;zhao_shouzheng",公开集会、庙会争夺、新信仰集会,P1,P1,公共舆论和集体选择发生的地点
+police_station,派出所,Order,Day1,"Morning;Afternoon","xu_mingchuan;zhao_shouzheng",侦探线、证据链、秩序系统,P1,P1,许明川和赵守正推动调查的核心地点
+mountain_forest,山林,Risk,Day8,Night,"gu_chenzhou;jiang_xueyi;chen_haisheng",邪教秘密聚会和高风险事件,P1,P1,隐蔽、危险、适合秘密活动的地点
+beach,沙滩,Daily,Day1,"Afternoon;Night","lin_chaoyin;chen_yuanzhou;chen_haisheng",青春约定、渔民日常、海潮预兆,P1,P1,兼具浪漫和灾难预兆的地点
+bookstore,书店,Daily,Day1,Afternoon,"chen_yuanzhou;zhou_xingzhi",升学、资料查询、调查辅助,P2,P2,可作为陈远舟和周行知的辅助地点
+various_homes,各自住所,Private,Day1,Night,"all_npc",家庭事件和个人结局,P2,P2,用于夜晚家庭事件与结局后日谈
+town_wide,全镇,System,Day1,Any,all_npc,天灾和全局状态,P0,P0,系统级地点，用于全镇灾难或整体状态变化
+gathering_site,最终聚集地点,System,Day50,Any,all_npc,终局聚集和灾后结算,P0,P0,由事件结果决定是寺庙、广场或其他地点

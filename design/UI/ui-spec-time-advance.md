@@ -8,6 +8,16 @@
 
 ---
 
+## 0. 全局规范引用
+
+本界面必须遵循：
+
+- `ui-accessibility-guidelines.md`
+- `ui-interaction-patterns.md`
+- `ui-localization-guidelines.md`
+
+---
+
 ## 1. 用途
 
 时间推进界面用于结束当前时段，播放短暂过渡，并展示本次时间流动造成的主要变化。它连接“玩家观察与干预”和“世界模拟结果”。
@@ -88,7 +98,21 @@
 
 ---
 
-## 7. 状态与变体
+## 7. 后续跳转优先级
+
+时间推进完成后，按以下优先级决定下一界面：
+
+1. 若触发 Game Over 条件，进入 `ui-spec-game-over.md`。
+2. 若第 60 天结束且未失败，进入 `ui-spec-final-summary.md`。
+3. 若跨周且不是第 60 天，进入 `ui-spec-week-summary.md`。
+4. 若触发关键事件，进入 `ui-spec-event-panel.md`。
+5. 若只有普通变化，显示本次变化摘要后返回主地图 HUD。
+
+同一时段存在多个关键事件时，按事件优先级队列逐个展示；全部确认后再进入周结算或返回主地图。
+
+---
+
+## 8. 状态与变体
 
 | 状态 | 表现 |
 |---|---|
@@ -101,7 +125,7 @@
 
 ---
 
-## 8. Godot 实现建议
+## 9. Godot 实现建议
 
 ```text
 TimeAdvanceOverlay (CanvasLayer)
@@ -116,7 +140,7 @@ TimeAdvanceOverlay (CanvasLayer)
 
 ---
 
-## 9. 数据需求
+## 10. 数据需求
 
 | 数据 | 来源 | 用途 |
 |---|---|---|
@@ -128,7 +152,7 @@ TimeAdvanceOverlay (CanvasLayer)
 
 ---
 
-## 10. 验收标准
+## 11. 验收标准
 
 - [ ] 点击推动时间能进入时间推进流程。
 - [ ] 有危险事件未查看时，先出现二次确认。
