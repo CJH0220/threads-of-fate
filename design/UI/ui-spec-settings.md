@@ -8,6 +8,16 @@
 
 ---
 
+## 0. 全局规范引用
+
+本界面必须遵循：
+
+- `ui-accessibility-guidelines.md`
+- `ui-interaction-patterns.md`
+- `ui-localization-guidelines.md`
+
+---
+
 ## 1. 用途
 
 设置界面用于调整音频、显示、文本速度、操作提示和辅助功能。它需要可从主菜单和游戏内暂停菜单进入。

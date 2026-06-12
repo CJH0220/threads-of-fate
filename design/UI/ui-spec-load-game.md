@@ -8,6 +8,16 @@
 
 ---
 
+## 0. 全局规范引用
+
+本界面必须遵循：
+
+- `ui-accessibility-guidelines.md`
+- `ui-interaction-patterns.md`
+- `ui-localization-guidelines.md`
+
+---
+
 ## 1. 用途
 
 加载游戏界面用于浏览已有存档，查看存档摘要，并选择一个存档进入游戏。

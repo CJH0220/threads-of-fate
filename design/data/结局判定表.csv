@@ -1,0 +1,8 @@
+EndingId,DisplayName,EndingType,Priority,RequiredConditions,BlockedConditions,VisualStyleId,SummaryKey,Description
+game_over_incense_out,香火熄灭,Failure,1000,"incense<100",None,ending_failure_gray,ending.failure.incense_out,第60天香火不足，土地公神位被撤回，归潮镇不再记得旧神
+game_over_temple_burned,神位崩塌,Failure,990,"hard_bad_temple_fire=true",None,ending_failure_fire,ending.failure.temple_burned,寺庙被烧毁且无法补救，香火和神位一起崩塌
+game_over_cult_takeover,归潮镇沦陷,Failure,980,"cult_ritual_success=true",None,ending_failure_cult,ending.failure.cult_takeover,邪教换神仪式完成，归潮镇信仰被彻底替代
+legend_guardian,归潮传说,Legend,900,"incense>=150;yang_de>=80;good_key_npc_count>=4;cult_ritual_success=false",None,ending_legend_gold_purple,ending.legend.guardian,土地公成为归潮镇真正的守护传说，灾后小镇仍有人传颂岛爷的名字
+righteous_god,天界善神,Righteous,700,"incense>=100;yang_de-yin_de>=20",None,ending_righteous_gold,ending.righteous.default,土地公以守护和引导保住神位，多数居民获得较好的未来
+evil_god,地府邪神,Evil,650,"incense>=100;yin_de-yang_de>=20",None,ending_evil_dark_red,ending.evil.default,土地公以操控和代价换来力量，小镇仍供奉他，却多了畏惧
+neutral_god,旧庙余香,Neutral,500,"incense>=100;abs(yang_de-yin_de)<20",None,ending_neutral_gray,ending.neutral.default,土地公勉强通过考核，归潮镇继续生活，但许多问题仍未解开

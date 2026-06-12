@@ -1,0 +1,8 @@
+ResourceId,DisplayName,InitialValue,MinValue,MaxValue,UiPriority,IconAssetId,ColorHint,PrimaryUse,FailureRelevant,Description
+incense,香火,50,0,999,1,ui_icon_incense,OrangeRed,神位稳定与最终失败阈值,Yes,归潮镇居民对土地公的供奉和信任程度
+divine_power,神力,15,0,99,2,ui_icon_divine_power,BluePurple,观察和干预消耗资源,No,土地公可用于托梦赐福等干预的行动资源
+yang_de,阳德,0,0,999,3,ui_icon_yang_de,Gold,正向路线和守护行为积累,No,玩家通过守护救助引导获得的正向功德
+yin_de,阴德,0,0,999,4,ui_icon_yin_de,DarkRed,邪路路线和操控行为积累,No,玩家通过遮蔽操控牺牲等行为积累的负向功德
+cult_influence,邪教传播值,0,0,100,5,ui_icon_cult,DarkPurple,邪教线风险和坏结局条件,Yes,顾沉舟和江雪仪对归潮镇的渗透程度
+public_order,小镇秩序,50,0,100,6,ui_icon_order,BlueGray,侦探线和灾难应对辅助指标,No,许明川和赵守正维持归潮镇秩序的整体状态
+temple_trust,寺庙信任,50,0,100,7,ui_icon_temple,Amber,寺庙和慧圆线状态,No,居民对寺庙和旧信仰机构的信任程度

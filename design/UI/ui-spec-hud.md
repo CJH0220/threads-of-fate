@@ -8,6 +8,16 @@
 
 ---
 
+## 0. 全局规范引用
+
+本界面必须遵循：
+
+- `ui-accessibility-guidelines.md`
+- `ui-interaction-patterns.md`
+- `ui-localization-guidelines.md`
+
+---
+
 ## 1. 用途
 
 主地图 HUD 是游戏内核心界面。玩家通过它观察归潮镇、查看时间和资源、选择地点或人物、处理事件，并推动时间流逝。

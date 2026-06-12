@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#243447"/>
+  <rect x="40" y="36" width="1200" height="648" rx="12" fill="#f1d9aa" stroke="#3b2a1f" stroke-width="6"/>
+  <text x="640" y="88" text-anchor="middle" font-family="sans-serif" font-size="36" fill="#3b2a1f">《命运的织线》核心玩法循环</text>
+  <text x="640" y="124" text-anchor="middle" font-family="sans-serif" font-size="18" fill="#5b3928">观察命运 → 神力干预 → 时间推进 → 事件结算 → 命运变化</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#3b2a1f"/>
+    </marker>
+  </defs>
+
+  <g font-family="sans-serif">
+    <rect x="88" y="250" width="170" height="96" rx="10" fill="#d5b17a" stroke="#3b2a1f" stroke-width="4"/>
+    <text x="173" y="288" text-anchor="middle" font-size="24" fill="#3b2a1f">观察命运</text>
+    <text x="173" y="318" text-anchor="middle" font-size="15" fill="#5b3928">人物 / 地点 / 事件</text>
+
+    <rect x="322" y="250" width="170" height="96" rx="10" fill="#d5b17a" stroke="#3b2a1f" stroke-width="4"/>
+    <text x="407" y="288" text-anchor="middle" font-size="24" fill="#3b2a1f">选择干预</text>
+    <text x="407" y="318" text-anchor="middle" font-size="15" fill="#5b3928">托梦 / 赐福</text>
+
+    <rect x="556" y="250" width="170" height="96" rx="10" fill="#d5b17a" stroke="#3b2a1f" stroke-width="4"/>
+    <text x="641" y="288" text-anchor="middle" font-size="24" fill="#3b2a1f">推动时间</text>
+    <text x="641" y="318" text-anchor="middle" font-size="15" fill="#5b3928">早 → 午 → 晚</text>
+
+    <rect x="790" y="250" width="170" height="96" rx="10" fill="#d5b17a" stroke="#3b2a1f" stroke-width="4"/>
+    <text x="875" y="288" text-anchor="middle" font-size="24" fill="#3b2a1f">事件结算</text>
+    <text x="875" y="318" text-anchor="middle" font-size="15" fill="#5b3928">资源 / NPC / 历史</text>
+
+    <rect x="1024" y="250" width="170" height="96" rx="10" fill="#d5b17a" stroke="#3b2a1f" stroke-width="4"/>
+    <text x="1109" y="288" text-anchor="middle" font-size="24" fill="#3b2a1f">命运变化</text>
+    <text x="1109" y="318" text-anchor="middle" font-size="15" fill="#5b3928">缘线 / 业线 / 结局</text>
+
+    <line x1="258" y1="298" x2="318" y2="298" stroke="#3b2a1f" stroke-width="4" marker-end="url(#arrow)"/>
+    <line x1="492" y1="298" x2="552" y2="298" stroke="#3b2a1f" stroke-width="4" marker-end="url(#arrow)"/>
+    <line x1="726" y1="298" x2="786" y2="298" stroke="#3b2a1f" stroke-width="4" marker-end="url(#arrow)"/>
+    <line x1="960" y1="298" x2="1020" y2="298" stroke="#3b2a1f" stroke-width="4" marker-end="url(#arrow)"/>
+
+    <path d="M1109 346 C1109 516 173 516 173 350" fill="none" stroke="#8a5a32" stroke-width="5" marker-end="url(#arrow)"/>
+    <text x="640" y="548" text-anchor="middle" font-size="20" fill="#3b2a1f">循环直到周结算、Game Over 或 Day 60 终局</text>
+
+    <rect x="180" y="438" width="220" height="58" rx="8" fill="#f1d05a" stroke="#3b2a1f" stroke-width="3"/>
+    <text x="290" y="474" text-anchor="middle" font-size="18" fill="#3b2a1f">阳德 / 正神倾向</text>
+    <rect x="444" y="438" width="220" height="58" rx="8" fill="#7b2e2e" stroke="#3b1111" stroke-width="3"/>
+    <text x="554" y="474" text-anchor="middle" font-size="18" fill="#ffe6c7">阴德 / 邪神倾向</text>
+    <rect x="708" y="438" width="220" height="58" rx="8" fill="#d08a4a" stroke="#3b2a1f" stroke-width="3"/>
+    <text x="818" y="474" text-anchor="middle" font-size="18" fill="#3b2a1f">香火 / 神位压力</text>
+  </g>
+</svg>

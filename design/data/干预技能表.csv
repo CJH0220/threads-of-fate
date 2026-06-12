@@ -1,0 +1,7 @@
+InterventionId,DisplayName,CostDivinePower,TargetType,RouteBias,UnlockDay,MvpEnabled,DefaultEffect,DefaultRisk,AiTextPolicy,Description
+dream_hint,托梦,2,Npc,YangOrNeutral,Day1,Yes,提高目标对风险或关系的认知,梦境模糊时只产生轻微影响,DescriptionOnly,让目标 NPC 在梦中看到模糊征兆或情绪暗示
+blessing,赐福,3,NpcOrEvent,Yang,Day1,Yes,提高一次正向行动或判定成功率,过度依赖会消耗神力,DescriptionOnly,给 NPC 的某次行动带来好运或勇气
+fate_pull,牵引机缘,4,NpcPairOrLocation,NeutralOrYang,Day8,ConfigOnly,提高相遇发现或对话概率,可能让错误的人相遇,DescriptionOnly,轻轻牵引缘线使人与人或人与地点更容易交会
+omen_hide,遮蔽灾兆,3,InfoOrRisk,Yin,Day8,ConfigOnly,暂时降低风险或线索可见性,长期可能导致更大事故,DescriptionOnly,遮蔽某条证据风险或异常征兆以换取短期收益
+spirit_warning,显灵警示,5,LocationOrGroup,Yang,Day15,ConfigOnly,强制制造明显警告影响多个 NPC,可能造成恐慌或畏惧,DescriptionOnly,用土地公显灵方式提醒居民危险临近
+insight,强化观察,1,NpcOrEvent,Neutral,Day1,Optional,显示更多风险或可能影响,不直接改变事件结果,None,消耗少量神力查看更清晰的命运提示
