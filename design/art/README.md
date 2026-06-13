@@ -39,6 +39,8 @@
 |---|---|---|
 | `art-style-guide.md` | 美术风格、颜色、像素规则、UI 与场景表现原则 | 初版 |
 | `asset-list.md` | MVP / P1 / P2 资产需求清单 | 初版 |
+| `location-art-spec.md` | 地点美术规格、主色、物件和风险表现 | 初版 |
+| `character-portrait-spec.md` | 角色头像、表情差分和 UI 使用规格 | 初版 |
 
 UI 视觉参考见：
 

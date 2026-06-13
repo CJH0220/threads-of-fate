@@ -1,0 +1,10 @@
+WeekStage,DayRange,StageName,MainFocus,BaseDailyEventCount,AnchorEventCount,IncensePressure,CultPressure,PublicOrderPressure,TempleTrustPressure,PrimaryNpcIds,PrimaryLocationIds,Description
+W1,Day1-7,织线初启,教学与日常建立,2,3,Low,None,None,Low,"lin_chaoyin;chen_yuanzhou;chen_haisheng;huiyuan","temple;school;coffee_shop;seafood_shop",玩家熟悉命运织线器和基础资源
+W2,Day8-14,外来者入潮,顾沉舟与江雪仪进入棋盘,2,3,Low,Low,None,Low,"gu_chenzhou;jiang_xueyi;he_laosan;zhou_xingzhi","port;clinic;wine_bar",外来者和夜船线索出现
+W3,Day15-21,暗潮显影,第一批异常和巫女候选,2,4,Medium,Medium,Low,Medium,"lin_chaoyin;chen_haisheng;gu_chenzhou;xu_mingchuan","temple;port;plaza;seafood_shop",邪教和巫女压力首次显性化
+W4,Day22-28,缘线拉扯,青春线与调查线转折,2,5,Medium,Medium,Low,Medium,"lin_chaoyin;chen_yuanzhou;xu_qing;zhou_xingzhi;gu_chenzhou","school;beach;clinic;police_station;mountain_forest",多条关键线进入选择点
+W5,Day29-35,灾兆入梦,第60天天灾预告与邪教成型,2,5,High,High,Medium,High,"chen_haisheng;gu_chenzhou;huiyuan;zhou_xingzhi","temple;mountain_forest;wine_bar;clinic",玩家明确知道灾难但还不能直接阻止
+W6,Day36-42,众声撕裂,公开集会和家庭冲突,2,5,High,High,High,High,"chen_haisheng;su_wan;chen_yuanzhou;huiyuan;zhao_shouzheng","plaza;seafood_shop;temple;police_station",社会秩序和家庭关系承压
+W7,Day43-49,命运定向,核心角色做关键选择,2,5,High,VeryHigh,High,High,"lin_chaoyin;chen_haisheng;gu_chenzhou;xu_mingchuan;huiyuan","plaza;temple;police_station;seafood_shop",多数业线进入不可逆或半不可逆状态
+W8,Day50-56,终局准备,聚集地点和证据链锁定,2,5,VeryHigh,VeryHigh,High,High,"all_core_npc","plaza;temple;police_station;port;wine_bar",终局前最后准备窗口
+Final,Day57-60,潮落终判,终局结算与路线判定,1,4,Final,Final,Final,Final,all_npc,"temple;town_wide;gathering_site;various_homes",第60天天灾和最终路线判定
