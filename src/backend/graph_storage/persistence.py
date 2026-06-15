@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Union
 
 from .graph import RelationshipGraph
-from .models import NPC, Edge
+from .graph_models import NPC, Edge
 
 
 def save_graph(graph: RelationshipGraph, filepath: Union[str, Path]) -> None:

@@ -2,7 +2,7 @@
 
 from typing import Dict, List, Optional, Set, Tuple
 
-from .models import NPC, Edge
+from .graph_models import NPC, Edge
 
 
 class RelationshipGraph:
