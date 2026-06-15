@@ -12,8 +12,8 @@ import os
 import tempfile
 import unittest
 
-from ..graph import RelationshipGraph
-from ..persistence import load_graph, save_graph
+from ..graph_storage.graph import RelationshipGraph
+from ..graph_storage.persistence import load_graph, save_graph
 
 
 class TestNPC(unittest.TestCase):
