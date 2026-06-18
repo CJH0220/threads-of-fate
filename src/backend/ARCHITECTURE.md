@@ -322,13 +322,65 @@ POST /save/{slot}
 | `pytest` | 8.3.5 | 测试框架 | ✅ |
 | `fastapi` | 0.124.4 | Web 框架 | ✅ |
 | `uvicorn` | 0.33.0 | ASGI 服务器 | ✅ |
+| `httpx` | 0.28.1 | 异步 HTTP 客户端（LLM API） | ✅ |
 | `websockets` | ≥12.0 | WebSocket 支持 | ⏳ |
-| `httpx` | ≥0.27 | 异步 HTTP 客户端（LLM API） | ⏳ |
 | `python-dotenv` | ≥1.0 | 环境变量管理 | ⏳ |
 
 **环境配置文件已在项目根目录：**
 - `environment.yml` — Conda 环境（推荐，Python 3.10）
 - `requirements.txt` — Pip 依赖清单
+
+---
+
+### 7.1 LLM 服务连接
+
+**本地模型：** llama.cpp server，OpenAI 兼容 API
+
+| 配置项 | 值 |
+|--------|-----|
+| 主机 | `172.21.125.241` |
+| 端口 | `8080` |
+| API 路径 | `/v1/chat/completions` |
+| 模型 | Qwen3-14B Q4_K_M（14B 参数量化，8.99 GB） |
+| 上下文长度 | 8,192 tokens |
+| API 密钥 | 无需（本地服务） |
+
+**Qwen3 特殊参数：** Qwen3 是推理模型，默认会进入思考模式（输出在 `reasoning_content` 而非 `content`）。调用时必须加：
+
+```json
+{
+  "chat_template_kwargs": { "enable_thinking": false }
+}
+```
+
+对应 `LoadBalancedClient` 的 `extra_body` 参数。
+
+**性能基准（2026-06-18 实测）：**
+
+| 指标 | 值 |
+|------|-----|
+| 提示处理速度 | ~220 tok/s |
+| 文本生成速度 | **~27.4 tok/s** |
+| 6 并发（128 tok 输出） | ~4.5s |
+| 12 并发（128 tok 输出） | ~1.3s |
+| 24 并发（128 tok 输出） | ~3.1s |
+
+**多实例部署（计划）：**
+
+端点列表（llama.cpp 多进程，不同端口）：
+
+```python
+LoadBalancedClient(
+    endpoints=[
+        "http://172.21.125.241:8081/v1/chat/completions",
+        "http://172.21.125.241:8082/v1/chat/completions",
+        "http://172.21.125.241:8083/v1/chat/completions",
+    ],
+    per_endpoint_concurrency=2,  # 每实例 2 并发，总并发=6
+)
+```
+
+当前 Demo 阶段使用单实例（8080 端口）。
 
 ---
 
