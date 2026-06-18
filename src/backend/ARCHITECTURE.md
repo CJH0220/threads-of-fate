@@ -1,7 +1,7 @@
 # 后端架构文档
 
 > 文件位置：`src/backend/ARCHITECTURE.md`  
-> 更新日期：2026-06-13  
+> 更新日期：2026-06-13（持续更新）  
 > **每次编写后端代码前请先阅读本文档。**
 
 ---
@@ -27,7 +27,8 @@ src/backend/
 ├── ARCHITECTURE.md                # ← 本文档（代码前必读）
 │
 ├── models/                        # 🔷 数据合同层
-│   └── npc.py                     #   Pydantic 模型：NPC 三层结构、枚举
+│   ├── npc.py                     #   NPC 三层结构、枚举
+│   └── common.py                  #   ApiResponse、GameStateResponse
 │
 ├── ai/                            # 🧠 AI 子系统
 │   └── npc_agent/
@@ -46,11 +47,13 @@ src/backend/
 │   ├── api.py                     #   对外便捷接口
 │   └── ARCHITECTURE.md            #   图存储架构文档
 │
-├── server/                        # 🌐 FastAPI 服务器（待实现）
-│   ├── main.py                    #   应用启动入口
-│   ├── routes/                    #   REST 路由
-│   ├── websocket/                 #   WebSocket 处理
-│   └── middleware.py              #   全局异常处理
+├── server/                        # 🌐 FastAPI 服务器
+│   ├── main.py                    #   应用入口（create_app + uvicorn）
+│   ├── state.py                   #   全局 AgentManager 单例
+│   ├── middleware.py              #   CORS + 全局异常捕获
+│   └── routes/
+│       ├── health.py              #   GET /health ✅
+│       └── game.py                #   POST /new-game ✅  GET /state ✅
 │
 ├── engine/                        # ⚙️ 游戏逻辑引擎（待实现）
 │   ├── time/                      #   时间系统（天/时段/周推进）
@@ -96,6 +99,8 @@ src/backend/
 | `AgentMemory` | 完整记忆存储（事件链+关键记忆+印象） | 记忆 |
 | `NpcSnapshot` | 三层聚合快照（给前端） | 视图 |
 | `NpcListResponse` | 所有 NPC 快照列表 | 视图 |
+| `ApiResponse` | 统一 REST 响应外壳（success + data + error） | 通用 |
+| `GameStateResponse` | 游戏完整状态（资源 + NPC 列表） | 视图 |
 
 ### 2.2 `ai/npc_agent/` — NPC Agent 模块
 
@@ -134,27 +139,31 @@ manager.py            ← 管理所有 Agent 实例
 - JSON 序列化支持
 - 在架构决策中，此模块**不直接参与游戏运行时**——游戏运行时的缘线管理由 `engine/bond/` 负责
 
-### 2.4 `server/` — FastAPI 服务器（待实现）
+### 2.4 `server/` — FastAPI 服务器
 
 **一句话：对外暴露 REST + WebSocket 接口。**
+
+**启动方式：** `uvicorn src.backend.server.main:app --reload --host 0.0.0.0 --port 8000`
 
 | 层 | 协议 | 用途 |
 |----|------|------|
 | REST | HTTP | 简单同步操作：`/health`, `/new-game`, `/state`, `/save`, `/load` |
-| WebSocket | WS | 双向实时通信：时间推进结算、LLM 流式文本、关键警报 |
+| WebSocket | WS | 双向实时通信：时间推进结算、LLM 流式文本（待实现） |
 
-**核心端点（规划）：**
+**核心端点：**
 
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/health` | GET | 健康检查 |
-| `/new-game` | POST | 创建新游戏，返回全量初始状态 |
-| `/state` | GET | 查询当前完整状态 |
-| `/save/{slot}` | POST | 保存到指定槽位 |
-| `/load/{slot}` | POST | 从指定槽位加载 |
-| `/saves` | GET | 列出所有存档 |
-| `/saves/{slot}` | DELETE | 删除存档 |
-| `/ws/game` | WS | 游戏主通信通道 |
+| 端点 | 方法 | 状态 | 说明 |
+|------|------|------|------|
+| `/health` | GET | ✅ 已实现 | 健康检查 |
+| `/new-game` | POST | ✅ 已实现 | 创建新游戏（加载 Demo NPC），返回全量初始状态 |
+| `/state` | GET | ✅ 已实现 | 查询当前游戏完整状态 |
+| `/save/{slot}` | POST | ⏳ | 保存到指定槽位 |
+| `/load/{slot}` | POST | ⏳ | 从指定槽位加载 |
+| `/saves` | GET | ⏳ | 列出所有存档 |
+| `/saves/{slot}` | DELETE | ⏳ | 删除存档 |
+| `/ws/game` | WS | ⏳ | 游戏主通信通道 |
+
+**状态管理：** 当前使用 `server/state.py` 全局单例持有 AgentManager，Demo 阶段只支持单局。后期替换为会话池时，对外接口（`get_manager()`, `init_manager()`）签名不变。
 
 **统一响应格式：**
 
@@ -309,13 +318,13 @@ POST /save/{slot}
 
 | 包 | 版本 | 用途 | 状态 |
 |----|------|------|------|
-| `pydantic` | 2.10.6 | 数据模型 | ✅ 已安装 |
-| `pytest` | 8.3.5 | 测试框架 | ✅ 已安装 |
-| `fastapi` | ≥0.115 | Web 框架 | ⏳ 待安装 |
-| `uvicorn` | ≥0.30 | ASGI 服务器 | ⏳ 待安装 |
-| `websockets` | ≥12.0 | WebSocket 支持 | ⏳ 待安装 |
-| `httpx` | ≥0.27 | 异步 HTTP 客户端（LLM API） | ⏳ 待安装 |
-| `python-dotenv` | ≥1.0 | 环境变量管理 | ⏳ 待安装 |
+| `pydantic` | 2.10.6 | 数据模型 | ✅ |
+| `pytest` | 8.3.5 | 测试框架 | ✅ |
+| `fastapi` | 0.124.4 | Web 框架 | ✅ |
+| `uvicorn` | 0.33.0 | ASGI 服务器 | ✅ |
+| `websockets` | ≥12.0 | WebSocket 支持 | ⏳ |
+| `httpx` | ≥0.27 | 异步 HTTP 客户端（LLM API） | ⏳ |
+| `python-dotenv` | ≥1.0 | 环境变量管理 | ⏳ |
 
 **环境配置文件已在项目根目录：**
 - `environment.yml` — Conda 环境（推荐，Python 3.10）
@@ -329,19 +338,18 @@ POST /save/{slot}
 
 | 阶段 | 内容 | 测试 |
 |------|------|------|
-| ✅ 数据模型 | `models/npc.py` — Pydantic 三层结构 + 枚举 | — |
-| ✅ NPC Agent | `ai/npc_agent/` — 6 文件 + README | 48 个测试 |
-| ✅ 图存储 | `graph_storage/` — RelationshipGraph + 持久化 | 34 个测试 |
+| ✅ 数据模型 | `models/` — Pydantic 三层结构 + 枚举 + 通用格式 | — |
+| ✅ NPC Agent | `ai/npc_agent/` — 7 文件 + README | 48 个单元测试 |
+| ✅ 图存储 | `graph_storage/` — RelationshipGraph + 持久化（重组） | 34 个单元测试 |
+| ✅ FastAPI 服务端 | `server/` — health / new-game / state 端点 | 手动验证通过 |
 
 ### 待开发（按优先级）
 
 | 优先级 | 模块 | 产出 |
 |--------|------|------|
-| **P0** | `server/` — FastAPI 入口 + health 端点 | 服务器可启动 |
-| **P0** | `server/routes/game.py` — `/new-game` 端点 | Demo 可跑通 |
-| **P1** | `data/` — CSV 配置加载 | 从数据表初始化 |
 | **P1** | `engine/time/` — 时间系统 | 天/时段/周推进 |
 | **P1** | `engine/resource/` — 资源系统 | 香火/神力/阴德/阳德 |
+| **P1** | `data/` — CSV 配置加载 | 从数据表初始化 |
 | **P2** | `engine/event/` — 事件系统 | 触发+结算+命运硬币 |
 | **P2** | `engine/bond/` — 缘线系统 | 关系变化 |
 | **P2** | `engine/karma/` — 业线系统 | 节点推进+跳关 |
