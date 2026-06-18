@@ -575,36 +575,36 @@ class KnowledgeGraph(BaseModel):
 
 ---
 
-## 9. 与现有代码的对接
+## 9. 实现状态
 
-### 9.1 需要修改/新增的文件
+> 更新日期：2026-06-18
 
-| 文件 | 变更 |
-|------|------|
-| `models/npc.py` | `MemoryEntry` 新增 `memory_id`, `participants`, `location`; 新增 `SemanticEntry`, `SemanticCategory`, `KnowledgeGraph`, `Entity`, `Relation`, `RetrievalContext`, `ScoredEntry`, `RetrievalResult` |
-| `memory.py` | `MemoryStore` → `StructMemoryStore` + `VectorMemoryStore`; 替换 `context_for_llm()` 为检索流水线 |
-| **新增** `semantic.py` | `SemanticStore` — 语义记忆存储/检索/LM提取/图谱管理 |
-| **新增** `retrieval.py` | `RetrievalPipeline` — 三层检索流水线 |
-| `agent.py` | `NpcAgent.think()` / `respond()` 调用检索流水线 |
-| `templates.py` | system_prompt 增加语义记忆段落 |
-| **新增** `config/memory.yaml` | 可调参数配置文件 |
-| `ai/npc_agent/README.md` | 更新文档 |
+### 9.1 已完成
 
-### 9.2 实现优先级
-
-| 阶段 | 内容 | 依赖 |
+| 阶段 | 内容 | 文件 |
 |------|------|------|
-| P0 | `MemoryEntry` 结构升级（加 `memory_id`/`participants`/`location`） | — |
-| P0 | `StructMemoryStore` + `VectorMemoryStore` | P0 |
-| P0 | 情景记忆检索公式实现 | P0 |
-| P1 | `SemanticEntry` / `SemanticMemory` / `KnowledgeGraph` 数据结构 | P0 |
-| P1 | `SemanticStore` — 存储/查询/序列化 | P1 |
-| P2 | LLM 提取: 情景→语义 | P1 |
-| P2 | LLM 提取: 语义→图谱 | P1 |
-| P2 | 向量检索 + 图谱检索 + 合并排序 | P1 |
-| P3 | `RetrievalPipeline` — 三层统一检索 | P0 + P2 |
-| P3 | 配置文件加载 | P0 |
-| P4 | `templates.py` / `agent.py` 对接新检索 | P3 |
+| ✅ | `MemoryEntry` 结构升级（`memory_id`/`participants`/`location`） | `models/npc.py` |
+| ✅ | `StructMemoryStore` — 结构库（按天/参与者/地点筛选） | `memory.py` |
+| ✅ | `BaseVectorStore` → `TfidfVectorStore` + `EmbeddingVectorStore` — 双后端可切换 | `memory.py` |
+| ✅ | 情景记忆检索公式（艾宾浩斯遗忘 + 重要性加权 + 阈值过滤） | `memory.py` `EpisodicRetrieval` |
+| ✅ | `SemanticEntry` / `SemanticMemory` / `Entity` / `Relation` / `KnowledgeGraph` 数据结构 | `models/npc.py` |
+| ✅ | `SemanticRetriever` — 向量检索 + 图谱检索并行合并 | `semantic.py` |
+| ✅ | `SemanticStore` — 语义记忆存储/检索/序列化（LLM提取为桩） | `semantic.py` |
+| ✅ | 图遍历函数（`graph_one_hop` / `graph_two_hop` / `graph_distance`） | `semantic.py` |
+| ✅ | `RetrievalPipeline` — 工作记忆+情景记忆+语义记忆三层统一检索 | `retrieval.py` |
+| ✅ | `agent.py` — `think()`/`respond()` 接入三层检索流水线 | `agent.py` |
+| ✅ | 130 个测试全部通过 | `tests/test_npc_agent.py` |
+
+### 9.2 待实现
+
+| 优先级 | 内容 | 说明 |
+|--------|------|------|
+| P2 | **LLM 提取: 情景→语义** | 日终/溢出时 LLM 从情景记忆中提炼语义记忆 |
+| P2 | **LLM 提取: 语义→图谱** | LLM 从语义记忆中提取实体+关系，更新知识图谱 |
+| P3 | **嵌入模型接入** | 将 `EmbeddingVectorStore` 接真实 embedding API |
+| P3 | **配置文件加载** | `config/memory.yaml` 替代代码内默认值 |
+| P4 | **语义记忆溢出精简** | 语义记忆超上限时触发压缩 |
+| P4 | **`memory.py` → `episodic.py` 重命名** | 消除 `memory.py` 的歧义（当前同时管理情景+印象，但语义已独立） |
 
 ---
 
