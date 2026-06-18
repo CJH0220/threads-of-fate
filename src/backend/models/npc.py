@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from enum import Enum
 from typing import Dict, List, Optional
+from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -124,13 +125,21 @@ class NpcDynamic(BaseModel):
 # ═══════════════════════════════════════════════════
 
 class MemoryEntry(BaseModel):
-    """单条记忆。"""
+    """单条情景记忆 —— 结构库存储单元。"""
+    memory_id: str = Field(
+        default_factory=lambda: uuid4().hex[:12],
+        description="唯一标识"
+    )
     day: int = Field(..., ge=1, le=60)
     slot: Slot = Field(...)
     event_id: str = Field(default="", description="关联事件 ID")
     description: str = Field(..., description="事件简述")
     importance: int = Field(default=5, ge=1, le=10, description="重要性 1-10")
     emotion: Emotion = Field(default=Emotion.NEUTRAL)
+    participants: List[str] = Field(
+        default_factory=list, description="参与者 NPC ID 列表"
+    )
+    location: str = Field(default="", description="发生地点")
 
 
 class Impression(BaseModel):
@@ -156,6 +165,107 @@ class AgentMemory(BaseModel):
     memory_overflow_count: int = Field(
         default=0, description="记忆溢出次数（用于调试）"
     )
+
+
+# ═══════════════════════════════════════════════════
+# 语义记忆层
+# ═══════════════════════════════════════════════════
+
+class SemanticCategory(str, Enum):
+    """语义记忆分类。"""
+    PERSON = "person"
+    LOCATION = "location"
+    SELF = "self"
+    RULE = "rule"
+    ITEM = "item"
+
+
+class SemanticEntry(BaseModel):
+    """单条语义记忆 —— 从情景记忆中提炼的抽象认知。"""
+    statement: str = Field(..., description="自然语言陈述")
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0, description="信念强度")
+    category: SemanticCategory = Field(default=SemanticCategory.RULE)
+    source_events: List[str] = Field(
+        default_factory=list, description="来源事件 ID"
+    )
+    created_day: int = Field(default=1, ge=1, le=60)
+    embedding: List[float] = Field(
+        default_factory=list, description="向量（128 或 256 维）"
+    )
+
+
+class SemanticMemory(BaseModel):
+    """NPC 的语义记忆存储。"""
+    npc_id: str
+    entries: List[SemanticEntry] = Field(default_factory=list)
+    pending_episodic: List[str] = Field(
+        default_factory=list, description="待处理的情景记忆 ID"
+    )
+    last_extraction_day: int = Field(default=0)
+    last_graph_extraction_day: int = Field(default=0)
+
+
+# ═══════════════════════════════════════════════════
+# 知识图谱
+# ═══════════════════════════════════════════════════
+
+class Entity(BaseModel):
+    """知识图谱的节点。"""
+    name: str
+    type: str          # "person" | "location" | "concept" | "item"
+    mentions: int = Field(default=0, description="被语义记忆提到的次数")
+
+
+class Relation(BaseModel):
+    """知识图谱的边（三元组）。"""
+    subject: str
+    predicate: str     # 动词描述
+    object: str
+    source_statement: str = ""   # 来源语义记忆
+    frequency: int = Field(default=1, ge=1)
+
+
+class KnowledgeGraph(BaseModel):
+    """单个 NPC 的知识图谱。"""
+    npc_id: str
+    entities: Dict[str, Entity] = Field(default_factory=dict)
+    relations: List[Relation] = Field(default_factory=list)
+
+
+# ═══════════════════════════════════════════════════
+# 检索上下文与结果
+# ═══════════════════════════════════════════════════
+
+class RetrievalContext(BaseModel):
+    """检索输入 —— 当前情境。"""
+    location: str = ""
+    emotion: str = ""
+    current_goal: str = ""
+    day: int = 1
+    slot: str = "morning"
+    context_entities: List[str] = Field(
+        default_factory=list,
+        description="从情境中提取的实体列表（LLM 或规则提取）"
+    )
+    query_text: str = ""
+    query_embedding: Optional[List[float]] = None
+
+
+class ScoredEntry(BaseModel):
+    """检索命中项。"""
+    memory_id: str = ""
+    description: str = ""
+    vector_score: float = 0.0
+    graph_score: float = 0.0
+    final_score: float = 0.0
+    source: str = ""    # "vector" | "graph" | "both"
+
+
+class RetrievalResult(BaseModel):
+    """三层检索输出。"""
+    working_memory: Dict = Field(default_factory=dict)
+    episodic_entries: List[ScoredEntry] = Field(default_factory=list)
+    semantic_entries: List[ScoredEntry] = Field(default_factory=list)
 
 
 # ═══════════════════════════════════════════════════

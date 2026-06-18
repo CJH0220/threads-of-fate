@@ -23,6 +23,8 @@ from src.backend.models.npc import (
 )
 from src.backend.ai.npc_agent.dynamic import DynamicState, create_initial_dynamic
 from src.backend.ai.npc_agent.memory import MemoryStore
+from src.backend.ai.npc_agent.retrieval import RetrievalPipeline, retrieval_result_to_context
+from src.backend.ai.npc_agent.semantic import SemanticStore
 from src.backend.ai.npc_agent.templates import build_decision_prompt, build_system_prompt
 
 
@@ -75,15 +77,19 @@ class NpcAgent:
         static: NpcStatic,
         dynamic: Optional[DynamicState] = None,
         memory: Optional[MemoryStore] = None,
+        semantic: Optional[SemanticStore] = None,
         llm: Optional[LLMClient] = None,
     ):
         self.static = static
         self.dynamic = dynamic or create_initial_dynamic()
         self.memory = memory or MemoryStore(static.id)
+        self.semantic = semantic or SemanticStore(static.id)
         self.llm = llm or LLMClient()
+        self._pipeline = RetrievalPipeline()
 
         # 对话历史（每次 think 时重建 system prompt）
         self._chat_history: List[Dict] = []
+        self._current_conversation: List[Dict] = []
 
     # ── 属性查询 ──────────────────────────────────
 
@@ -119,9 +125,16 @@ class NpcAgent:
         2. 调用 LLM（如不可用，走规则兜底）
         3. 更新动态状态和记忆
         """
-        # 1. 记忆上下文
-        memory_context = self.memory.context_for_llm(max_events=10)
+        # 1. 当前状态 + 三层记忆检索
         state = self.dynamic.current
+        retrieval_result = self._pipeline.retrieve(
+            memory=self.memory,
+            semantic=self.semantic,
+            dynamic=state,
+            day=day,
+            slot=slot,
+        )
+        memory_context = retrieval_result_to_context(retrieval_result)
 
         # 2. 构建 prompt
         system_prompt = build_system_prompt(
@@ -154,16 +167,25 @@ class NpcAgent:
         return action.strip()
 
     async def respond(
-        self, context: str, speaker_name: str = "某人"
+        self, context: str, speaker_name: str = "某人",
+        current_day: int = 1,
     ) -> str:
         """NPC 对话回应。
 
         Args:
             context: 对话上下文（刚才说了什么）
             speaker_name: 说话者名字
+            current_day: 当前天数（用于记忆检索）
         """
         state = self.dynamic.current
-        memory_context = self.memory.context_for_llm(max_events=5)
+        retrieval_result = self._pipeline.retrieve(
+            memory=self.memory,
+            semantic=self.semantic,
+            dynamic=state,
+            day=current_day,
+            slot=Slot.MORNING,  # 对话默认为早晨时段
+        )
+        memory_context = retrieval_result_to_context(retrieval_result)
 
         system_prompt = build_system_prompt(
             static=self.static,
@@ -235,6 +257,7 @@ class NpcAgent:
             memory_summary={
                 "event_count": self.memory.event_count,
                 "key_count": self.memory.key_count,
+                "semantic_count": self.semantic.entry_count,
                 "recent_events": [
                     {"day": e.day, "description": e.description[:30]}
                     for e in self.memory.recent_events(5)
@@ -256,6 +279,7 @@ class NpcAgent:
             "static_id": self.static.id,
             "dynamic": self.dynamic.to_dict(),
             "memory": self.memory.to_dict(),
+            "semantic": self.semantic.to_dict(),
         }
 
     @classmethod
@@ -265,5 +289,9 @@ class NpcAgent:
             static=static,
             dynamic=DynamicState.from_dict(data["dynamic"]),
             memory=MemoryStore.from_dict(data["memory"]),
+            semantic=(
+                SemanticStore.from_dict(data["semantic"])
+                if "semantic" in data else None
+            ),
         )
         return agent
