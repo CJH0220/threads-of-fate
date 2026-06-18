@@ -51,7 +51,8 @@ from src.backend.ai.npc_agent.templates import (
     build_decision_prompt,
     _describe_personality,
 )
-from src.backend.ai.npc_agent.agent import NpcAgent, LLMClient
+from src.backend.ai.npc_agent.agent import NpcAgent
+from src.backend.ai.llm_client.interface import StubLLMClient
 from src.backend.ai.npc_agent.manager import AgentManager
 from src.backend.ai.npc_agent.semantic import (
     SemanticRetriever,

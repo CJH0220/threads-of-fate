@@ -21,41 +21,12 @@ from src.backend.models.npc import (
     NpcStatic,
     Slot,
 )
+from src.backend.ai.llm_client.interface import BaseLLMClient, StubLLMClient
 from src.backend.ai.npc_agent.dynamic import DynamicState, create_initial_dynamic
 from src.backend.ai.npc_agent.memory import MemoryStore
 from src.backend.ai.npc_agent.retrieval import RetrievalPipeline, retrieval_result_to_context
 from src.backend.ai.npc_agent.semantic import SemanticStore
 from src.backend.ai.npc_agent.templates import build_decision_prompt, build_system_prompt
-
-
-# ═══════════════════════════════════════════════════
-# LLM 客户端接口（临时，等正式实现时替换）
-# ═══════════════════════════════════════════════════
-
-class LLMClient:
-    """LLM 客户端桩 —— 当前返回规则生成的默认行为。
-
-    后续替换为 DeepSeekClient / LocalModelClient 的真实实现。
-    """
-
-    async def chat(self, messages: List[Dict]) -> str:
-        """模拟 LLM 调用，返回基于性格的默认行动。"""
-        return ""   # 空字符串表示使用规则兜底
-
-    async def chat_stream(self, messages: List[Dict]):
-        """流式调用（桩）。"""
-        yield ""
-        return
-
-    def add_to_history(self, role: str, content: str) -> None:
-        """添加到对话历史。"""
-        pass
-
-    def get_history(self) -> List[Dict]:
-        return []
-
-    def clear_history(self) -> None:
-        pass
 
 
 # ═══════════════════════════════════════════════════
@@ -78,13 +49,13 @@ class NpcAgent:
         dynamic: Optional[DynamicState] = None,
         memory: Optional[MemoryStore] = None,
         semantic: Optional[SemanticStore] = None,
-        llm: Optional[LLMClient] = None,
+        llm: Optional[BaseLLMClient] = None,
     ):
         self.static = static
         self.dynamic = dynamic or create_initial_dynamic()
         self.memory = memory or MemoryStore(static.id)
         self.semantic = semantic or SemanticStore(static.id)
-        self.llm = llm or LLMClient()
+        self.llm = llm or StubLLMClient()
         self._pipeline = RetrievalPipeline()
 
         # 对话历史（每次 think 时重建 system prompt）
@@ -154,7 +125,7 @@ class NpcAgent:
             happiness=state.happiness,
         )
 
-        # 3. 调用 LLM
+        # 3. 调用 LLM（可能降级返回 None）
         messages = [
             {"role": "system", "content": decision_prompt},
         ]
@@ -163,8 +134,10 @@ class NpcAgent:
         # 4. LLM 不可用 → 规则兜底
         if not action:
             action = self._default_action(day, slot)
+        else:
+            action = action.strip()
 
-        return action.strip()
+        return action
 
     async def respond(
         self, context: str, speaker_name: str = "某人",
