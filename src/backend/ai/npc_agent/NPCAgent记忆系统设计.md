@@ -593,15 +593,16 @@ class KnowledgeGraph(BaseModel):
 | ✅ | 图遍历函数（`graph_one_hop` / `graph_two_hop` / `graph_distance`） | `semantic.py` |
 | ✅ | `RetrievalPipeline` — 工作记忆+情景记忆+语义记忆三层统一检索 | `retrieval.py` |
 | ✅ | `agent.py` — `think()`/`respond()` 接入三层检索流水线 | `agent.py` |
+| ✅ | `LoadBalancedClient` — 多 llama.cpp 实例轮询 + Semaphore 并发控制 + 故障转移 | `ai/llm_client/` |
+| ✅ | `BaseLLMClient` 抽象接口 + `StubLLMClient` 桩 | `ai/llm_client/interface.py` |
 | ✅ | 130 个测试全部通过 | `tests/test_npc_agent.py` |
 
 ### 9.2 待实现
 
 | 优先级 | 内容 | 说明 |
 |--------|------|------|
-| P2 | **LLM 提取: 情景→语义** | 日终/溢出时 LLM 从情景记忆中提炼语义记忆 |
-| P2 | **LLM 提取: 语义→图谱** | LLM 从语义记忆中提取实体+关系，更新知识图谱 |
-| P3 | **嵌入模型接入** | 将 `EmbeddingVectorStore` 接真实 embedding API |
+| P1 | **LLM 提取器 `extractor.py`** | `SemanticExtractor`（情景→语义）+ `GraphExtractor`（语义→图谱），提示词独立定制 |
+| P2 | **嵌入模型接入** | 将 `EmbeddingVectorStore` 接真实 embedding API |
 | P3 | **配置文件加载** | `config/memory.yaml` 替代代码内默认值 |
 | P4 | **语义记忆溢出精简** | 语义记忆超上限时触发压缩 |
 | P4 | **`memory.py` → `episodic.py` 重命名** | 消除 `memory.py` 的歧义（当前同时管理情景+印象，但语义已独立） |
