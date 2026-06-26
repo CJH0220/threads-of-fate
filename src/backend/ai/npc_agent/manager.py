@@ -13,6 +13,8 @@ from __future__ import annotations
 import asyncio
 from typing import Optional
 
+from typing import Optional
+
 from src.backend.models.npc import (
     AgentTier,
     Location,
@@ -23,6 +25,7 @@ from src.backend.models.npc import (
 )
 from src.backend.ai.npc_agent.agent import NpcAgent
 from src.backend.ai.npc_agent.static import demo_npcs
+from src.backend.ai.llm_client.interface import BaseLLMClient
 
 
 # ═══════════════════════════════════════════════════
@@ -33,15 +36,16 @@ class AgentManager:
     """管理所有 NPC Agent 实例。
 
     用法:
-        manager = AgentManager()
-        manager.init_from_demo()                # 加载 Demo NPC
-        agent = manager.get("lin_chaoyin")      # 获取单个 Agent
+        manager = AgentManager(llm=llm_client)   # 传入 LLM 客户端
+        manager.init_from_statics(load_npcs())    # 从 CSV 加载 NPC
+        agent = manager.get("lin_chaoyin")        # 获取单个 Agent
         actions = await manager.all_think(1, Slot.MORNING)  # 批量思考
-        response = manager.all_snapshots()      # 返回给前端
+        response = manager.all_snapshots()        # 返回给前端
     """
 
-    def __init__(self):
+    def __init__(self, llm: Optional[BaseLLMClient] = None):
         self._agents: dict[str, NpcAgent] = {}
+        self._llm = llm
 
     # ── 创建 ──────────────────────────────────────
 
@@ -53,7 +57,7 @@ class AgentManager:
 
     def add_from_static(self, static: NpcStatic) -> NpcAgent:
         """从静态数据创建一个 Agent 并注册。"""
-        agent = NpcAgent(static=static)
+        agent = NpcAgent(static=static, llm=self._llm)
         self.add(agent)
         return agent
 

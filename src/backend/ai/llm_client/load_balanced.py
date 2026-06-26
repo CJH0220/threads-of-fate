@@ -78,6 +78,7 @@ class LoadBalancedClient(BaseLLMClient):
         timeout: float = 30.0,
         max_retries: int = 3,
         retry_backoff_base: float = 1.5,
+        default_extra_body: Optional[Dict] = None,
     ):
         if not endpoints:
             raise ValueError("至少需要一个端点")
@@ -93,6 +94,7 @@ class LoadBalancedClient(BaseLLMClient):
         self._timeout = timeout
         self._max_retries = max_retries
         self._retry_backoff_base = retry_backoff_base
+        self._default_extra_body = default_extra_body or {}
 
         # 共享 httpx 客户端（连接池复用）
         self._http: Optional[httpx.AsyncClient] = None
@@ -103,7 +105,8 @@ class LoadBalancedClient(BaseLLMClient):
         self,
         messages: List[Dict],
         temperature: float = 0.7,
-        max_tokens: int = 128,
+        max_tokens: int = 256,
+        extra_body: Optional[Dict] = None,
         **kwargs,
     ) -> Optional[str]:
         """发送消息 → 轮询端点 → 故障转移 → 返回响应。
@@ -122,15 +125,16 @@ class LoadBalancedClient(BaseLLMClient):
             endpoint = self._endpoints[idx]
 
             # 获取端点信号量（排队等待）
+            async def _do():
+                async with endpoint.semaphore:
+                    return await self._do_request(
+                        endpoint, idx, messages, temperature, max_tokens,
+                        attempt, extra_body=extra_body, **kwargs,
+                    )
             try:
-                async with asyncio.timeout(self._timeout):
-                    async with endpoint.semaphore:
-                        result = await self._do_request(
-                            endpoint, idx, messages, temperature, max_tokens,
-                            attempt, **kwargs,
-                        )
-                        if result is not None:
-                            return result
+                result = await asyncio.wait_for(_do(), timeout=self._timeout)
+                if result is not None:
+                    return result
             except asyncio.TimeoutError:
                 # 排队超时 → 跳过这个端点
                 endpoint.failure_count += 1
@@ -201,6 +205,7 @@ class LoadBalancedClient(BaseLLMClient):
         temperature: float,
         max_tokens: int,
         attempt: int,
+        extra_body: Optional[Dict] = None,
         **kwargs,
     ) -> Optional[str]:
         """执行单次 HTTP 请求（含重试）。"""
@@ -209,8 +214,14 @@ class LoadBalancedClient(BaseLLMClient):
             "temperature": temperature,
             "max_tokens": max_tokens,
             "stream": False,
-            **kwargs,
         }
+        # Qwen3 等推理模型需要显式关闭思考模式
+        if extra_body:
+            payload.update(extra_body)
+        if self._default_extra_body:
+            payload.update(self._default_extra_body)
+        # 其余 kwargs 合并到 payload
+        payload.update(kwargs)
 
         for retry in range(self._max_retries):
             try:

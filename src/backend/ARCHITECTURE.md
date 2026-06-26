@@ -393,18 +393,19 @@ LoadBalancedClient(
 | ✅ 数据模型 | `models/` — Pydantic 三层结构 + 枚举 + 通用格式 | — |
 | ✅ NPC Agent | `ai/npc_agent/` — 7 文件 + README | 48 个单元测试 |
 | ✅ 图存储 | `graph_storage/` — RelationshipGraph + 持久化（重组） | 34 个单元测试 |
-| ✅ FastAPI 服务端 | `server/` — health / new-game / state 端点 | 手动验证通过 |
+| ✅ FastAPI 服务端 | `server/` — health / new-game / state / chat 端点 | 手动验证通过 |
+| ✅ 时间系统 | `engine/time/` — 天/时段/周推进 + 9 周阶段 | 39 个单元测试 |
+| ✅ 资源系统 | `engine/resource/` — 香火/神力/阴德/阳德 | 46 个单元测试 |
+| ✅ CSV 配置加载 | `data/` — NPC基础表 14 人 + build_static | 间接覆盖 |
+| ✅ LLM 接入 | `ai/llm_client/` — LoadBalancedClient + Qwen3-14B | 手动验证通过 |
+| ✅ NPC 对话 | `/chat/{npc_id}` — LLM 驱动对话 + 规则兜底 | 手动验证通过 |
 
 ### 待开发（按优先级）
 
 | 优先级 | 模块 | 产出 |
 |--------|------|------|
-| **P1** | `engine/time/` — 时间系统 | 天/时段/周推进 |
-| **P1** | `engine/resource/` — 资源系统 | 香火/神力/阴德/阳德 |
-| **P1** | `data/` — CSV 配置加载 | 从数据表初始化 |
 | **P2** | `engine/event/` — 事件系统 | 触发+结算+命运硬币 |
 | **P2** | `engine/bond/` — 缘线系统 | 关系变化 |
 | **P2** | `engine/karma/` — 业线系统 | 节点推进+跳关 |
 | **P3** | `storage/` — 存档系统 | 存读档 |
 | **P3** | `server/websocket/` — WebSocket | 实时通信 |
-| **P4** | `ai/llm_client/` — LLM 接入 | DeepSeek / 本地模型 |
