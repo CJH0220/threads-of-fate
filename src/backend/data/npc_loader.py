@@ -23,7 +23,10 @@ from src.backend.models.npc import NpcStatic
 
 # ── Default CSV path ──
 
-_DEFAULT_CSV = os.path.join(os.path.dirname(__file__), "NPC基础表.csv")
+_DEFAULT_CSV = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+    "design", "data", "NPC基础表.csv"
+)
 
 
 # ── Column mapping ──

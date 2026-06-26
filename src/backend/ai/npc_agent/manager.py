@@ -43,9 +43,10 @@ class AgentManager:
         response = manager.all_snapshots()        # 返回给前端
     """
 
-    def __init__(self, llm: Optional[BaseLLMClient] = None):
+    def __init__(self, llm: Optional[BaseLLMClient] = None, bond_manager=None):
         self._agents: dict[str, NpcAgent] = {}
         self._llm = llm
+        self._bond_manager = bond_manager
 
     # ── 创建 ──────────────────────────────────────
 
@@ -57,8 +58,17 @@ class AgentManager:
 
     def add_from_static(self, static: NpcStatic) -> NpcAgent:
         """从静态数据创建一个 Agent 并注册。"""
-        agent = NpcAgent(static=static, llm=self._llm)
+        # Build name map from all registered agents + the new one
+        name_map = {aid: agent.static.name for aid, agent in self._agents.items()}
+        name_map[static.id] = static.name
+
+        agent = NpcAgent(static=static, llm=self._llm,
+                         bond_manager=self._bond_manager, name_map=name_map)
         self.add(agent)
+        # Update name maps of all existing agents to include the new NPC
+        for aid, existing in self._agents.items():
+            if aid != static.id:
+                existing._name_map[static.id] = static.name
         return agent
 
     def init_from_demo(self) -> None:
