@@ -9,6 +9,21 @@ from __future__ import annotations
 from typing import Optional
 
 from src.backend.ai.npc_agent.manager import AgentManager
+from src.backend.data.npc_loader import load_npcs
+from src.backend.ai.llm_client.load_balanced import LoadBalancedClient
+
+
+# ── LLM 客户端 ───────────────────────────────────
+
+def _create_llm_client() -> LoadBalancedClient:
+    """创建负载均衡 LLM 客户端（连接本地 llama.cpp）。"""
+    return LoadBalancedClient(
+        endpoints=["http://172.21.125.241:8080/v1/chat/completions"],
+        per_endpoint_concurrency=2,
+        timeout=60.0,
+        max_retries=2,
+        default_extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+    )
 
 
 # 全局单例
@@ -24,10 +39,11 @@ def get_manager() -> AgentManager:
 
 
 def init_manager() -> AgentManager:
-    """初始化 AgentManager（加载 Demo NPC）。"""
+    """初始化 AgentManager（从 CSV 加载 NPC，连接 LLM）。"""
     global _agent_manager
-    _agent_manager = AgentManager()
-    _agent_manager.init_from_demo()
+    llm = _create_llm_client()
+    _agent_manager = AgentManager(llm=llm)
+    _agent_manager.init_from_statics(load_npcs())
     return _agent_manager
 
 
