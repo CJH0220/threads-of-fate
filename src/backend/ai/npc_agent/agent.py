@@ -50,12 +50,16 @@ class NpcAgent:
         memory: Optional[MemoryStore] = None,
         semantic: Optional[SemanticStore] = None,
         llm: Optional[BaseLLMClient] = None,
+        bond_manager=None,
+        name_map: dict = None,
     ):
         self.static = static
         self.dynamic = dynamic or create_initial_dynamic()
         self.memory = memory or MemoryStore(static.id)
         self.semantic = semantic or SemanticStore(static.id)
         self.llm = llm or StubLLMClient()
+        self._bond_manager = bond_manager
+        self._name_map = name_map or {}
         self._pipeline = RetrievalPipeline()
 
         # 对话历史（每次 think 时重建 system prompt）
@@ -115,6 +119,8 @@ class NpcAgent:
             emotion=state.emotion.value,
             energy=state.energy,
             happiness=state.happiness,
+            bond_manager=self._bond_manager,
+            name_map=self._name_map,
         )
         decision_prompt = build_decision_prompt(
             static=self.static,
@@ -123,6 +129,8 @@ class NpcAgent:
             emotion=state.emotion.value,
             energy=state.energy,
             happiness=state.happiness,
+            bond_manager=self._bond_manager,
+            name_map=self._name_map,
         )
 
         # 3. 调用 LLM（可能降级返回 None）
@@ -167,6 +175,8 @@ class NpcAgent:
             emotion=state.emotion.value,
             energy=state.energy,
             happiness=state.happiness,
+            bond_manager=self._bond_manager,
+            name_map=self._name_map,
         )
 
         user_message = f"{speaker_name}对你说：{context}\n\n请以{self.name}的身份回应。记住你的性格和当前情绪。"
