@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from .middleware import setup_middleware
 from .routes.health import router as health_router
 from .routes.game import router as game_router
+from .routes.ws_game import router as ws_router
 
 
 def create_app() -> FastAPI:
@@ -29,6 +30,7 @@ def create_app() -> FastAPI:
     # 注册路由
     app.include_router(health_router)
     app.include_router(game_router)
+    app.include_router(ws_router)
 
     return app
 

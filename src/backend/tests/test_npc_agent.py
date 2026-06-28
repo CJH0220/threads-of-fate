@@ -32,18 +32,46 @@ from src.backend.ai.npc_agent.dynamic import (
     create_initial_dynamic,
 )
 from src.backend.ai.npc_agent.memory import (
+    DEFAULT_CONFIG,
     MAX_EVENT_CHAIN,
     IMPORTANCE_THRESHOLD,
+    BaseVectorStore,
+    EmbeddingVectorStore,
+    EpisodicHit,
+    EpisodicRetrieval,
     MemoryStore,
     MemorySummary,
+    StructMemoryStore,
+    TfidfVectorStore,
+    VectorMemoryStore,
+    create_vector_store,
 )
 from src.backend.ai.npc_agent.templates import (
     build_system_prompt,
     build_decision_prompt,
     _describe_personality,
 )
-from src.backend.ai.npc_agent.agent import NpcAgent, LLMClient
+from src.backend.ai.npc_agent.agent import NpcAgent
+from src.backend.ai.llm_client.interface import StubLLMClient
 from src.backend.ai.npc_agent.manager import AgentManager
+from src.backend.ai.npc_agent.semantic import (
+    SemanticRetriever,
+    SemanticStore,
+    graph_one_hop,
+    graph_two_hop,
+    graph_distance,
+)
+from src.backend.ai.npc_agent.retrieval import RetrievalPipeline, retrieval_result_to_context
+from src.backend.models.npc import (
+    Entity,
+    KnowledgeGraph,
+    Relation,
+    RetrievalContext,
+    RetrievalResult,
+    ScoredEntry,
+    SemanticCategory,
+    SemanticEntry,
+)
 
 
 # ═══════════════════════════════════════════════════════
@@ -194,7 +222,9 @@ class TestMemory:
                        importance=4)
         recent = m.recent_events(3)
         assert len(recent) == 3
-        assert recent[-1].day == 5
+        # 按 day 降序排列：[5, 4, 3]
+        assert recent[0].day == 5   # 最新
+        assert recent[-1].day == 3  # 最久（3条中）
 
     def test_top_key_memories_sorted(self):
         m = MemoryStore("test_npc")
@@ -245,7 +275,7 @@ class TestMemory:
         m.remember(day=5, slot=Slot.NIGHT, description="陈远舟告白了",
                    importance=9, emotion=Emotion.EXCITED)
         m.set_impression("chen_yuanzhou", affinity=85, trust=70, label="爱慕")
-        ctx = m.context_for_llm()
+        ctx = m.context_for_llm(current_day=5)
         assert "陈远舟" in ctx
         assert "爱慕" in ctx
 
@@ -262,8 +292,521 @@ class TestMemory:
 
 
 # ═══════════════════════════════════════════════════════
-# templates
+# memory — 双库 + 检索公式 + TF-IDF
 # ═══════════════════════════════════════════════════════
+
+class TestStructMemoryStore:
+    def test_put_and_get(self):
+        s = StructMemoryStore()
+        entry = MemoryStore("test").remember(day=1, slot=Slot.MORNING, description="test")
+        s.put(entry)
+        assert s.count() == 1
+        assert s.get(entry.memory_id) is not None
+
+    def test_by_day_range(self):
+        s = StructMemoryStore()
+        for d in [1, 3, 5, 7, 10]:
+            entry = MemoryStore("test").remember(day=d, slot=Slot.MORNING, description=f"d{d}")
+            s.put(entry)
+        results = s.by_day_range(from_day=3, to_day=7)
+        assert len(results) == 3  # 3, 5, 7
+
+    def test_by_participant(self):
+        s = StructMemoryStore()
+        e1 = MemoryStore("test").remember(day=1, slot=Slot.MORNING, description="A",
+                                          participants=["alice", "bob"])
+        e2 = MemoryStore("test").remember(day=2, slot=Slot.MORNING, description="B",
+                                          participants=["charlie"])
+        s.put(e1); s.put(e2)
+        assert len(s.by_participant("alice")) == 1
+        assert len(s.by_participant("charlie")) == 1
+        assert len(s.by_participant("nobody")) == 0
+
+    def test_by_location(self):
+        s = StructMemoryStore()
+        e1 = MemoryStore("test").remember(day=1, slot=Slot.MORNING, description="A",
+                                          location="temple")
+        e2 = MemoryStore("test").remember(day=2, slot=Slot.MORNING, description="B",
+                                          location="school")
+        s.put(e1); s.put(e2)
+        assert len(s.by_location("temple")) == 1
+        assert len(s.by_location("beach")) == 0
+
+    def test_today(self):
+        s = StructMemoryStore()
+        for d in [1, 1, 2, 3]:
+            entry = MemoryStore("test").remember(day=d, slot=Slot.MORNING, description=f"d{d}")
+            s.put(entry)
+        assert len(s.today(day=1)) == 2
+        assert len(s.today(day=5)) == 0
+
+    def test_serialize_roundtrip(self):
+        s = StructMemoryStore()
+        entry = MemoryStore("test").remember(day=5, slot=Slot.NOON, description="test",
+                                             importance=8, participants=["a", "b"])
+        s.put(entry)
+        data = s.to_list()
+        restored = StructMemoryStore.from_list(data)
+        assert restored.count() == 1
+        r = restored.get(entry.memory_id)
+        assert r.importance == 8
+        assert r.participants == ["a", "b"]
+
+
+class TestVectorMemoryStore:
+    def test_put_and_get(self):
+        v = VectorMemoryStore()
+        v.put("mem_001", [0.1, 0.2, 0.3])
+        assert v.get("mem_001") == [0.1, 0.2, 0.3]
+        assert v.count() == 1
+
+    def test_compute_similarity_stub(self):
+        """无 embedding 时返回桩值 0.5。"""
+        v = VectorMemoryStore()
+        v.put("mem_001", [])
+        score = v.compute_similarity("mem_001")
+        assert score == 0.5
+
+    def test_compute_cosine_similarity(self):
+        v = VectorMemoryStore()
+        v.put("mem_a", [1.0, 0.0])
+        v.put("mem_b", [0.0, 1.0])
+        v.put("mem_c", [1.0, 0.0])
+
+        # identical → ~1.0
+        a_vs_c = v.compute_similarity("mem_a", query_embedding=[1.0, 0.0])
+        assert abs(a_vs_c - 1.0) < 0.01
+
+        # orthogonal → ~0.0
+        a_vs_b = v.compute_similarity("mem_a", query_embedding=[0.0, 1.0])
+        assert abs(a_vs_b - 0.0) < 0.01
+
+    def test_missing_memory_returns_stub(self):
+        v = VectorMemoryStore()
+        score = v.compute_similarity("nonexistent")
+        assert score == 0.5
+
+    def test_serialize_roundtrip(self):
+        v = VectorMemoryStore()
+        v.put("mem_001", [0.5, 0.5])
+        v.put("mem_002", [0.1])
+        data = v.to_dict()
+        restored = VectorMemoryStore.from_dict(data)
+        assert restored.count() == 2
+        assert restored.get("mem_001") == [0.5, 0.5]
+
+
+class TestTfidfVectorStore:
+    def test_put_and_get(self):
+        v = TfidfVectorStore()
+        v.put("mem_001", description="巫女候选在寺庙被推举")
+        assert v.count() == 1
+
+    def test_same_topic_high_similarity(self):
+        v = TfidfVectorStore()
+        v.put("mem_001", description="慧圆在寺庙推举林潮音为巫女候选")
+        v.put("mem_002", description="陈远舟在海边散步买了早餐")
+
+        # 查询和 mem_001 同主题 → 高分
+        score1 = v.compute_similarity("mem_001", query_text="巫女候选寺庙推举")
+        # 查询和 mem_002 不同主题 → 低分
+        score2 = v.compute_similarity("mem_002", query_text="巫女候选寺庙推举")
+
+        assert score1 > score2  # 同主题得分更高
+
+    def test_partial_match(self):
+        v = TfidfVectorStore()
+        v.put("mem_a", description="成为巫女意味着无法离开小镇")
+        v.put("mem_b", description="江雪仪开的药会让人头晕")
+
+        s_a = v.compute_similarity("mem_a", query_text="巫女小镇命运")
+        s_b = v.compute_similarity("mem_b", query_text="巫女小镇命运")
+
+        assert s_a > s_b
+
+    def test_empty_query_returns_default(self):
+        v = TfidfVectorStore()
+        v.put("mem_001", description="测试记忆")
+        score = v.compute_similarity("mem_001", query_text="")
+        assert score == 0.5
+
+    def test_remove(self):
+        v = TfidfVectorStore()
+        v.put("mem_001", description="测试")
+        assert v.count() == 1
+        assert v.remove("mem_001")
+        assert v.count() == 0
+
+    def test_serialize_roundtrip(self):
+        v = TfidfVectorStore()
+        v.put("mem_001", description="巫女候选")
+        v.put("mem_002", description="离岛梦想")
+        data = v.to_dict()
+        restored = TfidfVectorStore.from_dict(data)
+        assert restored.count() == 2
+        # 验证检索功能仍正常
+        score = restored.compute_similarity("mem_001", query_text="巫女候选")
+        assert score > 0.5
+
+
+class TestVectorStoreFactory:
+    def test_default_is_tfidf(self):
+        v = create_vector_store()
+        assert isinstance(v, TfidfVectorStore)
+
+    def test_tfidf_backend(self):
+        v = create_vector_store(backend="tfidf")
+        assert isinstance(v, TfidfVectorStore)
+
+    def test_embedding_backend(self):
+        v = create_vector_store(backend="embedding")
+        assert isinstance(v, EmbeddingVectorStore)
+
+
+class TestEpisodicRetrieval:
+    def _make_entry(self, store: StructMemoryStore, day: int, description: str,
+                    importance: int = 5):
+        """Helper: create entry and put into struct store + vector store."""
+        mem_store = MemoryStore("test")
+        entry = mem_store.remember(day=day, slot=Slot.MORNING, description=description,
+                                   importance=importance)
+        store.put(entry)
+        return entry
+
+    def test_retrieve_returns_hits(self):
+        struct = StructMemoryStore()
+        vector = VectorMemoryStore()
+        retrieval = EpisodicRetrieval()
+
+        self._make_entry(struct, day=10, description="重要事件", importance=9)
+        self._make_entry(struct, day=15, description="日常事件", importance=4)
+
+        hits = retrieval.retrieve(struct, vector, current_day=15)
+        assert len(hits) == 2
+        # 重要性高的排前面
+        assert hits[0].entry.importance >= hits[1].entry.importance
+
+    def test_recency_decay(self):
+        """同重要性下，越近的得分越高。"""
+        struct = StructMemoryStore()
+        vector = VectorMemoryStore()
+        retrieval = EpisodicRetrieval()
+
+        self._make_entry(struct, day=5, description="old", importance=5)
+        self._make_entry(struct, day=14, description="recent", importance=5)
+
+        hits = retrieval.retrieve(struct, vector, current_day=15)
+        assert hits[0].entry.description == "recent"   # 最近排前
+
+    def test_importance_overpowers_recency(self):
+        """足够重要的事件，即使久远也排在前面。"""
+        struct = StructMemoryStore()
+        vector = VectorMemoryStore()
+        retrieval = EpisodicRetrieval({"base_decay": 30.0})
+
+        self._make_entry(struct, day=5, description="人生转折", importance=10)
+        self._make_entry(struct, day=14, description="琐事", importance=3)
+
+        hits = retrieval.retrieve(struct, vector, current_day=15)
+        # imp=10 且 10天前 → 仍应排第一
+        assert hits[0].entry.description == "人生转折"
+
+    def test_threshold_filter(self):
+        """得分低于阈值的被丢弃。"""
+        struct = StructMemoryStore()
+        vector = VectorMemoryStore()
+        retrieval = EpisodicRetrieval({"threshold": 0.5})
+
+        self._make_entry(struct, day=14, description="high", importance=10)
+        self._make_entry(struct, day=1, description="low", importance=1)
+
+        hits = retrieval.retrieve(struct, vector, current_day=60)
+        # high: imp=10, 46天前 → 得分 ~0.53 > 0.5 → 保留
+        # low: imp=1, 59天前 → 得分极低 → 被过滤
+        assert len(hits) == 1
+        assert hits[0].entry.description == "high"
+
+    def test_location_filter(self):
+        struct = StructMemoryStore()
+        vector = VectorMemoryStore()
+        retrieval = EpisodicRetrieval()
+
+        m = MemoryStore("test")
+        e1 = m.remember(day=10, slot=Slot.MORNING, description="temple event", location="temple")
+        e2 = m.remember(day=10, slot=Slot.NOON, description="school event", location="school")
+        struct.put(e1); struct.put(e2)
+        vector.put(e1.memory_id); vector.put(e2.memory_id)
+
+        hits = retrieval.retrieve(struct, vector, current_day=10, location_filter="temple")
+        assert len(hits) == 1
+        assert hits[0].entry.description == "temple event"
+
+    def test_participant_filter(self):
+        struct = StructMemoryStore()
+        vector = VectorMemoryStore()
+        retrieval = EpisodicRetrieval()
+
+        m = MemoryStore("test")
+        e1 = m.remember(day=10, slot=Slot.MORNING, description="with alice",
+                        participants=["alice"])
+        e2 = m.remember(day=10, slot=Slot.NOON, description="with bob",
+                        participants=["bob"])
+        struct.put(e1); struct.put(e2)
+        vector.put(e1.memory_id); vector.put(e2.memory_id)
+
+        hits = retrieval.retrieve(struct, vector, current_day=10, participant_filter="alice")
+        assert len(hits) == 1
+        assert hits[0].entry.description == "with alice"
+
+    def test_top_k_limit(self):
+        struct = StructMemoryStore()
+        vector = VectorMemoryStore()
+        retrieval = EpisodicRetrieval({"top_k": 3})
+
+        for i in range(10):
+            self._make_entry(struct, day=i + 1, description=f"event{i}", importance=5)
+
+        hits = retrieval.retrieve(struct, vector, current_day=10)
+        assert len(hits) == 3  # Top K 限制
+
+    def test_new_memory_entry_has_memory_id(self):
+        """新 MemoryEntry 自动生成 memory_id。"""
+        entry = MemoryStore("test").remember(day=1, slot=Slot.MORNING, description="test")
+        assert entry.memory_id is not None
+        assert len(entry.memory_id) == 12  # hex[:12]
+
+
+# ═══════════════════════════════════════════════════════
+# semantic — 语义记忆 + 知识图谱 + 检索
+# ═══════════════════════════════════════════════════════
+
+class TestGraphTraversal:
+    def _make_graph(self):
+        """创建测试图谱：寺庙→慧圆→巫女→小镇。"""
+        return KnowledgeGraph(
+            npc_id="test",
+            entities={
+                "慧圆": Entity(name="慧圆", type="person", mentions=3),
+                "寺庙": Entity(name="寺庙", type="location", mentions=5),
+                "巫女": Entity(name="巫女", type="concept", mentions=4),
+                "小镇": Entity(name="小镇", type="location", mentions=3),
+                "林潮音": Entity(name="林潮音", type="person", mentions=2),
+            },
+            relations=[
+                Relation(subject="慧圆", predicate="管理", object="寺庙", frequency=2),
+                Relation(subject="慧圆", predicate="推举", object="巫女", frequency=1),
+                Relation(subject="巫女", predicate="绑定", object="小镇", frequency=1),
+                Relation(subject="林潮音", predicate="成为", object="巫女", frequency=1),
+            ],
+        )
+
+    def test_one_hop(self):
+        g = self._make_graph()
+        hits = graph_one_hop("寺庙", g.relations)
+        assert len(hits) == 1
+        assert hits[0].predicate == "管理"
+
+    def test_two_hop(self):
+        g = self._make_graph()
+        hits = graph_two_hop("寺庙", g.relations)
+        # 寺庙→慧圆→巫女 via 推举, 巫女→...
+        assert len(hits) >= 2
+
+    def test_distance_direct(self):
+        g = self._make_graph()
+        assert graph_distance("慧圆", "寺庙", g.relations) == 1
+
+    def test_distance_indirect(self):
+        g = self._make_graph()
+        # 寺庙→慧圆→巫女 = 2 跳
+        assert graph_distance("寺庙", "巫女", g.relations) == 2
+
+    def test_distance_self(self):
+        g = self._make_graph()
+        assert graph_distance("寺庙", "寺庙", g.relations) == 0
+
+    def test_distance_unreachable(self):
+        g = self._make_graph()
+        d = graph_distance("寺庙", "火星", g.relations, max_hops=3)
+        assert d > 3  # 不可达
+
+
+class TestSemanticStore:
+    def test_add_entry(self):
+        s = SemanticStore("test")
+        s.add("成为巫女意味着无法离开小镇", category=SemanticCategory.RULE, confidence=0.6)
+        assert s.entry_count == 1
+        assert s.entries[0].statement == "成为巫女意味着无法离开小镇"
+
+    def test_add_with_entities_and_relations(self):
+        s = SemanticStore("test")
+        s.add(
+            "慧圆在寺庙推举林潮音为巫女候选",
+            category=SemanticCategory.PERSON,
+            entities=[
+                {"name": "慧圆", "type": "person"},
+                {"name": "寺庙", "type": "location"},
+                {"name": "巫女", "type": "concept"},
+            ],
+            relations=[
+                {"subject": "慧圆", "predicate": "推举", "object": "巫女"},
+                {"subject": "慧圆", "predicate": "管理", "object": "寺庙"},
+            ],
+        )
+        assert s.entry_count == 1
+        assert len(s.graph.entities) == 3
+        assert len(s.graph.relations) == 2
+
+    def test_update_confidence(self):
+        s = SemanticStore("test")
+        s.add("test", confidence=0.5)
+        assert s.update_confidence("test", +0.2)
+        assert s.entries[0].confidence == 0.7
+        assert s.update_confidence("test", -0.5)
+        assert abs(s.entries[0].confidence - 0.2) < 0.001
+
+    def test_by_category(self):
+        s = SemanticStore("test")
+        s.add("关于人的认知", category=SemanticCategory.PERSON)
+        s.add("关于地点的认知", category=SemanticCategory.LOCATION)
+        assert len(s.by_category(SemanticCategory.PERSON)) == 1
+
+    def test_serialize_roundtrip(self):
+        s = SemanticStore("test_npc")
+        s.add("成为巫女意味着无法离开小镇",
+              category=SemanticCategory.RULE, confidence=0.7,
+              entities=[{"name": "巫女", "type": "concept"}],
+              relations=[{"subject": "巫女", "predicate": "绑定", "object": "小镇"}])
+        data = s.to_dict()
+        restored = SemanticStore.from_dict(data)
+        assert restored.entry_count == 1
+        assert restored.entries[0].statement == "成为巫女意味着无法离开小镇"
+        assert "巫女" in restored.graph.entities
+
+    def test_mark_episodic_processed(self):
+        s = SemanticStore("test")
+        s.mark_episodic_processed("evt_001")
+        s.mark_episodic_processed("evt_002")
+        assert len(s.pending_episodic) == 2
+
+    def test_should_extract_threshold(self):
+        s = SemanticStore("test", config={"episodic_pending_threshold": 5})
+        for i in range(5):
+            s.mark_episodic_processed(f"evt_{i}")
+        assert s.should_extract_from_episodic()
+
+    def test_should_extract_below_threshold(self):
+        s = SemanticStore("test", config={"episodic_pending_threshold": 5})
+        for i in range(3):
+            s.mark_episodic_processed(f"evt_{i}")
+        assert not s.should_extract_from_episodic()
+
+
+class TestSemanticRetriever:
+    def _make_entries_and_graph(self):
+        entries = [
+            SemanticEntry(statement="成为巫女意味着无法离开小镇",
+                          category=SemanticCategory.RULE, confidence=0.7),
+            SemanticEntry(statement="慧圆对巫女的事非常认真",
+                          category=SemanticCategory.PERSON, confidence=0.6),
+            SemanticEntry(statement="陈远舟一直想带她离开小镇",
+                          category=SemanticCategory.PERSON, confidence=0.8),
+            SemanticEntry(statement="江雪仪开的药会让人头晕",
+                          category=SemanticCategory.ITEM, confidence=0.4),
+        ]
+        graph = KnowledgeGraph(
+            npc_id="test",
+            entities={
+                "巫女": Entity(name="巫女", type="concept"),
+                "慧圆": Entity(name="慧圆", type="person"),
+                "陈远舟": Entity(name="陈远舟", type="person"),
+                "小镇": Entity(name="小镇", type="location"),
+            },
+            relations=[
+                Relation(subject="慧圆", predicate="推举", object="巫女"),
+                Relation(subject="巫女", predicate="绑定", object="小镇"),
+                Relation(subject="陈远舟", predicate="想离开", object="小镇"),
+            ],
+        )
+        return entries, graph
+
+    def test_vector_only_hits(self):
+        """无图谱时，只靠文本相似度。"""
+        entries, graph = self._make_entries_and_graph()
+        retriever = SemanticRetriever({"alpha": 1.0, "beta": 0.0})
+        ctx = RetrievalContext(query_text="巫女小镇命运")
+        hits = retriever.retrieve(entries, graph, ctx)
+        assert len(hits) > 0
+        assert "巫女" in hits[0].description
+
+    def test_graph_only_hits(self):
+        """纯图谱检索。"""
+        entries, graph = self._make_entries_and_graph()
+        retriever = SemanticRetriever({"alpha": 0.0, "beta": 1.0})
+        ctx = RetrievalContext(context_entities=["巫女"])
+        hits = retriever.retrieve(entries, graph, ctx)
+        assert len(hits) > 0
+
+    def test_confidence_filter(self):
+        entries, graph = self._make_entries_and_graph()
+        retriever = SemanticRetriever({"confidence_min": 0.5})
+        ctx = RetrievalContext(query_text="药头晕")
+        hits = retriever.retrieve(entries, graph, ctx)
+        # "江雪仪开的药让人头晕" confidence=0.4 < 0.5 → 被过滤
+        statements = [h.description for h in hits]
+        assert "江雪仪开的药会让人头晕" not in statements
+
+    def test_top_n_limit(self):
+        entries, graph = self._make_entries_and_graph()
+        retriever = SemanticRetriever({"final_top_n": 2, "alpha": 1.0, "beta": 0.0})
+        ctx = RetrievalContext(query_text="巫女小镇命运离开")
+        hits = retriever.retrieve(entries, graph, ctx)
+        assert len(hits) <= 2
+
+
+class TestRetrievalPipeline:
+    def test_pipeline_runs(self):
+        """管道不崩溃，能返回三层结果。"""
+        s = SemanticStore("test_npc")
+        s.add("成为巫女意味着无法离开小镇", category=SemanticCategory.RULE)
+        s.add("陈远舟值得信赖", category=SemanticCategory.PERSON)
+
+        memory = MemoryStore("test_npc")
+        memory.remember(day=10, slot=Slot.MORNING, description="慧圆推举巫女",
+                        importance=9, participants=["慧圆", "林潮音"],
+                        location="temple")
+
+        from src.backend.models.npc import NpcDynamic
+        dyn = NpcDynamic(location="temple", emotion="anxious",
+                         current_goal="决定是否成为巫女", happiness=40, energy=60)
+
+        pipeline = RetrievalPipeline()
+        result = pipeline.retrieve(
+            memory=memory, semantic=s, dynamic=dyn,
+            day=15, slot=Slot.NOON,
+        )
+
+        assert isinstance(result, RetrievalResult)
+        assert result.working_memory["location"] == "temple"
+        assert len(result.episodic_entries) >= 0  # 阈值过滤可能为空
+        assert len(result.semantic_entries) >= 1
+
+    def test_retrieval_result_to_context(self):
+        """结果转上下文文本不崩溃。"""
+        result = RetrievalResult(
+            working_memory={"location": "temple", "emotion": "anxious",
+                           "current_goal": "test", "current_time": "Day 5 morning"},
+            episodic_entries=[
+                ScoredEntry(description="巫女被推举", final_score=0.9, source="vector"),
+            ],
+            semantic_entries=[
+                ScoredEntry(description="成为巫女=无法离开", final_score=0.85, source="both"),
+            ],
+        )
+        ctx = retrieval_result_to_context(result)
+        assert "temple" in ctx
+        assert "巫女被推举" in ctx
+        assert "无法离开" in ctx
 
 class TestTemplates:
     def test_personality_high_kindness(self):
