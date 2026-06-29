@@ -58,3 +58,4 @@
 *.xml text
 *.yaml text
 *.yml text
+godot/Godot_v4.4-stable_win64.exe filter=lfs diff=lfs merge=lfs -text
