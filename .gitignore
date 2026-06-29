@@ -37,6 +37,7 @@ Game1/.vsconfig
 *.mdb
 *.opendb
 *.VC.db
+godot/Godot_v4.4-stable_win64.exe
 
 # 允许跟踪项目解决方案文件
 !Game1.sln
