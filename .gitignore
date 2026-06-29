@@ -86,9 +86,5 @@ $RECYCLE.BIN/
 # =========== LOCAL CONFIGURATION ===========
 # 团队成员可以在此添加本地特定忽略项
 # 如：本地测试文件、临时导出等
-
-# =========== CLAUDE CODE ===========
-.claude/__pycache__/
-__pycache__/
-g o d o t / G o d o t _ v 4 . 4 - s t a b l e _ w i n 6 4 . e x e  
+ 
  
