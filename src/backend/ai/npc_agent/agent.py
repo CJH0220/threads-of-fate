@@ -21,39 +21,12 @@ from src.backend.models.npc import (
     NpcStatic,
     Slot,
 )
+from src.backend.ai.llm_client.interface import BaseLLMClient, StubLLMClient
 from src.backend.ai.npc_agent.dynamic import DynamicState, create_initial_dynamic
 from src.backend.ai.npc_agent.memory import MemoryStore
+from src.backend.ai.npc_agent.retrieval import RetrievalPipeline, retrieval_result_to_context
+from src.backend.ai.npc_agent.semantic import SemanticStore
 from src.backend.ai.npc_agent.templates import build_decision_prompt, build_system_prompt
-
-
-# ═══════════════════════════════════════════════════
-# LLM 客户端接口（临时，等正式实现时替换）
-# ═══════════════════════════════════════════════════
-
-class LLMClient:
-    """LLM 客户端桩 —— 当前返回规则生成的默认行为。
-
-    后续替换为 DeepSeekClient / LocalModelClient 的真实实现。
-    """
-
-    async def chat(self, messages: List[Dict]) -> str:
-        """模拟 LLM 调用，返回基于性格的默认行动。"""
-        return ""   # 空字符串表示使用规则兜底
-
-    async def chat_stream(self, messages: List[Dict]):
-        """流式调用（桩）。"""
-        yield ""
-        return
-
-    def add_to_history(self, role: str, content: str) -> None:
-        """添加到对话历史。"""
-        pass
-
-    def get_history(self) -> List[Dict]:
-        return []
-
-    def clear_history(self) -> None:
-        pass
 
 
 # ═══════════════════════════════════════════════════
@@ -75,15 +48,23 @@ class NpcAgent:
         static: NpcStatic,
         dynamic: Optional[DynamicState] = None,
         memory: Optional[MemoryStore] = None,
-        llm: Optional[LLMClient] = None,
+        semantic: Optional[SemanticStore] = None,
+        llm: Optional[BaseLLMClient] = None,
+        bond_manager=None,
+        name_map: dict = None,
     ):
         self.static = static
         self.dynamic = dynamic or create_initial_dynamic()
         self.memory = memory or MemoryStore(static.id)
-        self.llm = llm or LLMClient()
+        self.semantic = semantic or SemanticStore(static.id)
+        self.llm = llm or StubLLMClient()
+        self._bond_manager = bond_manager
+        self._name_map = name_map or {}
+        self._pipeline = RetrievalPipeline()
 
         # 对话历史（每次 think 时重建 system prompt）
         self._chat_history: List[Dict] = []
+        self._current_conversation: List[Dict] = []
 
     # ── 属性查询 ──────────────────────────────────
 
@@ -119,9 +100,16 @@ class NpcAgent:
         2. 调用 LLM（如不可用，走规则兜底）
         3. 更新动态状态和记忆
         """
-        # 1. 记忆上下文
-        memory_context = self.memory.context_for_llm(max_events=10)
+        # 1. 当前状态 + 三层记忆检索
         state = self.dynamic.current
+        retrieval_result = self._pipeline.retrieve(
+            memory=self.memory,
+            semantic=self.semantic,
+            dynamic=state,
+            day=day,
+            slot=slot,
+        )
+        memory_context = retrieval_result_to_context(retrieval_result)
 
         # 2. 构建 prompt
         system_prompt = build_system_prompt(
@@ -131,6 +119,8 @@ class NpcAgent:
             emotion=state.emotion.value,
             energy=state.energy,
             happiness=state.happiness,
+            bond_manager=self._bond_manager,
+            name_map=self._name_map,
         )
         decision_prompt = build_decision_prompt(
             static=self.static,
@@ -139,9 +129,11 @@ class NpcAgent:
             emotion=state.emotion.value,
             energy=state.energy,
             happiness=state.happiness,
+            bond_manager=self._bond_manager,
+            name_map=self._name_map,
         )
 
-        # 3. 调用 LLM
+        # 3. 调用 LLM（可能降级返回 None）
         messages = [
             {"role": "system", "content": decision_prompt},
         ]
@@ -150,20 +142,31 @@ class NpcAgent:
         # 4. LLM 不可用 → 规则兜底
         if not action:
             action = self._default_action(day, slot)
+        else:
+            action = action.strip()
 
-        return action.strip()
+        return action
 
     async def respond(
-        self, context: str, speaker_name: str = "某人"
+        self, context: str, speaker_name: str = "某人",
+        current_day: int = 1,
     ) -> str:
         """NPC 对话回应。
 
         Args:
             context: 对话上下文（刚才说了什么）
             speaker_name: 说话者名字
+            current_day: 当前天数（用于记忆检索）
         """
         state = self.dynamic.current
-        memory_context = self.memory.context_for_llm(max_events=5)
+        retrieval_result = self._pipeline.retrieve(
+            memory=self.memory,
+            semantic=self.semantic,
+            dynamic=state,
+            day=current_day,
+            slot=Slot.MORNING,  # 对话默认为早晨时段
+        )
+        memory_context = retrieval_result_to_context(retrieval_result)
 
         system_prompt = build_system_prompt(
             static=self.static,
@@ -172,6 +175,8 @@ class NpcAgent:
             emotion=state.emotion.value,
             energy=state.energy,
             happiness=state.happiness,
+            bond_manager=self._bond_manager,
+            name_map=self._name_map,
         )
 
         user_message = f"{speaker_name}对你说：{context}\n\n请以{self.name}的身份回应。记住你的性格和当前情绪。"
@@ -235,6 +240,7 @@ class NpcAgent:
             memory_summary={
                 "event_count": self.memory.event_count,
                 "key_count": self.memory.key_count,
+                "semantic_count": self.semantic.entry_count,
                 "recent_events": [
                     {"day": e.day, "description": e.description[:30]}
                     for e in self.memory.recent_events(5)
@@ -256,6 +262,7 @@ class NpcAgent:
             "static_id": self.static.id,
             "dynamic": self.dynamic.to_dict(),
             "memory": self.memory.to_dict(),
+            "semantic": self.semantic.to_dict(),
         }
 
     @classmethod
@@ -265,5 +272,9 @@ class NpcAgent:
             static=static,
             dynamic=DynamicState.from_dict(data["dynamic"]),
             memory=MemoryStore.from_dict(data["memory"]),
+            semantic=(
+                SemanticStore.from_dict(data["semantic"])
+                if "semantic" in data else None
+            ),
         )
         return agent

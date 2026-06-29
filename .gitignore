@@ -89,3 +89,4 @@ $RECYCLE.BIN/
 
 # =========== CLAUDE CODE ===========
 .claude/__pycache__/
+__pycache__/

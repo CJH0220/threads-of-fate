@@ -69,6 +69,8 @@ SYSTEM_PROMPT_TEMPLATE = """你是{name}，{age}岁的{occupation}，生活在�
 【当前状态】
 当前你身处{current_location}，情绪{emotion}，精力{energy}%，幸福度{happiness}%。
 
+{bond_context}
+
 {memory_context}
 
 【行为规则】
@@ -85,6 +87,60 @@ SYSTEM_PROMPT_TEMPLATE = """你是{name}，{age}岁的{occupation}，生活在�
 # Prompt 构建
 # ═══════════════════════════════════════════════════
 
+def _describe_bond(bond_type: str, name: str, strength: int, glow: int) -> str:
+    """将单条缘线转为自然语言描述。"""
+    type_map = {
+        "红": f"对{name}有爱慕之情",
+        "金": f"将{name}视为利益往来对象",
+        "蓝": f"将{name}视为朋友/家人",
+        "灰": f"对{name}不太了解，关系疏远",
+        "黑": f"对{name}怀有敌意和仇恨",
+    }
+    base = type_map.get(bond_type, f"与{name}存在某种关系")
+
+    # 活跃度提示
+    if glow >= 70:
+        base += "，最近往来频繁，关系非常活跃"
+    elif glow <= 20:
+        base += "，关系冷淡，几乎没什么互动"
+
+    return f"{base}（亲近度{strength}）"
+
+
+def build_bond_context(npc_id: str, bond_manager=None, name_map: dict = None) -> str:
+    """从 BondManager 生成 NPC 的关系上下文文本。
+
+    Args:
+        npc_id: 当前 NPC 的 ID
+        bond_manager: BondManager 实例，None 则返回空
+        name_map: {npc_id: chinese_name} 映射表
+
+    Returns:
+        "【你的人际关系】\n- ...\n- ..." 或空字符串
+    """
+    if bond_manager is None:
+        return ""
+
+    def _name(nid: str) -> str:
+        if name_map and nid in name_map:
+            return name_map[nid]
+        return nid
+
+    lines = []
+    for bond in bond_manager.bonds_from(npc_id):
+        lines.append(f"- 你{_describe_bond(bond.type, _name(bond.to_id), bond.strength, bond.glow)}")
+
+    incoming = bond_manager.bonds_to(npc_id)
+    if incoming:
+        for bond in incoming:
+            lines.append(f"- {_name(bond.from_id)}对你：{_describe_bond(bond.type, '你', bond.strength, bond.glow)}")
+
+    if not lines:
+        return ""
+
+    return "【你的人际关系】\n" + "\n".join(lines) + "\n"
+
+
 def build_system_prompt(
     static: NpcStatic,
     memory_context: str = "（你刚刚开始新的一天。）",
@@ -92,6 +148,8 @@ def build_system_prompt(
     emotion: str = "平静",
     energy: int = 100,
     happiness: int = 50,
+    bond_manager = None,
+    name_map: dict = None,
 ) -> str:
     """为 NPC 构建完整的 system_prompt。
 
@@ -102,7 +160,10 @@ def build_system_prompt(
         emotion: 当前情绪
         energy: 精力值
         happiness: 幸福度
+        bond_manager: BondManager 实例（可选）
     """
+    bond_context = build_bond_context(static.id, bond_manager, name_map)
+
     return SYSTEM_PROMPT_TEMPLATE.format(
         name=static.name,
         age=static.age,
@@ -114,6 +175,7 @@ def build_system_prompt(
         emotion=emotion,
         energy=energy,
         happiness=happiness,
+        bond_context=bond_context,
         memory_context=memory_context,
     )
 
@@ -125,6 +187,8 @@ def build_decision_prompt(
     emotion: str,
     energy: int,
     happiness: int,
+    bond_manager=None,
+    name_map: dict = None,
 ) -> str:
     """为 NPC 行为决策构建 prompt。
 
@@ -137,6 +201,8 @@ def build_decision_prompt(
         emotion=emotion,
         energy=energy,
         happiness=happiness,
+        bond_manager=bond_manager,
+        name_map=name_map,
     )
     decision_instruction = f"""
 【当前时段：你需要做一个决定】
