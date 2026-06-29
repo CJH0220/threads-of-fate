@@ -1,0 +1,49 @@
+[gd_scene load_steps=2 format=3 uid="uid://ui_state"]
+
+[ext_resource type="Script" path="res://scripts/ui/ui_state.gd" id="1_ui_state_script"]
+
+[node name="UiState" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ui_state_script")
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -80.0
+offset_right = 180.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="IconLabel" type="Label" parent="Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "📭"
+horizontal_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "暂无内容"
+horizontal_alignment = 1
+
+[node name="MessageLabel" type="Label" parent="Content"]
+layout_mode = 2
+autowrap_mode = 3
+text = "选择左侧条目或等待数据加载。"
+horizontal_alignment = 1
+
+[node name="ButtonContainer" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+alignment = 1

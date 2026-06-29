@@ -1,0 +1,50 @@
+[
+  {
+    "location_id": "temple",
+    "display_name": "寺庙",
+    "category": "Faith",
+    "unlock_day": 1,
+    "primary_time_slots": ["Morning", "Night"],
+    "core_npc_ids": ["huiyuan", "lin_chaoyin", "tudi_gong"],
+    "function": "香火、巫女线、周结算和终局聚集核心地点",
+    "visual_priority": "P0",
+    "mvp_priority": "P0",
+    "description": "山顶旧土地庙，是土地公神位和香火压力的主要舞台。"
+  },
+  {
+    "location_id": "school",
+    "display_name": "学校",
+    "category": "Daily",
+    "unlock_day": 1,
+    "primary_time_slots": ["Morning", "Afternoon"],
+    "core_npc_ids": ["lin_chaoyin", "chen_yuanzhou"],
+    "function": "青春线、学习压力、校园日常",
+    "visual_priority": "P0",
+    "mvp_priority": "P0",
+    "description": "林潮音和陈远舟的主要日常地点。"
+  },
+  {
+    "location_id": "coffee_shop",
+    "display_name": "咖啡店",
+    "category": "Daily",
+    "unlock_day": 1,
+    "primary_time_slots": ["Afternoon"],
+    "core_npc_ids": ["lin_chaoyin", "chen_yuanzhou"],
+    "function": "日常社交、八卦、轻松缓冲",
+    "visual_priority": "P0",
+    "mvp_priority": "P0",
+    "description": "年轻人聚集的温暖地点，可承载日常事件。"
+  },
+  {
+    "location_id": "seafood_shop",
+    "display_name": "海鲜店",
+    "category": "Family",
+    "unlock_day": 1,
+    "primary_time_slots": ["Morning", "Afternoon", "Night"],
+    "core_npc_ids": ["chen_haisheng", "chen_yuanzhou"],
+    "function": "家庭冲突、经济压力、陈海生线",
+    "visual_priority": "P0",
+    "mvp_priority": "P0",
+    "description": "陈海生一家经营的海鲜店，是家庭线主要地点。"
+  }
+]

@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://confirm_dialog"]
+
+[ext_resource type="Script" path="res://scripts/ui/confirm_dialog.gd" id="1_confirm_script"]
+
+[node name="ConfirmDialog" type="ConfirmationDialog"]
+title = "确认操作"
+dialog_text = "确定要执行此操作吗？"
+ok_button_text = "确定"
+cancel_button_text = "取消"
+script = ExtResource("1_confirm_script")

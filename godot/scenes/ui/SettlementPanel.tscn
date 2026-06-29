@@ -1,0 +1,90 @@
+[gd_scene load_steps=2 format=3 uid="uid://settlement_panel"]
+
+[ext_resource type="Script" path="res://scripts/ui/settlement_panel.gd" id="1_settlement_script"]
+
+[node name="SettlementPanel" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_settlement_script")
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -180.0
+offset_right = 260.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Content" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TitleLabel" type="Label" parent="Panel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "结算摘要"
+horizontal_alignment = 1
+
+[node name="SummaryLabel" type="Label" parent="Panel/Content"]
+layout_mode = 2
+autowrap_mode = 3
+text = "时间已推进，命运线产生了新的变化。"
+horizontal_alignment = 1
+
+[node name="ResourceChanges" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Panel/Content/ResourceChanges"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "【资源变化】"
+
+[node name="ChangesList" type="VBoxContainer" parent="Panel/Content/ResourceChanges"]
+layout_mode = 2
+
+[node name="CharacterChanges" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Panel/Content/CharacterChanges"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "【人物变化】"
+
+[node name="ChangesList" type="VBoxContainer" parent="Panel/Content/CharacterChanges"]
+layout_mode = 2
+
+[node name="EventChanges" type="VBoxContainer" parent="Panel/Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Panel/Content/EventChanges"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "【事件结果】"
+
+[node name="ChangesList" type="VBoxContainer" parent="Panel/Content/EventChanges"]
+layout_mode = 2
+
+[node name="CloseButton" type="Button" parent="Panel/Content"]
+layout_mode = 2
+text = "关闭"

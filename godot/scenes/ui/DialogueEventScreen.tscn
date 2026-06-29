@@ -1,0 +1,321 @@
+[gd_scene load_steps=2 format=3 uid="uid://tof_dialogue_event_screen"]
+
+[ext_resource type="Script" path="res://scripts/ui/dialogue_event_screen.gd" id="1_dlg_script"]
+
+[node name="DialogueEventScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_dlg_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.07, 0.1, 1)
+
+[node name="Stage" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -210.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LocationLabel" type="Label" parent="Stage"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 320.0
+offset_bottom = 48.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 18
+text = "地点"
+
+[node name="CharSlotLeft" type="Control" parent="Stage"]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 140.0
+offset_top = 120.0
+offset_right = 300.0
+offset_bottom = 440.0
+pivot_offset = Vector2(80, 250)
+mouse_filter = 2
+
+[node name="Portrait" type="ColorRect" parent="Stage/CharSlotLeft"]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 160.0
+offset_bottom = 260.0
+mouse_filter = 2
+color = Color(0.4, 0.4, 0.45, 1)
+
+[node name="Initial" type="Label" parent="Stage/CharSlotLeft/Portrait"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 96
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ActiveTag" type="Label" parent="Stage/CharSlotLeft"]
+visible = false
+layout_mode = 1
+anchors_preset = 0
+offset_top = 264.0
+offset_right = 160.0
+offset_bottom = 288.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.4, 1)
+text = "▶ 发言中"
+horizontal_alignment = 1
+
+[node name="NameTag" type="Label" parent="Stage/CharSlotLeft"]
+layout_mode = 1
+anchors_preset = 0
+offset_top = 290.0
+offset_right = 160.0
+offset_bottom = 318.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 18
+text = "角色"
+horizontal_alignment = 1
+
+[node name="CharSlotRight" type="Control" parent="Stage"]
+layout_mode = 1
+anchors_preset = 0
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_top = 120.0
+offset_right = -140.0
+offset_bottom = 440.0
+pivot_offset = Vector2(80, 250)
+mouse_filter = 2
+
+[node name="Portrait" type="ColorRect" parent="Stage/CharSlotRight"]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 160.0
+offset_bottom = 260.0
+mouse_filter = 2
+color = Color(0.4, 0.4, 0.45, 1)
+
+[node name="Initial" type="Label" parent="Stage/CharSlotRight/Portrait"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 96
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ActiveTag" type="Label" parent="Stage/CharSlotRight"]
+visible = false
+layout_mode = 1
+anchors_preset = 0
+offset_top = 264.0
+offset_right = 160.0
+offset_bottom = 288.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.4, 1)
+text = "▶ 发言中"
+horizontal_alignment = 1
+
+[node name="NameTag" type="Label" parent="Stage/CharSlotRight"]
+layout_mode = 1
+anchors_preset = 0
+offset_top = 290.0
+offset_right = 160.0
+offset_bottom = 318.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 18
+text = "角色"
+horizontal_alignment = 1
+
+[node name="DialogueBox" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = -198.0
+offset_right = -24.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+
+[node name="VBox" type="VBoxContainer" parent="DialogueBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="TopRow" type="HBoxContainer" parent="DialogueBox/VBox"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Avatar" type="ColorRect" parent="DialogueBox/VBox/TopRow"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.4, 0.4, 0.45, 1)
+
+[node name="Initial" type="Label" parent="DialogueBox/VBox/TopRow/Avatar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 24
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpeakerInfo" type="HBoxContainer" parent="DialogueBox/VBox/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="SpeakerLabel" type="Label" parent="DialogueBox/VBox/TopRow/SpeakerInfo"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 20
+text = "角色"
+vertical_alignment = 1
+
+[node name="TypeTag" type="Label" parent="DialogueBox/VBox/TopRow/SpeakerInfo"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 1)
+text = ""
+vertical_alignment = 1
+
+[node name="Controls" type="HBoxContainer" parent="DialogueBox/VBox/TopRow"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ExpandButton" type="Button" parent="DialogueBox/VBox/TopRow/Controls"]
+layout_mode = 2
+text = "展开对话"
+
+[node name="AutoButton" type="Button" parent="DialogueBox/VBox/TopRow/Controls"]
+layout_mode = 2
+text = "自动：关"
+
+[node name="SkipButton" type="Button" parent="DialogueBox/VBox/TopRow/Controls"]
+layout_mode = 2
+text = "跳过"
+
+[node name="BodyText" type="RichTextLabel" parent="DialogueBox/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+bbcode_enabled = true
+text = "……"
+
+[node name="HintRow" type="HBoxContainer" parent="DialogueBox/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ContinueHint" type="Label" parent="DialogueBox/VBox/HintRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 1)
+text = "▼ 点击 / 空格 继续"
+
+[node name="ProgressLabel" type="Label" parent="DialogueBox/VBox/HintRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.65, 0.72, 1)
+text = "1 / 1"
+vertical_alignment = 1
+
+[node name="CloseButton" type="Button" parent="DialogueBox/VBox/HintRow"]
+layout_mode = 2
+text = "退出演出"
+
+[node name="LogPanel" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="LogPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="Panel" type="PanelContainer" parent="LogPanel/Dim"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -340.0
+offset_top = -260.0
+offset_right = 340.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="LogPanel/Dim/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="LogPanel/Dim/Panel/VBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="LogPanel/Dim/Panel/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 22
+text = "对话回顾"
+
+[node name="CloseButton" type="Button" parent="LogPanel/Dim/Panel/VBox/Header"]
+layout_mode = 2
+text = "返回"
+
+[node name="HeaderSeparator" type="HSeparator" parent="LogPanel/Dim/Panel/VBox"]
+layout_mode = 2
+
+[node name="LogScroll" type="ScrollContainer" parent="LogPanel/Dim/Panel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="LogContainer" type="VBoxContainer" parent="LogPanel/Dim/Panel/VBox/LogScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="AutoTimer" type="Timer" parent="."]
+one_shot = true

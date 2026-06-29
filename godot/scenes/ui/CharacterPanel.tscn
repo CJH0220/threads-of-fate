@@ -1,0 +1,138 @@
+[gd_scene load_steps=2 format=3 uid="uid://char_panel_v0"]
+
+[ext_resource type="Script" path="res://scripts/ui/character_panel.gd" id="1_script"]
+
+[node name="CharacterPanel" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "人物名称"
+
+[node name="RoleLabel" type="Label" parent="Header"]
+layout_mode = 2
+text = "身份"
+horizontal_alignment = 2
+
+[node name="BioText" type="RichTextLabel" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "暂无简介。"
+
+[node name="ScheduleSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="ScheduleTitle" type="Label" parent="ScheduleSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "今日行程"
+
+[node name="MorningRow" type="HBoxContainer" parent="ScheduleSection"]
+layout_mode = 2
+
+[node name="SlotLabel" type="Label" parent="ScheduleSection/MorningRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "早上："
+
+[node name="MorningLocationLabel" type="Label" parent="ScheduleSection/MorningRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "地点未知"
+
+[node name="AfternoonRow" type="HBoxContainer" parent="ScheduleSection"]
+layout_mode = 2
+
+[node name="SlotLabel2" type="Label" parent="ScheduleSection/AfternoonRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "下午："
+
+[node name="AfternoonLocationLabel" type="Label" parent="ScheduleSection/AfternoonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "地点未知"
+
+[node name="NightRow" type="HBoxContainer" parent="ScheduleSection"]
+layout_mode = 2
+
+[node name="SlotLabel3" type="Label" parent="ScheduleSection/NightRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "晚上："
+
+[node name="NightLocationLabel" type="Label" parent="ScheduleSection/NightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "地点未知"
+
+[node name="StatsSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="StatsTitle" type="Label" parent="StatsSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "当前状态"
+
+[node name="StateLabel" type="Label" parent="StatsSection"]
+layout_mode = 2
+text = "暂无状态。"
+
+[node name="StatsRow" type="HBoxContainer" parent="StatsSection"]
+layout_mode = 2
+
+[node name="MindLabel" type="Label" parent="StatsSection/StatsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "心智 0"
+
+[node name="BodyLabel" type="Label" parent="StatsSection/StatsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "体魄 0"
+
+[node name="CharmLabel" type="Label" parent="StatsSection/StatsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "魅力 0"
+
+[node name="FaithLabel" type="Label" parent="StatsSection/StatsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "信仰 0"
+
+[node name="BondSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="BondTitle" type="Label" parent="BondSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "缘线"
+
+[node name="BondContainer" type="VBoxContainer" parent="BondSection"]
+layout_mode = 2
+
+[node name="KarmaSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="KarmaTitle" type="Label" parent="KarmaSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "业线"
+
+[node name="KarmaLabel" type="Label" parent="KarmaSection"]
+layout_mode = 2
+text = "命运尚未显形（0%）"

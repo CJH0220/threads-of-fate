@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3 uid="uid://tof_danger_warning_item"]
+
+[ext_resource type="Script" path="res://scripts/ui/danger_warning_item.gd" id="1_script"]
+
+[node name="DangerWarningItem" type="PanelContainer"]
+mouse_filter = 0
+script = ExtResource("1_script")
+
+[node name="Content" type="HBoxContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="IconLabel" type="Label" parent="Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 16
+text = "⚠"
+
+[node name="TextLabel" type="Label" parent="Content"]
+layout_mode = 2
+mouse_filter = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 3
+text = "危险提示"

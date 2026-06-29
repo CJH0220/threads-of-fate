@@ -1,0 +1,404 @@
+[gd_scene load_steps=2 format=3 uid="uid://tof_settings_screen"]
+
+[ext_resource type="Script" path="res://scripts/ui/settings_screen.gd" id="1_settings_script"]
+
+[node name="SettingsScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_settings_script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="Panel" type="PanelContainer" parent="Dim"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Dim/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Dim/Panel/VBox"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Dim/Panel/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "设置"
+
+[node name="CloseButton" type="Button" parent="Dim/Panel/VBox/Header"]
+layout_mode = 2
+text = "关闭"
+
+[node name="HeaderSeparator" type="HSeparator" parent="Dim/Panel/VBox"]
+layout_mode = 2
+
+[node name="Body" type="HBoxContainer" parent="Dim/Panel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="CategoryList" type="VBoxContainer" parent="Dim/Panel/VBox/Body"]
+custom_minimum_size = Vector2(140, 0)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AudioCat" type="Button" parent="Dim/Panel/VBox/Body/CategoryList"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+toggle_mode = true
+text = "音频"
+
+[node name="DisplayCat" type="Button" parent="Dim/Panel/VBox/Body/CategoryList"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+toggle_mode = true
+text = "显示"
+
+[node name="TextCat" type="Button" parent="Dim/Panel/VBox/Body/CategoryList"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+toggle_mode = true
+text = "文本"
+
+[node name="ControlsCat" type="Button" parent="Dim/Panel/VBox/Body/CategoryList"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+toggle_mode = true
+text = "操作"
+
+[node name="AccessibilityCat" type="Button" parent="Dim/Panel/VBox/Body/CategoryList"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+toggle_mode = true
+text = "辅助功能"
+
+[node name="ContentScroll" type="ScrollContainer" parent="Dim/Panel/VBox/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Pages" type="VBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="AudioPage" type="VBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="MasterRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage/MasterRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "主音量"
+
+[node name="MasterSlider" type="HSlider" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage/MasterRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="MusicRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage/MusicRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "音乐"
+
+[node name="MusicSlider" type="HSlider" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage/MusicRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="SfxRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage/SfxRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "音效"
+
+[node name="SfxSlider" type="HSlider" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage/SfxRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="AmbienceRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage/AmbienceRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "环境音"
+
+[node name="AmbienceSlider" type="HSlider" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AudioPage/AmbienceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+
+[node name="DisplayPage" type="VBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="WindowModeRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage/WindowModeRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "窗口模式"
+
+[node name="WindowModeOption" type="OptionButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage/WindowModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ResolutionRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage/ResolutionRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "分辨率"
+
+[node name="ResolutionOption" type="OptionButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage/ResolutionRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PixelScaleRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage/PixelScaleRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "像素缩放"
+
+[node name="PixelScaleOption" type="OptionButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage/PixelScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ScreenShakeRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage/ScreenShakeRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "屏幕震动"
+
+[node name="ScreenShakeCheck" type="CheckButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/DisplayPage/ScreenShakeRow"]
+layout_mode = 2
+
+[node name="TextPage" type="VBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="TypingSpeedRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage/TypingSpeedRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "打字速度（慢/中/快）"
+
+[node name="TypingSpeedSlider" type="HSlider" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage/TypingSpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 2.0
+step = 1.0
+
+[node name="AutoSpeedRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage/AutoSpeedRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "Auto 速度（慢/中/快）"
+
+[node name="AutoSpeedSlider" type="HSlider" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage/AutoSpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 2.0
+step = 1.0
+
+[node name="SkipReadRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage/SkipReadRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "跳过已读文本"
+
+[node name="SkipReadCheck" type="CheckButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage/SkipReadRow"]
+layout_mode = 2
+
+[node name="EventFontSizeRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage/EventFontSizeRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "事件文本字号"
+
+[node name="EventFontSizeOption" type="OptionButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/TextPage/EventFontSizeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ControlsPage" type="VBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="KeyHintsRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage/KeyHintsRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "键位提示"
+
+[node name="KeyHintsCheck" type="CheckButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage/KeyHintsRow"]
+layout_mode = 2
+
+[node name="MouseHoverRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage/MouseHoverRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "鼠标悬停说明"
+
+[node name="MouseHoverCheck" type="CheckButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage/MouseHoverRow"]
+layout_mode = 2
+
+[node name="OperationGuideRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage/OperationGuideRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "操作简介"
+
+[node name="OperationGuideButton" type="Button" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/ControlsPage/OperationGuideRow"]
+layout_mode = 2
+text = "查看键鼠对照"
+
+[node name="AccessibilityPage" type="VBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="FontSizeRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/FontSizeRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "字体大小"
+
+[node name="FontSizeOption" type="OptionButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/FontSizeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ReduceMotionRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/ReduceMotionRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "减少动画"
+
+[node name="ReduceMotionCheck" type="CheckButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/ReduceMotionRow"]
+layout_mode = 2
+
+[node name="HighContrastRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/HighContrastRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "高对比 UI"
+
+[node name="HighContrastCheck" type="CheckButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/HighContrastRow"]
+layout_mode = 2
+
+[node name="ColorAssistRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/ColorAssistRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "颜色辅助标记"
+
+[node name="ColorAssistCheck" type="CheckButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/ColorAssistRow"]
+layout_mode = 2
+
+[node name="StrongConfirmRow" type="HBoxContainer" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/StrongConfirmRow"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+text = "危险操作强确认"
+
+[node name="StrongConfirmCheck" type="CheckButton" parent="Dim/Panel/VBox/Body/ContentScroll/Pages/AccessibilityPage/StrongConfirmRow"]
+layout_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="Dim/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ResetButton" type="Button" parent="Dim/Panel/VBox/Footer"]
+layout_mode = 2
+text = "恢复默认"
+
+[node name="FooterSpacer" type="Control" parent="Dim/Panel/VBox/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ApplyButton" type="Button" parent="Dim/Panel/VBox/Footer"]
+layout_mode = 2
+text = "应用"
+
+[node name="BackButton" type="Button" parent="Dim/Panel/VBox/Footer"]
+layout_mode = 2
+text = "返回"

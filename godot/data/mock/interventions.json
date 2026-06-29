@@ -1,0 +1,28 @@
+[
+  {
+    "intervention_id": "dream_hint",
+    "display_name": "托梦",
+    "cost_divine_power": 2,
+    "target_type": "Npc",
+    "route_bias": "YangOrNeutral",
+    "unlock_day": 1,
+    "mvp_enabled": true,
+    "default_effect": "提高目标对风险或关系的认知",
+    "default_risk": "梦境模糊时只产生轻微影响",
+    "ai_text_policy": "DescriptionOnly",
+    "description": "让目标 NPC 在梦中看到模糊征兆或情绪暗示。"
+  },
+  {
+    "intervention_id": "blessing",
+    "display_name": "赐福",
+    "cost_divine_power": 3,
+    "target_type": "NpcOrEvent",
+    "route_bias": "Yang",
+    "unlock_day": 1,
+    "mvp_enabled": true,
+    "default_effect": "提高一次正向行动或判定成功率",
+    "default_risk": "过度依赖会消耗神力",
+    "ai_text_policy": "DescriptionOnly",
+    "description": "给 NPC 的某次行动带来好运或勇气。"
+  }
+]

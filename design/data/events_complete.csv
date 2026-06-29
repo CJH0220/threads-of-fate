@@ -1,0 +1,196 @@
+EventId,EventName,EventType,WeekRange,DayRange,TimeSlot,LocationId,ParticipantNpcIds,RiskLevel,TriggerWeight,AiTextPolicy,HistoryRecordPolicy,RequiredConditions,Description
+
+# ========================================
+# ANCHOR EVENTS (必触发，权重 >= 1000)
+# ========================================
+
+intro_heaven_notice,天界绩效通知,Anchor,W1,Day1,Morning,temple,"heaven_messenger;tudi_gong",Fatal,1000,None,Full,,天界使者向土地公送达绩效通知和60天考核要求
+intro_underworld_whisper,地府低语诱惑,Anchor,W1,Day1,Night,temple,"underworld_messenger;tudi_gong",Fatal,1000,None,Full,,地府使者诱惑土地公走向阴德与邪路路线
+w1_first_week_summary,第一次周结算,Anchor,W1,Day7,Night,temple,all_npc,Low,1000,None,Full,,第1周结束，系统显示香火、神力、阳德、阴德变化
+w2_gus_cult_arrive,顾沉舟偷渡上岛,Anchor,W2,Day8,Night,port,"gu_chenzhou;he_laosan",High,1000,None,Full,,顾沉舟通过何老三的灰色通道来到归潮镇并建立游客身份
+w2_doctor_arrive,江雪仪接手诊所,Anchor,W2,Day9,Morning,clinic,"jiang_xueyi;xu_mingchuan",Medium,1000,None,Full,,江雪仪接手归潮镇诊所并快速获得岛民信任
+w2_port_anomaly,港口异常事件,Anchor,W2,Day11,Night,port,"zhou_xingzhi;he_laosan",Medium,1000,None,Full,,周行知在港口发现异常渡口记录和可疑物资
+w3_first_victim_case,第一批异常案件,Anchor,W3,Day18,Night,plaza,"xu_mingchuan;zhao_shouzheng",High,1000,None,Full,,归潮镇发生第一批异常案件，许明川接手调查
+w3_night_boat_record,夜船记录,Anchor,W3,Day19,Morning,port,"zhou_xingzhi;he_laosan",High,1000,None,Full,,周行知在港口发现夜船记录，这是邪教活动的重要证据
+w3_witch_candidate,林潮音被推为巫女候选,Anchor,W3,Day20,Morning,temple,"huiyuan;lin_chaoyin;lin_yueqin",High,1000,None,Full,,慧圆发现林潮音灵力异常，开始推举她为庙会巫女
+w3_gus_contact_chenhai,陈海生被顾沉舟接触,Anchor,W3,Day21,Afternoon,wine_bar,"gu_chenzhou;chen_haisheng",Medium,1000,None,Full,,顾沉舟正式接触陈海生并开始拉拢
+w4_midterm_report,中期报告,Anchor,W4,Day28,Night,temple,"heaven_messenger;tudi_gong",Medium,1000,None,Full,,天界使者送来第30天中期报告，评估香火和信仰情况
+w4_gus_secret_meeting,顾沉舟首次秘密聚会,Anchor,W4,Day25,Night,mountain_forest,"gu_chenzhou;chen_haisheng",High,1000,None,Full,,顾沉舟组织第一次秘密信仰聚会
+w5_first_cult_sacrifice,首次邪教献祭未遂,Anchor,W5,Day32,Night,mountain_forest,"gu_chenzhou;chen_haisheng",High,1000,None,Full,,顾沉舟组织第一次小型献祭仪式，被撞破未遂
+w5_temple_account_scandal,寺庙账目丑闻初现,Anchor,W5,Day35,Any,plaza,"zhou_xingzhi;huiyuan",Medium,1000,None,Full,,周行知开始调查寺庙账目异常
+w6_cult_public_announce,邪教公开招募,Anchor,W6,Day42,Night,plaza,"gu_chenzhou;chen_haisheng",Fatal,1000,None,Full,,顾沉舟公开进行集会，开始尝试公开传教
+w6_fire_incident,港口纵火案,Anchor,W6,Day44,Night,port,"xu_mingchuan;chen_haisheng;he_laosan",High,1000,None,Full,,港口发生可疑火灾，证据指向陈海生
+w7_jiang_identity_exposed,江雪仪身份暴露,Anchor,W7,Day49,Night,clinic,"jiang_xueyi;xu_mingchuan;gu_chenzhou",High,1000,None,Full,,江雪仪与顾沉舟的联系被许明川发现
+w7_huiyuan_scandal_exposed,慧圆丑闻曝光,Anchor,W7,Day50,Any,plaza,"zhou_xingzhi;huiyuan;lin_chaoyin",Fatal,1000,None,Full,,周行知公开寺庙腐败和巫女骗局真相
+w8_final_preparation,最终灾厄前平静,Anchor,W8,Day54,Any,beach,all_npc,Low,1000,None,Full,,大潮灾难前的平静，各人做出最终选择
+w8_final_venue_decision,最终灾难发生地,Anchor,W8,Day56,Night,temple,"lin_chaoyin;gu_chenzhou;xu_mingchuan",Fatal,1000,None,Full,,最终灾难在土地庙爆发，各人立场决定结局
+final_day_approaches_temple,灾厄降临,Anchor,Final,Day60,Night,temple,all_npc,Fatal,1000,None,Full,,第60天大潮灾厄降临，最终命运织就
+
+# ========================================
+# KEY EVENTS - 林潮音线 (Witch Line)
+# ========================================
+
+w1_chaoyin_nightmare1,潮音第一次噩梦,Key,W1,Day2-4,Night,residence,lin_chaoyin,Low,800,DialogueAllowed,Full,,林潮音梦见潮水吞没小镇，惊醒时浑身湿透
+w1_chaoyin_nightmare2,潮水噩梦加深,Key,W1,Day5-7,Night,residence,lin_chaoyin,Medium,700,DialogueAllowed,Full,prev_event:"w1_chaoyin_nightmare1",噩梦变得越来越真实，潮水声就在耳边
+w1_chaoyin_coffee_study,咖啡店自习偶遇,Key,W1,Day3-6,Afternoon,coffee_shop,"lin_chaoyin;chen_yuanzhou",Low,600,DialogueAllowed,Full,,陈远舟在咖啡店遇见正在自习的林潮音
+w2_chaoyin_bookshelf_find,旧书发现,Key,W2,Day10-13,Afternoon,bookstore,"lin_chaoyin;zhou_xingzhi",Medium,700,DialogueAllowed,Full,,林潮音在旧书店找到一本记载归潮镇巫术的古籍
+w2_chaoyin_mother_argument,与母亲争吵,Key,W2,Day12-14,Any,residence,"lin_chaoyin;lin_yueqin",Medium,650,DialogueAllowed,Full,,林月琴发现女儿的异常，两人激烈争吵
+w3_chaoyin_awakening,灵力觉醒,Key,W3,Day17-19,Night,temple,lin_chaoyin,High,750,DialogueAllowed,Full,prev_event:"w2_chaoyin_bookshelf_find",林潮音在土地庙感受到强烈的灵力波动
+w3_chaoyin_yuanzhou_confide,向陈远舟倾诉,Key,W3,Day20-22,Afternoon,beach,"lin_chaoyin;chen_yuanzhou",Medium,700,DialogueAllowed,Full,bond_chaoyin_yuanzhou>=40,林潮音向陈远舟倾诉自己的困惑和恐惧
+w4_chaoyin_witch_decision,是否接受巫女身份,Key,W4,Day25-27,Any,temple,"lin_chaoyin;huiyuan",High,800,DialogueAllowed,Full,prev_event:"w3_witch_candidate",林潮音面对慧圆的提议，需要做出选择
+w4_chaoyin_ritual_practice,巫女仪式练习,Key,W4,Day28-30,Afternoon,temple,"lin_chaoyin;huiyuan",Medium,600,DialogueAllowed,Full,,慧圆开始教林潮音巫女仪式的舞步和咒语
+w5_chaoyin_nightmare_shared,与陈远舟共梦,Key,W5,Day31-33,Night,beach,"lin_chaoyin;chen_yuanzhou",High,750,DialogueAllowed,Full,bond_chaoyin_yuanzhou>=70,林潮音和陈远舟在同一晚做了相似的潮水噩梦
+w5_chaoyin_power_manifest,力量首次显现,Key,W5,Day34-36,Any,clinic,"lin_chaoyin;jiang_xueyi",High,800,DialogueAllowed,Full,prev_event:"w3_chaoyin_awakening",林潮音无意间用灵力帮助了病人，被江雪仪注意到
+w6_chaoyin_gus_approach,顾沉舟接触潮音,Key,W6,Day37-39,Any,temple,"gu_chenzhou;lin_chaoyin",High,850,DialogueAllowed,Full,,顾沉舟开始直接接触林潮音，试图将她纳入邪教
+w6_chaoyin_mother_reconcile,与母亲和解,Key,W6,Day40-43,Any,residence,"lin_chaoyin;lin_yueqin",Medium,650,DialogueAllowed,Full,prev_event:"w2_chaoyin_mother_argument",林月琴终于说出自己年轻时的秘密，母女和解
+w7_chaoyin_guardian_choice,守护者抉择,Key,W7,Day44-47,Any,beach,lin_chaoyin,Fatal,900,DialogueAllowed,Full,chaoyin_witch_line>=60,林潮音面临最终抉择：对抗邪教还是成为新的巫女
+w7_chaoyin_yuanzhou_final_promise,最终约定,Key,W7,Day48-50,Afternoon,beach,"lin_chaoyin;chen_yuanzhou",Medium,700,DialogueAllowed,Full,bond_chaoyin_yuanzhou>=80,陈远舟承诺无论发生什么，都会带林潮音一起离开
+
+# ========================================
+# KEY EVENTS - 陈远舟线 (Leave Line)
+# ========================================
+
+w1_yuanzhou_exam_prep,高考复习压力,Key,W1,Day1-3,Afternoon,residence,chen_yuanzhou,Low,700,DialogueAllowed,Full,,陈远舟在家中复习，高考压力越来越大
+w1_yuanzhou_father_argument,与父亲争吵,Key,W1,Day4-6,Any,residence,"chen_yuanzhou;chen_haisheng",Medium,650,DialogueAllowed,Full,,陈海生醉酒回家，父子爆发激烈争吵
+w2_yuanzhou_scholarship_search,奖学金查询,Key,W2,Day9-11,Afternoon,bookstore,"chen_yuanzhou;zhou_xingzhi",Low,600,DialogueAllowed,Full,,周行知帮陈远舟查大学奖学金信息
+w2_yuanzhou_part_time_job,打零工攒钱,Key,W2,Day12-14,Any,seafood_shop,"chen_yuanzhou;chen_haisheng;su_wan",Medium,550,DialogueAllowed,Full,,陈远舟在海鲜店帮忙打零工，被父亲发现后指责
+w3_yuanzhou_college_visit,大学生来访,Key,W3,Day15-18,Any,school,"chen_yuanzhou;zhou_xingzhi",Low,600,DialogueAllowed,Full,,周行知的大学同学来访，给陈远舟讲述外面的世界
+w3_yuanzhou_apply_confirmed,大学申请确认,Key,W3,Day19-21,Afternoon,post_office,chen_yuanzhou,Low,700,DialogueAllowed,Full,,陈远舟寄出大学申请，内心既期待又不安
+w4_yuanzhou_chaoyin_agreement,约定一起离开,Key,W4,Day22-25,Afternoon,beach,"chen_yuanzhou;lin_chaoyin",Medium,800,DialogueAllowed,Full,bond_chaoyin_yuanzhou>=50,陈远舟向林潮音提出一起考去同一城市的约定
+w4_yuanzhou_father_discover_application,父亲发现申请,Key,W4,Day26-28,Any,residence,"chen_yuanzhou;chen_haisheng;su_wan",High,750,DialogueAllowed,Full,,陈海生发现陈远舟的大学申请，暴怒撕毁
+w5_yuanzhou_mother_secret,母亲的秘密存款,Key,W5,Day29-32,Any,residence,"chen_yuanzhou;su_wan",Medium,650,DialogueAllowed,Full,,苏婉告诉儿子自己偷偷存了一笔钱供他上大学
+w5_yuanzhou_entrance_exam,高考前模拟考,Key,W5,Day33-35,Any,school,chen_yuanzhou,Low,600,DialogueAllowed,Full,,陈远舟参加高考前最后一次模拟考
+w6_yuanzhou_exam_result,高考成绩公布,Key,W6,Day36-39,Afternoon,school,chen_yuanzhou,Low,800,DialogueAllowed,Full,,陈远舟查到高考成绩，是否能离开小镇在此一举
+w6_yuanzhou_family_conflict_peak,家庭冲突爆发,Key,W6,Day40-43,Any,residence,"chen_yuanzhou;chen_haisheng;su_wan",High,850,DialogueAllowed,Full,prev_event:"w4_yuanzhou_father_discover_application",陈海生在亲戚面前羞辱儿子的大学梦想，家庭彻底决裂
+w7_yuanzhou_admission_letter,录取通知书,Key,W7,Day44-47,Morning,post_office,"chen_yuanzhou;su_wan",Medium,900,DialogueAllowed,Full,prev_event:"w6_yuanzhou_exam_result",陈远舟收到大学录取通知书
+w7_yuanzhou_final_choice,走还是留,Key,W7,Day48-51,Any,beach,"chen_yuanzhou;lin_chaoyin",High,850,DialogueAllowed,Full,,面对即将到来的灾难，陈远舟必须选择离开还是留下保护林潮音
+
+# ========================================
+# KEY EVENTS - 陈海生线 (Cult Line)
+# ========================================
+
+w1_chenhai_debt1,第一笔欠款到期,Key,W1,Day3-5,Any,seafood_shop,chen_haisheng,Medium,650,None,Full,,陈海生收到催债通知，海鲜店生意惨淡
+w1_chenhai_drunk1,深夜醉酒归家,Key,W1,Day6-7,Night,residence,"chen_haisheng;su_wan",Low,500,None,Full,,陈海生醉酒回家，苏婉默默收拾残局
+w2_chenhai_gus_first_offer,顾沉舟首次示好,Key,W2,Day8-10,Afternoon,seafood_shop,"gu_chenzhou;chen_haisheng",Medium,600,DialogueAllowed,Full,,顾沉舟到海鲜店买大量海鲜并给高额小费
+w2_chenhai_family_dinner_disaster,家庭晚餐灾难,Key,W2,Day11-13,Night,residence,"chen_haisheng;su_wan;chen_yuanzhou",Medium,550,DialogueAllowed,Full,,本应温馨的家庭晚餐变成陈海生的抱怨和发泄
+w3_chenhai_gus_promise,顾沉舟的承诺,Key,W3,Day16-19,Night,wine_bar,"gu_chenzhou;chen_haisheng",High,700,DialogueAllowed,Full,prev_event:"w2_chenhai_gus_first_offer",顾沉舟向陈海生许诺财富、尊重和"新的信仰"
+w3_chenhai_anger_incident,港口愤怒事件,Key,W3,Day20-22,Afternoon,port,"chen_haisheng;he_laosan",Medium,650,DialogueAllowed,Full,,何老三开玩笑嘲笑陈海生，陈海生暴怒打人
+w4_chenhai_first_gathering,第一次秘密聚会,Key,W4,Day23-26,Night,mountain_forest,"chen_haisheng;gu_chenzhou",High,750,None,Full,prev_event:"w3_chenhai_gus_promise",陈海生参加顾沉舟组织的第一次秘密聚会
+w4_chenhai_wife_notice,苏婉发现异常,Key,W4,Day27-29,Any,residence,"chen_haisheng;su_wan",Medium,600,DialogueAllowed,Full,,苏婉发现丈夫深夜出门和口袋里的奇怪符号
+w5_chenhai_first_sacrifice,参与献祭准备,Key,W5,Day30-33,Night,mountain_forest,"chen_haisheng;gu_chenzhou",High,800,None,Full,prev_event:"w4_chenhai_first_gathering",陈海生被要求为"重要仪式"做准备
+w5_chenhai_cult_confession,向妻子忏悔,Key,W5,Day34-36,Night,residence,"chen_haisheng;su_wan",Medium,700,DialogueAllowed,Full,,醉酒的陈海生向苏婉说出邪教的事情，苏婉震惊
+w6_chenhai_arson_prep,港口纵火准备,Key,W6,Day38-41,Night,port,"chen_haisheng;he_laosan",High,850,None,Full,,何老三发现陈海生在港口准备纵火材料
+w6_chenhai_critical_point,陈海生的临界点,Key,W6,Day42-44,Any,wine_bar,"chen_haisheng;gu_chenzhou",Fatal,900,DialogueAllowed,Full,prev_event:"w5_chenhai_first_sacrifice",顾沉舟给陈海生下最后通牒，完成献祭才能真正"被接纳"
+w7_chenhai_redemption_attempt,陈海生试图退出,Key,W7,Day45-48,Any,seafood_shop,"chen_haisheng;gu_chenzhou",High,850,DialogueAllowed,Full,,陈海生害怕了，试图退出邪教，顾沉舟威胁他
+w7_chenhai_final_stand,最终立场,Key,W7,Day49-52,Any,residence,"chen_haisheng;su_wan;chen_yuanzhou",Fatal,900,DialogueAllowed,Full,,陈海生在家人和邪教之间做出最终选择
+
+# ========================================
+# KEY EVENTS - 顾沉舟线 (Cult Leader Line)
+# ========================================
+
+w2_gus_settle_in,顾沉舟入住小镇,Key,W2,Day8-10,Any,plaza,gu_chenzhou,Low,600,DialogueAllowed,Full,,顾沉舟以富裕游客身份入住，出手大方获得好感
+w2_gus_clinic_visit,拜访诊所,Key,W2,Day11-13,Morning,clinic,"gu_chenzhou;jiang_xueyi",Medium,700,DialogueAllowed,Full,,顾沉舟与江雪仪秘密会面
+w3_gus_information_gather,收集信息,Key,W3,Day15-18,Any,coffee_shop,"gu_chenzhou;ye_keke",Low,500,DialogueAllowed,Full,,顾沉舟从叶可可处探听小镇人际关系和历史
+w3_gus_temple_assessment,评估寺庙价值,Key,W3,Day19-21,Afternoon,temple,"gu_chenzhou;huiyuan",Medium,650,DialogueAllowed,Full,,顾沉舟参观土地庙，评估其作为新信仰根据地的价值
+w4_gus_network_build,建立关系网,Key,W4,Day22-25,Night,wine_bar,"gu_chenzhou;chen_haisheng;he_laosan",Medium,700,DialogueAllowed,Full,,顾沉舟在酒屋招待拉拢小镇边缘人物
+w4_gus_jiang_coordination,与江雪仪协调,Key,W4,Day26-28,Night,clinic,"gu_chenzhou;jiang_xueyi",High,750,None,Full,,顾沉舟与江雪仪讨论信仰传播和精神控制
+w5_gus_sacrifice_failure,首次献祭失败,Key,W5,Day31-34,Night,mountain_forest,"gu_chenzhou;chen_haisheng",High,800,None,Full,,第一次献祭被打断，顾沉舟认为是信仰不够纯洁
+w5_gus_public_charity,公开慈善活动,Key,W5,Day35-37,Afternoon,plaza,"gu_chenzhou;xu_mingchuan",Medium,650,DialogueAllowed,Full,,顾沉舟举办公开慈善活动，建立正面形象
+w6_gus_public_gathering,首次公开集会,Key,W6,Day38-41,Night,plaza,"gu_chenzhou;chen_haisheng",High,850,DialogueAllowed,Full,,顾沉舟在广场公开举行"心灵疗愈"集会
+w6_gus_chaoyin_targeting,锁定林潮音,Key,W6,Day42-44,Any,temple,"gu_chenzhou;lin_chaoyin",High,900,DialogueAllowed,Full,,顾沉舟意识到林潮音的灵力价值，开始重点接触
+w7_gus_new_faith_announce,新信仰宣言,Key,W7,Day45-48,Night,beach,gu_chenzhou,Fatal,950,None,Full,,顾沉舟在海滩举行新信仰宣告仪式，许多镇民被迷惑
+w7_gus_jiang_identity_choice,江雪仪的忠诚,Key,W7,Day49-52,Any,clinic,"gu_chenzhou;jiang_xueyi",High,900,DialogueAllowed,Full,,顾沉舟要求江雪仪为邪教做出更大牺牲，江雪仪面临抉择
+
+# ========================================
+# KEY EVENTS - 慧圆线 (Temple Corruption)
+# ========================================
+
+w1_huiyuan_embezzle1,第一次克扣香火,Key,W1,Day2-4,Any,temple,huiyuan,Medium,600,None,Full,,慧圆第一次从香火钱中拿出一部分据为己有
+w1_huiyuan_yueqin_talk,与林月琴谈女儿,Key,W1,Day5-7,Afternoon,temple,"huiyuan;lin_yueqin",Low,500,DialogueAllowed,Full,,慧圆向林月琴打听林潮音的身体状况
+w2_huiyuan_financial_pressure,财务压力加剧,Key,W2,Day8-11,Any,temple,huiyuan,Medium,650,None,Full,,寺庙账簿显示赤字严重，慧圆压力倍增
+w2_huiyuan_witch_idea,巫女计划萌生,Key,W2,Day12-14,Any,temple,"huiyuan;lin_yueqin",Medium,700,None,Full,,慧圆向林月琴提议让林潮音做"庙会巫女"吸引香火
+w3_huiyuan_chaoyin_test,测试林潮音,Key,W3,Day15-18,Afternoon,temple,"huiyuan;lin_chaoyin",Medium,750,DialogueAllowed,Full,,慧圆让林潮音帮忙整理仪式用品，暗中观察她的反应
+w3_huiyuan_bribe_collector,贿赂香烛供应商,Key,W3,Day19-21,Night,temple,huiyuan,Medium,600,None,Full,,慧圆贿赂供应商，用劣质材料赚取差价
+w4_huiyuan_witch_ceremony_plan,巫女仪式策划,Key,W4,Day22-25,Any,temple,"huiyuan;lin_chaoyin;lin_yueqin",High,700,None,Full,,慧圆开始策划巫女就任仪式，设计大量敛财环节
+w4_huiyuan_zhou_notice,周行知注意到异常,Key,W4,Day26-28,Afternoon,bookstore,"zhou_xingzhi;huiyuan",Medium,650,DialogueAllowed,Full,,周行知在旧档中发现寺庙财务记录与慧圆说法不符
+w5_huiyuan_account_issue,账目漏洞被发现,Key,W5,Day29-32,Any,temple,"zhou_xingzhi;huiyuan",High,800,DialogueAllowed,Full,,周行知在寺庙做客时看到有问题的账簿
+w5_huiyuan_threat_zhou,威胁周行知,Key,W5,Day33-35,Night,wine_bar,"huiyuan;zhou_xingzhi",High,750,DialogueAllowed,Full,,慧圆请周行知喝酒，暗示他"不要多管闲事"
+w6_huiyuan_ceremony_success,巫女仪式成功,Key,W6,Day36-39,Any,temple,"huiyuan;lin_chaoyin",Medium,700,None,Full,,巫女仪式吸引了大量香客，香火钱创历史新高
+w6_huiyuan_gu_meeting,与顾沉舟会面,Key,W6,Day40-43,Night,temple,"huiyuan;gu_chenzhou",High,850,DialogueAllowed,Full,,顾沉舟拜访慧圆，提议某种"宗教合作"
+w7_huiyuan_exposed_prelude,丑闻前奏,Key,W7,Day44-47,Any,plaza,"zhou_xingzhi;huiyuan",High,800,DialogueAllowed,Full,,周行知开始收集人证物证，准备曝光
+w7_huiyuan_exposed,丑闻公开,Key,W7,Day48-51,Any,plaza,"zhou_xingzhi;huiyuan;lin_chaoyin;lin_yueqin",Fatal,950,DialogueAllowed,Full,,周行知公开寺庙腐败和巫女骗局全部证据
+
+# ========================================
+# KEY EVENTS - 江雪仪线 (Medical Cult)
+# ========================================
+
+w2_jiang_xu_meeting,与许明川初遇,Key,W2,Day9-11,Morning,clinic,"jiang_xueyi;xu_mingchuan",Low,600,DialogueAllowed,Full,,许明川作为第一个病人拜访江雪仪，两人初次见面
+w2_jiang_night_secret,深夜秘密访客,Key,W2,Day12-14,Night,clinic,"jiang_xueyi;gu_chenzhou",Medium,700,None,Full,,顾沉舟深夜秘密诊所会见江雪仪
+w3_jiang_xuqing_treatment,许晴治疗,Key,W3,Day15-18,Morning,clinic,"jiang_xueyi;xu_qing;xu_mingchuan",Low,550,DialogueAllowed,Full,,江雪仪为许晴治疗头痛，用药效果奇特
+w3_jiang_drug_prep,药剂准备,Key,W3,Day19-21,Night,clinic,jiang_xueyi,Medium,650,None,Full,,江雪仪深夜在诊所配制特殊药剂
+w4_jiang_patient_sleepwalk,病人梦游,Key,W4,Day22-25,Night,clinic,"jiang_xueyi;xu_qing",High,700,DialogueAllowed,Full,,许晴在接受治疗后出现梦游症状，许明川担心
+w4_jiang_cult_supplies,邪教物资供应,Key,W4,Day26-28,Afternoon,port,"jiang_xueyi;he_laosan",High,750,None,Full,,何老三帮江雪仪接收一批可疑医疗物资
+w5_jiang_mingchuan_date,许明川约会邀请,Key,W5,Day29-32,Afternoon,coffee_shop,"xu_mingchuan;jiang_xueyi",Medium,650,DialogueAllowed,Full,bond_mingchuan_jiang>=30,许明川鼓起勇气约江雪仪喝咖啡
+w5_jiang_emotion_conflict,情感冲突,Key,W5,Day33-35,Night,clinic,jiang_xueyi,Medium,700,DialogueAllowed,Full,,江雪仪在顾沉舟的使命和对许明川的感情之间挣扎
+w6_jiang_xuqing_discovery,许晴发现笔记,Key,W6,Day36-39,Any,clinic,"xu_qing;jiang_xueyi",High,800,DialogueAllowed,Full,,许晴在诊所捡到江雪仪的笔记，里面有可疑内容
+w6_jiang_mingchuan_suspect,许明川起疑,Key,W6,Day40-43,Any,police_station,"xu_mingchuan;zhao_shouzheng",Medium,750,DialogueAllowed,Full,,许明川向赵守正谈自己对江雪仪和港口案件的怀疑
+w7_jiang_identity_exposed,身份暴露,Key,W7,Day44-47,Night,clinic,"jiang_xueyi;xu_mingchuan;gu_chenzhou",High,900,DialogueAllowed,Full,,许明川找到江雪仪与顾沉舟合作的铁证
+w7_jiang_final_choice,最终抉择,Key,W7,Day48-51,Any,beach,"jiang_xueyi;xu_mingchuan",Fatal,950,DialogueAllowed,Full,,江雪仪必须选择：完成邪教计划，还是为了许明川背叛顾沉舟
+
+# ========================================
+# KEY EVENTS - 许明川线 (Detective Line)
+# ========================================
+
+w2_mingchuan_first_case,第一个小镇案件,Key,W2,Day9-11,Any,police_station,"xu_mingchuan;zhao_shouzheng",Low,600,DialogueAllowed,Full,,许明川处理到归潮镇后的第一个案件
+w2_mingchuan_jiang_impression,江雪仪印象,Key,W2,Day12-14,Morning,clinic,"xu_mingchuan;jiang_xueyi",Low,550,DialogueAllowed,Full,,许明川受伤到诊所包扎，对江雪仪产生好感
+w3_mingchuan_anomaly_case,异常案件接手,Key,W3,Day18-20,Any,police_station,"xu_mingchuan;zhao_shouzheng",Medium,700,DialogueAllowed,Full,,赵守正将第一批异常案件交给许明川
+w3_mingchuan_zhou_cooperation,与周行知合作,Key,W3,Day21-23,Any,coffee_shop,"xu_mingchuan;zhou_xingzhi",Medium,650,DialogueAllowed,Full,,周行知将港口异常记录交给许明川，两人开始非正式合作
+w4_mingchuan_witness_interview,询问何老三,Key,W4,Day24-26,Any,port,"xu_mingchuan;he_laosan",Medium,700,DialogueAllowed,Full,,许明川询问何老三夜船记录的事情，何老三撒谎
+w4_mingchuan_clinic_suspicion,诊所疑点,Key,W4,Day27-29,Night,clinic,"xu_mingchuan;xu_qing",Medium,650,DialogueAllowed,Full,,许晴告诉哥哥自己治疗后的异常反应，许明川开始怀疑江雪仪
+w5_mingchuan_evidence_collect,收集证据,Key,W5,Day30-33,Any,port,"xu_mingchuan;he_laosan",High,750,None,Full,,许明川在港口收集物证，调查纵火案线索
+w5_mingchuan_jiang_date_conflict,约会与职责冲突,Key,W5,Day34-36,Afternoon,coffee_shop,"xu_mingchuan;jiang_xueyi",Medium,700,DialogueAllowed,Full,,与江雪仪约会时，许明川发现她言行中的破绽
+w6_mingchuan_port_fire_investigation,港口火灾调查,Key,W6,Day44-46,Any,port,"xu_mingchuan;chen_haisheng;he_laosan",High,800,DialogueAllowed,Full,,许明川调查港口火灾，所有证据都指向陈海生
+w6_mingchuan_zhao_warning,赵守正警告,Key,W6,Day47-49,Any,police_station,"xu_mingchuan;zhao_shouzheng",Medium,750,DialogueAllowed,Full,,赵守正警告许明川"有些事情别查太深"
+w7_mingchuan_jiang_confrontation,对质江雪仪,Key,W7,Day49-51,Any,clinic,"xu_mingchuan;jiang_xueyi",High,900,DialogueAllowed,Full,,许明川拿出证据与江雪仪对质
+w7_mingchuan_final_decision,最终执法决定,Key,W7,Day52-54,Any,police_station,"xu_mingchuan;zhao_shouzheng",Fatal,950,DialogueAllowed,Full,,许明川决定是否在灾难前公开所有证据，还是选择更稳妥的方式
+
+# ========================================
+# KEY EVENTS - 周行知线 (Journalist Line)
+# ========================================
+
+w2_zhou_arrival,周行知抵达,Key,W2,Day8-10,Any,port,zhou_xingzhi,Low,600,DialogueAllowed,Full,,周行知乘船抵达归潮镇，开始民俗调查
+w2_zhou_first_clue,第一个线索,Key,W2,Day11-13,Afternoon,bookstore,"zhou_xingzhi;lin_chaoyin",Medium,650,DialogueAllowed,Full,,周行知在旧书店发现关于归潮镇特殊历史的记载
+w3_zhou_port_record,港口记录发现,Key,W3,Day19-21,Morning,port,"zhou_xingzhi;he_laosan",High,700,DialogueAllowed,Full,,周行知在港口办公室发现异常的夜船记录
+w3_zhou_temple_history,寺庙历史调查,Key,W3,Day22-24,Any,bookstore,"zhou_xingzhi;huiyuan",Medium,650,DialogueAllowed,Full,,周行知调查土地庙的历史沿革
+w4_zhou_cult_suspicion,邪教嫌疑,Key,W4,Day25-27,Night,mountain_forest,"zhou_xingzhi;xu_mingchuan",High,750,DialogueAllowed,Full,,周行知夜探山林，发现疑似邪教活动痕迹
+w4_zhou_evidence_organize,整理证据,Key,W4,Day28-30,Any,residence,zhou_xingzhi,Medium,700,None,Full,,周行知整理收集到的港口、寺庙、医疗记录
+w5_zhou_temple_accounts,寺庙账目调查,Key,W5,Day35-37,Any,temple,"zhou_xingzhi;huiyuan",High,800,DialogueAllowed,Full,,周行知开始调查寺庙的账目问题
+w5_zhou_threatened,受到威胁,Key,W5,Day38-40,Night,residence,zhou_xingzhi,Medium,750,DialogueAllowed,Full,,周行知住处收到匿名警告，让他停止调查
+w6_zhou_breaking_news,独家新闻素材,Key,W6,Day41-43,Any,coffee_shop,"zhou_xingzhi;ye_keke",Medium,700,DialogueAllowed,Full,,周行知向叶可可透露自己挖到了大新闻
+w6_zhou_mingchuan_data_share,与许明川共享数据,Key,W6,Day44-46,Any,police_station,"zhou_xingzhi;xu_mingchuan",High,800,DialogueAllowed,Full,,周行知将调查数据共享给许明川
+w7_zhou_scandal_publication,发表丑闻,Key,W7,Day50-52,Any,plaza,zhou_xingzhi,Fatal,900,None,Full,,周行知发表关于归潮镇邪教和腐败的完整报道
+w7_zhou_final_story,最终报道,Key,W7,Day53-55,Any,residence,zhou_xingzhi,Medium,850,DialogueAllowed,Full,,灾难前夕，周行知完成最终报道，决定是否发布
+
+# ========================================
+# DAILY EVENTS - 日常事件
+# ========================================
+
+daily_coffee_chat,咖啡店闲聊,Daily,Any,Any,Afternoon,coffee_shop,"ye_keke;lin_chaoyin;chen_yuanzhou",Low,200,DialogueAllowed,Minimum,,叶可可的咖啡店是小镇信息交流中心
+daily_beach_walk,海边散步,Daily,Any,Any,Morning,beach,lin_chaoyin,Low,150,DialogueAllowed,Minimum,,林潮音喜欢清晨在海边散步平复心情
+daily_seafood_shop_tension,海鲜店紧张气氛,Daily,Any,Any,Afternoon,seafood_shop,"chen_haisheng;su_wan",Low,180,DialogueAllowed,Minimum,,陈海生与苏婉在海鲜店的日常紧张
+daily_clinic_queue,诊所排队,Daily,Any,Any,Morning,clinic,"jiang_xueyi;xu_qing",Low,200,DialogueAllowed,Minimum,,江雪仪的诊所总是排着长队，许晴帮忙
+daily_temple_incense,寺庙香火,Daily,Any,Any,Morning,temple,"huiyuan;lin_yueqin",Low,220,None,Minimum,,寺庙每日的香火，慧圆和林月琴常在
+daily_police_routine,警局日常,Daily,Any,Any,Afternoon,police_station,"xu_mingchuan;zhao_shouzheng",Low,150,DialogueAllowed,Minimum,,许明川和赵守正处理日常案件
+daily_port_life,港口日常,Daily,Any,Any,Morning,port,"he_laosan;chen_haisheng",Low,180,None,Minimum,,港口的日常装卸和渔民生活
+daily_wine_bar_night,酒屋夜话,Daily,Any,Any,Night,wine_bar,"lin_yueqin;chen_haisheng;he_laosan",Low,200,None,Minimum,,小镇男人们晚上在酒屋喝酒聊天
+daily_school_life,学校日常,Daily,Any,Any,Day,school,"lin_chaoyin;chen_yuanzhou;xu_qing",Low,250,DialogueAllowed,Minimum,,高中生的日常学习和课间
+daily_bookstore_browse,书店浏览,Daily,Any,Any,Afternoon,bookstore,"zhou_xingzhi;lin_chaoyin",Low,170,DialogueAllowed,Minimum,,旧书店是喜欢安静的人常去的地方
+daily_keke_comfort,可可安慰,Daily,Any,Any,Afternoon,coffee_shop,"ye_keke;any_npc",Low,220,DialogueAllowed,Minimum,,叶可可总是在咖啡店安慰心情不好的人
+daily_suwan_family,苏婉家庭时间,Daily,W2-W8,Any,Evening,residence,"su_wan;chen_yuanzhou",Low,160,DialogueAllowed,Minimum,,苏婉与儿子的温馨家庭时间
+daily_xuqing_sick,许晴身体不适,Daily,W3-W8,Any,Any,clinic,"xu_qing;jiang_xueyi",Low,150,DialogueAllowed,Minimum,,许晴经常头痛找江雪仪治疗
+daily_zhao_advice,赵守正的经验,Daily,W2-W8,Any,Afternoon,police_station,"zhao_shouzheng;xu_mingchuan",Low,140,DialogueAllowed,Minimum,,赵守正向许明川传授小镇生存智慧
+daily_helaosan_secret,何老三的秘密,Daily,W2-W8,Any,Night,port,"he_laosan;gu_chenzhou",Medium,120,None,Minimum,,何老三深夜在港口帮顾沉舟装卸神秘货物
+daily_huiyuan_count,慧圆数钱,Daily,Any,Any,Night,temple,huiyuan,Low,100,None,Minimum,,慧圆每天深夜在寺庙清点香火钱
+daily_jiang_drug_test,江雪仪试药,Daily,W2-W8,Any,Night,clinic,jiang_xueyi,Medium,110,None,Minimum,,江雪仪深夜在诊所试配新药
+daily_gus_meditation,顾沉舟冥想,Daily,Any,Any,Night,beach,gu_chenzhou,Low,90,None,Minimum,,顾沉舟深夜在海滩冥想，等待"神明"指引
+daily_mother_daughter,母女日常,Daily,Any,Any,Evening,residence,"lin_chaoyin;lin_yueqin",Low,180,DialogueAllowed,Minimum,,林潮音与母亲复杂的母女关系日常

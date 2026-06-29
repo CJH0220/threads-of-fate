@@ -1,0 +1,115 @@
+OutcomeId,EventId,OutcomeName,TriggerCondition,IncenseDelta,DivinePowerDelta,YinDeDelta,YangDeDelta,BondDeltas,KarmaDeltas,NpcStateDeltas,FollowUpEvents,HistoryText
+
+# ====================
+# 锚点事件结果
+# ====================
+
+out_intro_heaven_good, intro_heaven_notice,接受天界任务, default, +100, +20, 0, +5, , , , "土地公接受天界考核，初始香火+100，神力+20，阳德+5"
+out_intro_heaven_question, intro_heaven_notice,质疑公正性, intervention_used, +50, +10, +10, 0, , , , "土地公质疑天界考核公正性，阳德+10，但获得的初始资源减少"
+
+out_intro_underworld_accept, intro_underworld_whisper,接受诱惑, default, 0, +30, +15, 0, , , , "土地公接受地府诱惑，阴德+15，神力+30"
+out_intro_underworld_reject, intro_underworld_whisper,拒绝诱惑, intervention_used, +50, 0, 0, +20, , , , "土地公拒绝地府诱惑，阳德+20，香火+50"
+
+# ====================
+# 林潮音线事件结果
+# ====================
+
+out_w1_nightmare_ignore, w1_chaoyin_nightmare1,置之不理, default, 0, 0, 0, 0, , "chaoyin_witch_line:+5", stress:+10, "林潮音独自承受噩梦压力，业线进展+5"
+out_w1_nightmare_watch, w1_chaoyin_nightmare1,托梦安抚, intervention_used, +10, -5, 0, +3, "bond_chaoyin_tudi:+10", , , "土地公托梦安抚，林潮音好感+10，阳德+3"
+
+out_w2_bookshelf_share, w2_chaoyin_bookshelf_find,分享知识, default, 0, 0, 0, +5, "bond_chaoyin_zhou:+15", , , "周行知与林潮音分享古籍研究"
+out_w2_bookshelf_hide, w2_chaoyin_bookshelf_find,隐藏关键页, intervention_used, 0, -3, +5, 0, "bond_chaoyin_zhou:-10", "chaoyin_witch_line:+10", , "土地公隐藏古籍中最危险的部分，阴德+5"
+
+out_w3_awakening_guide, w3_chaoyin_awakening,引导控制灵力, default, +20, -5, 0, +10, "bond_chaoyin_tudi:+20", , , "土地公引导林潮音理解和控制灵力"
+out_w3_awakening_amplify, w3_chaoyin_awakening,暗中增幅灵力, intervention_used, 0, -10, +15, 0, , "chaoyin_witch_line:+20", stress:+15, "增幅林潮音的灵力，让她更快成为巫女候选人"
+
+out_w4_witch_accept, w4_chaoyin_witch_decision,接受巫女身份, default, +80, 0, 0, 0, "bond_chaoyin_huiyuan:+20", "chaoyin_witch_line:+25", , "林潮音接受成为巫女，寺庙香火大涨"
+out_w4_witch_reject, w4_chaoyin_witch_decision,拒绝接受, intervention_used, -30, 0, 0, +15, "bond_chaoyin_huiyuan:-30", "chaoyin_witch_line:+10", , "林潮音拒绝，慧圆失望但林潮音获得自我"
+
+out_w5_power_heal, w5_chaoyin_power_manifest,引导力量治病, default, +30, -5, 0, +10, "bond_chaoyin_jiang:+10", , , "林潮音用灵力帮助病人，江雪仪注意到她的能力"
+out_w5_power_exploit, w5_chaoyin_power_manifest,放任力量失控, intervention_used, -10, 0, +20, 0, , "chaoyin_witch_line:+30", stress:+20, "林潮音力量失控，病人恐惧但灵力增强"
+
+# ====================
+# 陈远舟线事件结果
+# ====================
+
+out_w1_argu_intervene, w1_yuanzhou_father_argument,平息争吵, intervention_used, 0, -3, 0, +5, "bond_yuanzhou_chenhai:+10", , , "土地公介入平息父子争吵"
+out_w1_argu_observe, w1_yuanzhou_father_argument,旁观记录, default, 0, 0, 0, 0, , "yuanzhou_leave_line:+5", , "陈远舟去意更加坚决"
+
+out_w4_agree_support, w4_yuanzhou_chaoyin_agreement,祝福约定, default, 0, 0, 0, +10, "bond_chaoyin_yuanzhou:+20", , , "土地公祝福两人约定，好感度大幅提升"
+out_w4_agree_undermine, w4_yuanzhou_chaoyin_agreement,制造误解, intervention_used, 0, 0, +10, 0, "bond_chaoyin_yuanzhou:-15", "yuanzhou_leave_line:+10", , "让林潮音误会陈远舟，关系出现裂痕"
+
+out_w6_exam_success, w6_yuanzhou_exam_result,成绩优异, default, +20, 0, 0, +5, , "yuanzhou_leave_line:+15", happiness:+20, "陈远舟考出高分，离岛希望大增"
+out_w6_exam_fail, w6_yuanzhou_exam_result,成绩不理想, intervention_used, 0, 0, 0, 0, , "yuanzhou_leave_line:-10", stress:+25, "陈远舟考试失利，离岛计划受挫"
+
+out_w7_choose_leave, w7_yuanzhou_final_choice,选择离开, default, -50, 0, 0, 0, "bond_chaoyin_yuanzhou:-20", , , "陈远舟选择独自离开，林潮音伤心"
+out_w7_choose_stay, w7_yuanzhou_final_choice,选择留下, intervention_used, +30, 0, 0, +20, "bond_chaoyin_yuanzhou:+30", "yuanzhou_leave_line:-15", , "陈远舟选择留下保护林潮音"
+
+# ====================
+# 陈海生线事件结果
+# ====================
+
+out_w3_gus_promise_reject, w3_chenhai_gus_promise,拒绝诱惑, default, 0, 0, 0, +10, "bond_chenhai_guchenzhou:-20", "chenhai_cult_line:-10", , "陈海生暂时保持清醒"
+out_w3_gus_promise_interest, w3_chenhai_gus_promise,表现兴趣, intervention_used, -10, 0, +10, 0, "bond_chenhai_guchenzhou:+25", "chenhai_cult_line:+20", , "陈海生对顾沉舟的提议感兴趣"
+
+out_w5_confession_trust, w5_chenhai_cult_confession,鼓励向妻子坦白, default, +10, 0, 0, +10, "bond_chenhai_suwan:+20", "chenhai_cult_line:-15", , "陈海生向苏婉坦白，夫妻关系改善"
+out_w5_confession_exploit, w5_chenhai_cult_confession,加深恐惧, intervention_used, 0, 0, +20, 0, "bond_chenhai_suwan:-15", "chenhai_cult_line:+25", , "让陈海生更加害怕退出邪教的后果"
+
+out_w7_redemption_help, w7_chenhai_redemption_attempt,帮助救赎, default, +50, -10, 0, +25, "bond_chenhai_tudi:+30", "chenhai_cult_line:-30", , "土地公帮助陈海生找到救赎之路"
+out_w7_redemption_push, w7_chenhai_redemption_attempt,推下深渊, intervention_used, -30, 0, +30, 0, , "chenhai_cult_line:+40", , "顾沉舟的威胁彻底压垮了陈海生"
+
+# ====================
+# 顾沉舟线事件结果
+# ====================
+
+out_w3_temple_cooperate, w3_gus_temple_assessment,合作提议, default, 0, 0, 0, 0, "bond_guchenzhou_huiyuan:+15", "guchenzhou_cult_line:+10", , "顾沉舟提议与慧圆合作"
+out_w3_temple_compete, w3_gus_temple_assessment,竞争关系, intervention_used, +20, 0, 0, 0, "bond_guchenzhou_huiyuan:-20", "huiyuan_temple_line:+15", , "慧圆将顾沉舟视为竞争对手"
+
+out_w6_public_success, w6_gus_public_gathering,集会大成功, default, -80, 0, +30, 0, , "guchenzhou_cult_line:+30", cult_influence:+20, "大量镇民被邪教吸引，香火大幅下降"
+out_w6_public_failure, w6_gus_public_gathering,集会遇阻, intervention_used, +40, -5, 0, +15, , "guchenzhou_cult_line:-20", , "土地公制造异象阻止集会，村民开始怀疑"
+
+out_w7_announce_exposed, w7_gus_new_faith_announce,当场揭穿, default, +60, -15, 0, +30, , "guchenzhou_cult_line:-40", , "土地公公开揭穿顾沉舟的真面目"
+out_w7_announce_allow, w7_gus_new_faith_announce,听之任之, intervention_used, -100, 0, +50, 0, , "guchenzhou_cult_line:+50", cult_influence:+30, "邪教声势达到顶峰"
+
+# ====================
+# 慧圆线事件结果
+# ====================
+
+out_w1_embezzle_note, w1_huiyuan_embezzle1,留下证据, default, 0, 0, 0, 0, , "huiyuan_temple_line:+5", , "土地公暗中记录慧圆的贪污行为"
+out_w1_embezzle_cover, w1_huiyuan_embezzle1,帮助掩盖, intervention_used, -20, 0, +10, 0, "bond_huiyuan_tudi:+15", "huiyuan_temple_line:+15", , "土地公帮助掩盖，慧圆感激但腐败加剧"
+
+out_w5_threat_yield, w5_huiyuan_threat_zhou,周行知退缩, default, 0, 0, +10, 0, "bond_zhou_huiyuan:-20", "huiyuan_temple_line:+20", , "周行知被慧圆威胁，暂时放弃调查"
+out_w5_threat_persist, w5_huiyuan_threat_zhou,周行知坚持, intervention_used, +10, 0, 0, +10, "bond_zhou_huiyuan:-30", , , "周行知被威胁反而更加坚定调查"
+
+out_w7_scandal_denounce, w7_huiyuan_exposed,谴责慧圆, default, +50, -10, 0, +20, "bond_huiyuan_tudi:-50", "huiyuan_temple_line:-30", , "土地公公开谴责慧圆的腐败行为"
+out_w7_scandal_pardon, w7_huiyuan_exposed,宽恕并要求赎罪, intervention_used, +30, -5, 0, +30, "bond_huiyuan_tudi:+20", , , "土地公给予慧圆赎罪机会"
+
+# ====================
+# 江雪仪线事件结果
+# ====================
+
+out_w5_date_sincere, w5_jiang_mingchuan_date,真诚回应, default, 0, 0, 0, 0, "bond_mingchuan_jiang:+25", , , "江雪仪真诚回应许明川的感情"
+out_w5_date_manipulate, w5_jiang_mingchuan_date,利用感情, intervention_used, 0, 0, +15, 0, "bond_mingchuan_jiang:+10", "guchenzhou_cult_line:+10", , "江雪仪利用感情获取许明川的信任"
+
+out_w7_jiang_turn, w7_jiang_final_choice,背叛顾沉舟, default, +40, -10, 0, +25, "bond_mingchuan_jiang:+40", "guchenzhou_cult_line:-25", , "江雪仪选择爱情，背叛顾沉舟"
+out_w7_jiang_loyal, w7_jiang_final_choice,忠于顾沉舟, intervention_used, -30, 0, +30, 0, "bond_mingchuan_jiang:-50", "guchenzhou_cult_line:+25", , "江雪仪选择完成使命，与许明川决裂"
+
+# ====================
+# 许明川线事件结果
+# ====================
+
+out_w7_confront_arrest, w7_mingchuan_jiang_confrontation,立即逮捕, default, 0, -10, 0, +15, "bond_mingchuan_jiang:-60", , , "许明川依法逮捕江雪仪"
+out_w7_confront_deal, w7_mingchuan_jiang_confrontation,做交易放长线, intervention_used, +10, -5, +10, 0, , , , "许明川假装不知情，放长线钓大鱼"
+
+out_w7_decide_public, w7_mingchuan_final_decision,灾难前公开, default, +80, -15, 0, +40, , "guchenzhou_cult_line:-35", public_order:+20, "许明川在灾难前公开所有证据"
+out_w7_decide_wait, w7_mingchuan_final_decision,为秩序等待, intervention_used, +20, 0, 0, +10, , , public_order:+10, "为避免混乱，许明川选择灾后处理"
+
+# ====================
+# 日常事件结果样例
+# ====================
+
+out_coffee_chat_normal, daily_coffee_chat,愉快闲聊, default, +5, 0, 0, 0, , , happiness:+5, "咖啡店气氛愉快"
+out_coffee_chat_gossip, daily_coffee_chat,听到重要情报, intervention_used, 0, 0, 0, 0, , , , "从闲聊中获得重要情报"
+
+out_beach_calm, daily_beach_walk,平静散步, default, +5, 0, 0, 0, , , happiness:+5, "林潮音心情平复"
+out_beach_vision, daily_beach_walk,海边异象, intervention_used, -10, 0, +5, 0, , "chaoyin_witch_line:+10", , "海边出现神秘异象"

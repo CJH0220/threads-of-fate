@@ -1,0 +1,208 @@
+[gd_scene load_steps=9 format=3 uid="uid://tof_main_game_ui"]
+
+[ext_resource type="Script" path="res://scripts/ui/main_game_ui.gd" id="1_hud_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DetailPopup.tscn" id="2_detail_popup"]
+[ext_resource type="PackedScene" path="res://scenes/ui/UiState.tscn" id="3_ui_state"]
+[ext_resource type="PackedScene" path="res://scenes/ui/BondView.tscn" id="4_bond_view"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DestinyView.tscn" id="5_destiny_view"]
+[ext_resource type="PackedScene" path="res://scenes/ui/CharacterEndingScreen.tscn" id="6_char_ending"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DialogueEventScreen.tscn" id="7_dialogue_event"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TimeTransition.tscn" id="8_time_transition"]
+
+[node name="MainGameUI" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_hud_script")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="TopBar" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+theme_override_constants/separation = 20
+
+[node name="TimeLabel" type="Label" parent="Root/TopBar"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "第 1 天 · 早上"
+
+[node name="ResourceLabel" type="Label" parent="Root/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "香火 50  神力 15  阳德 0  阴德 0"
+
+[node name="MenuButton" type="Button" parent="Root/TopBar"]
+layout_mode = 2
+text = "主菜单"
+
+[node name="MainArea" type="PanelContainer" parent="Root"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MapContent" type="VBoxContainer" parent="Root/MainArea"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MapTitleBar" type="HBoxContainer" parent="Root/MainArea/MapContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 40)
+theme_override_constants/separation = 12
+
+[node name="MapTitle" type="Label" parent="Root/MainArea/MapContent/MapTitleBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "归潮镇地图"
+
+[node name="HintLabel" type="Label" parent="Root/MainArea/MapContent/MapTitleBar"]
+layout_mode = 2
+text = "拖拽移动 · 点击地点查看详情"
+
+[node name="DangerWarnings" type="VBoxContainer" parent="Root/MainArea/MapContent"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="MapScroll" type="ScrollContainer" parent="Root/MainArea/MapContent"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MapArea" type="Control" parent="Root/MainArea/MapContent/MapScroll"]
+custom_minimum_size = Vector2(1600, 1200)
+layout_mode = 2
+
+[node name="MapBackground" type="ColorRect" parent="Root/MainArea/MapContent/MapScroll/MapArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.1, 0.12, 1)
+
+[node name="LocationsContainer" type="Control" parent="Root/MainArea/MapContent/MapScroll/MapArea"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BottomPanel" type="PanelContainer" parent="Root"]
+custom_minimum_size = Vector2(0, 200)
+custom_maximum_size = Vector2(0, 200)
+layout_mode = 2
+
+[node name="BottomContent" type="VBoxContainer" parent="Root/BottomPanel"]
+layout_mode = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TabButtons" type="HBoxContainer" parent="Root/BottomPanel/BottomContent"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 32)
+
+[node name="CharactersTabButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
+layout_mode = 2
+toggle_mode = true
+text = "人物"
+
+[node name="EventsTabButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
+layout_mode = 2
+toggle_mode = true
+text = "事件"
+
+[node name="BondViewButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
+layout_mode = 2
+text = "缘线"
+
+[node name="DestinyViewButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
+layout_mode = 2
+text = "业线"
+
+[node name="AdvanceTimeButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "推进时间"
+
+[node name="ContextBody" type="HSplitContainer" parent="Root/BottomPanel/BottomContent"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = 220
+
+[node name="ContextListScroll" type="ScrollContainer" parent="Root/BottomPanel/BottomContent/ContextBody"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+
+[node name="ContextListContainer" type="VBoxContainer" parent="Root/BottomPanel/BottomContent/ContextBody/ContextListScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ContextList" type="VBoxContainer" parent="Root/BottomPanel/BottomContent/ContextBody/ContextListScroll/ContextListContainer"]
+layout_mode = 2
+
+[node name="DetailPanelContainer" type="MarginContainer" parent="Root/BottomPanel/BottomContent/ContextBody"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="DetailState" parent="Root/BottomPanel/BottomContent/ContextBody/DetailPanelContainer" instance=ExtResource("3_ui_state")]
+layout_mode = 2
+
+[node name="DetailPopup" parent="." instance=ExtResource("2_detail_popup")]
+visible = false
+
+[node name="BondView" parent="." instance=ExtResource("4_bond_view")]
+visible = false
+
+[node name="DestinyView" parent="." instance=ExtResource("5_destiny_view")]
+visible = false
+
+[node name="CharacterEndingScreen" parent="." instance=ExtResource("6_char_ending")]
+visible = false
+
+[node name="DialogueEventScreen" parent="." instance=ExtResource("7_dialogue_event")]
+visible = false
+
+[node name="TimeTransition" parent="." instance=ExtResource("8_time_transition")]
+visible = false
+
+[node name="DangerConfirm" type="ConfirmationDialog" parent="."]
+title = "危险征兆"
+initial_position = 2
+size = Vector2i(380, 140)
+ok_button_text = "仍要推进"
+cancel_button_text = "返回查看"
+
+[node name="InterventionConfirm" type="ConfirmationDialog" parent="."]
+title = "确认干预"
+initial_position = 2
+size = Vector2i(380, 140)
+ok_button_text = "确认干预"
+cancel_button_text = "取消"
+
+[node name="MenuConfirm" type="ConfirmationDialog" parent="."]
+title = "返回主菜单"
+initial_position = 2
+size = Vector2i(380, 140)
+dialog_text = "返回主菜单将丢失未保存的进度，确定吗？"
+ok_button_text = "返回主菜单"
+cancel_button_text = "继续游戏"

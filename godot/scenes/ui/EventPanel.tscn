@@ -1,0 +1,62 @@
+[gd_scene load_steps=2 format=3 uid="uid://evt_panel_v0"]
+
+[ext_resource type="Script" path="res://scripts/ui/event_panel.gd" id="1_script"]
+
+[node name="EventPanel" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "事件名称"
+
+[node name="RiskLabel" type="Label" parent="Header"]
+layout_mode = 2
+text = "Low"
+horizontal_alignment = 2
+
+[node name="MetaRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="LocationLabel" type="Label" parent="MetaRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "地点未知"
+
+[node name="TypeLabel" type="Label" parent="MetaRow"]
+layout_mode = 2
+text = "Daily"
+
+[node name="SummaryText" type="RichTextLabel" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "暂无事件描述。"
+
+[node name="EnterButton" type="Button" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "▶ 进入事件演出"
+
+[node name="InterventionsSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="InterventionsTitle" type="Label" parent="InterventionsSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "可用干预"
+
+[node name="InterventionsContainer" type="VBoxContainer" parent="InterventionsSection"]
+layout_mode = 2
+theme_override_constants/separation = 8

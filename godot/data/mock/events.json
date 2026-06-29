@@ -1,0 +1,94 @@
+[
+  {
+    "event_id": "intro_heaven_notice",
+    "event_name": "天界绩效通知",
+    "event_type": "Anchor",
+    "week_range": "W1",
+    "day_range": "Day1",
+    "time_slot": "Morning",
+    "location_id": "temple",
+    "location_label": "寺庙",
+    "participant_npc_ids": ["tudi_gong"],
+    "participant_display_names": ["土地公"],
+    "risk_level": "Fatal",
+    "trigger_weight": 1000,
+    "ai_text_policy": "None",
+    "history_record_policy": "Full",
+    "description": "天界使者向土地公送达绩效通知和 60 天考核要求。",
+    "narrative_segments": [
+      "夜风从神龛缝里吹进来，香炉里的灰已经冷了。",
+      "天界使者将命运织线器放在供桌上。",
+      "六十天内，观察岛民命运，维持香火，阻止归潮镇彻底滑向灾祸。"
+    ],
+    "dialogue_segments": [
+      { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "夜风从神龛的缝里钻进来，香炉里的灰早已冷透。" },
+      { "speaker_id": "heaven_envoy", "speaker_name": "天界使者", "line_type": "speech", "position": "right", "text": "土地公，归潮镇的香火，这些年掉得厉害啊。" },
+      { "speaker_id": "tudi_gong", "speaker_name": "土地公", "line_type": "speech", "position": "left", "text": "使者言重了……小庙能护着这些人，已经不容易了。" },
+      { "speaker_id": "heaven_envoy", "speaker_name": "天界使者", "line_type": "speech", "position": "right", "text": "天界给你六十天。守住香火，挡住灾祸——否则这炷香，就该熄了。" },
+      { "speaker_id": "tudi_gong", "speaker_name": "土地公", "line_type": "thought", "position": "left", "text": "（六十天……我能改的，从来只是命运的一寸罢了。）" },
+      { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "使者将命运织线器放在供桌上，光一闪，便没了踪影。" }
+    ],
+    "available_intervention_ids": [],
+    "default_outcome_id": "out_intro_heaven_notice"
+  },
+  {
+    "event_id": "w1_chaoyin_study",
+    "event_name": "潮音店内复习",
+    "event_type": "Daily",
+    "week_range": "W1",
+    "day_range": "Day1-7",
+    "time_slot": "Afternoon",
+    "location_id": "coffee_shop",
+    "location_label": "咖啡店",
+    "participant_npc_ids": ["lin_chaoyin", "chen_yuanzhou"],
+    "participant_display_names": ["林潮音", "陈远舟"],
+    "risk_level": "Low",
+    "trigger_weight": 3,
+    "ai_text_policy": "DialogueAllowed",
+    "history_record_policy": "Summary",
+    "description": "林潮音与陈远舟在咖啡店复习功课。",
+    "narrative_segments": [
+      "咖啡店的窗边，林潮音盯着习题本发呆。",
+      "陈远舟把写满批注的草稿纸推过去，低声说还有时间。"
+    ],
+    "dialogue_segments": [
+      { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "午后的咖啡店，窗外是泛着咸味的海风。" },
+      { "speaker_id": "lin_chaoyin", "speaker_name": "林潮音", "line_type": "speech", "position": "left", "text": "这道题我又卡住了……脑子里全是潮水的声音。" },
+      { "speaker_id": "chen_yuanzhou", "speaker_name": "陈远舟", "line_type": "speech", "position": "right", "text": "别急，还有时间。" },
+      { "speaker_id": "lin_chaoyin", "speaker_name": "林潮音", "line_type": "thought", "position": "left", "text": "（他总是这样……可我越来越分不清，梦和现实的边界。）" },
+      { "speaker_id": "chen_yuanzhou", "speaker_name": "陈远舟", "line_type": "speech", "position": "right", "text": "等考完，我们一起离开这座岛，好不好？" },
+      { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "林潮音没有回答，只是把笔握得更紧了。" }
+    ],
+    "available_intervention_ids": ["dream_hint", "blessing"],
+    "default_outcome_id": "out_w1_chaoyin_study_neutral"
+  },
+  {
+    "event_id": "mvp_haisheng_outburst",
+    "event_name": "海生压火",
+    "event_type": "Key",
+    "week_range": "W1",
+    "day_range": "Day1-7",
+    "time_slot": "Night",
+    "location_id": "seafood_shop",
+    "location_label": "海鲜店",
+    "participant_npc_ids": ["chen_haisheng"],
+    "participant_display_names": ["陈海生"],
+    "risk_level": "High",
+    "trigger_weight": 5,
+    "ai_text_policy": "DescriptionOnly",
+    "history_record_policy": "Summary",
+    "description": "陈海生在海鲜店后厨压着火气，家庭线风险开始显形。",
+    "narrative_segments": [
+      "海鲜店后厨的灯闪了一下，陈海生把账本合上。",
+      "他没有发作，但那股怨气像潮水一样堵在胸口。"
+    ],
+    "dialogue_segments": [
+      { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "海鲜店后厨的灯闪了一下，水汽混着腥味压在空气里。" },
+      { "speaker_id": "chen_haisheng", "speaker_name": "陈海生", "line_type": "speech", "position": "left", "text": "账又对不上……这日子，到底要熬到什么时候。" },
+      { "speaker_id": "chen_haisheng", "speaker_name": "陈海生", "line_type": "thought", "position": "left", "text": "（神明？神明要是真灵，我至于落到这步田地。）" },
+      { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "他把账本重重合上，那股怨气像涨潮一样堵在胸口。" }
+    ],
+    "available_intervention_ids": ["dream_hint"],
+    "default_outcome_id": "out_mvp_haisheng_calm"
+  }
+]
