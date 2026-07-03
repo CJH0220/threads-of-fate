@@ -1,8 +1,9 @@
 # 角色头像与立绘规格
 
-> 文档状态：初版  
-> 更新日期：2026-06-13  
-> 用途：定义 NPC 像素头像、半身像和 UI 表情差分的制作范围
+> 文档状态：v1.1  
+> 更新日期：2026-06-29  
+> 用途：定义 NPC 像素头像、半身像和 UI 表情差分的制作范围  
+> 关联文档：`character-pixel-portrait-prompts.md`（AI 生成详细提示词）
 
 ---
 
@@ -154,3 +155,12 @@ portrait_lin_chaoyin_relieved
 - [ ] 顾沉舟在普通表情下不显得明显邪恶。
 - [ ] 慧圆同时体现和善与不可靠感。
 - [ ] 头像在人物列表、事件面板和结局界面中都可读。
+
+---
+
+## 9. AI 生成参考
+
+详细的 AI 图像生成提示词请参考：
+- [`character-pixel-portrait-prompts.md`](./character-pixel-portrait-prompts.md) — 包含全部 14 名角色的像素风格立绘提示词
+- 每个角色配有 4 种表情差分的关键词描述
+- 包含 Stable Diffusion 推荐参数和负面提示词

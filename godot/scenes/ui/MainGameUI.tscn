@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://tof_main_game_ui"]
+[gd_scene load_steps=13 format=3 uid="uid://tof_main_game_ui"]
 
 [ext_resource type="Script" path="res://scripts/ui/main_game_ui.gd" id="1_hud_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/DetailPopup.tscn" id="2_detail_popup"]
@@ -8,6 +8,40 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/CharacterEndingScreen.tscn" id="6_char_ending"]
 [ext_resource type="PackedScene" path="res://scenes/ui/DialogueEventScreen.tscn" id="7_dialogue_event"]
 [ext_resource type="PackedScene" path="res://scenes/ui/TimeTransition.tscn" id="8_time_transition"]
+[ext_resource type="PackedScene" path="res://scenes/ui/DreamTextDialog.tscn" id="9_dream_dialog"]
+
+[sub_resource type="StyleBoxFlat" id="topbar_panel"]
+content_margin_left = 20.0
+content_margin_top = 10.0
+content_margin_right = 20.0
+content_margin_bottom = 10.0
+bg_color = Color(0.05, 0.06, 0.09, 0.92)
+border_width_bottom = 1
+border_color = Color(0.82, 0.72, 0.48, 0.35)
+
+[sub_resource type="StyleBoxFlat" id="main_area_panel"]
+content_margin_left = 12.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.06, 0.07, 0.10, 0.65)
+
+[sub_resource type="StyleBoxFlat" id="bottom_panel"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.05, 0.06, 0.09, 0.92)
+border_width_top = 1
+border_color = Color(0.82, 0.72, 0.48, 0.35)
+
+[sub_resource type="StyleBoxFlat" id="map_background"]
+bg_color = Color(0.09, 0.11, 0.14, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.72, 0.48, 0.25)
 
 [node name="MainGameUI" type="Control"]
 layout_mode = 3
@@ -25,31 +59,42 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 0
 
-[node name="TopBar" type="HBoxContainer" parent="Root"]
+[node name="TopBar" type="PanelContainer" parent="Root"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 36)
-theme_override_constants/separation = 20
+custom_minimum_size = Vector2(0, 44)
+theme_override_styles/panel = SubResource("topbar_panel")
 
-[node name="TimeLabel" type="Label" parent="Root/TopBar"]
+[node name="H" type="HBoxContainer" parent="Root/TopBar"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+theme_override_constants/separation = 24
+
+[node name="TimeLabel" type="Label" parent="Root/TopBar/H"]
+layout_mode = 2
+size_flags_vertical = 5
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 18
 text = "第 1 天 · 早上"
 
-[node name="ResourceLabel" type="Label" parent="Root/TopBar"]
+[node name="ResourceLabel" type="Label" parent="Root/TopBar/H"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 5
+theme_override_colors/font_color = Color(0.92, 0.94, 0.98, 1)
 theme_override_font_sizes/font_size = 16
-text = "香火 50  神力 15  阳德 0  阴德 0"
+text = "🕯 香火 50    ✨ 神力 15    ☀ 阳德 0    ☾ 阴德 0"
+horizontal_alignment = 1
 
-[node name="MenuButton" type="Button" parent="Root/TopBar"]
+[node name="MenuButton" type="Button" parent="Root/TopBar/H"]
 layout_mode = 2
+size_flags_vertical = 5
 text = "主菜单"
 
 [node name="MainArea" type="PanelContainer" parent="Root"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_styles/panel = SubResource("main_area_panel")
 
 [node name="MapContent" type="VBoxContainer" parent="Root/MainArea"]
 layout_mode = 2
@@ -61,17 +106,22 @@ grow_vertical = 2
 
 [node name="MapTitleBar" type="HBoxContainer" parent="Root/MainArea/MapContent"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 32)
 theme_override_constants/separation = 12
 
 [node name="MapTitle" type="Label" parent="Root/MainArea/MapContent/MapTitleBar"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 5
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
 theme_override_font_sizes/font_size = 20
 text = "归潮镇地图"
 
 [node name="HintLabel" type="Label" parent="Root/MainArea/MapContent/MapTitleBar"]
 layout_mode = 2
+size_flags_vertical = 5
+theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
+theme_override_font_sizes/font_size = 13
 text = "拖拽移动 · 点击地点查看详情"
 
 [node name="DangerWarnings" type="VBoxContainer" parent="Root/MainArea/MapContent"]
@@ -104,9 +154,10 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="BottomPanel" type="PanelContainer" parent="Root"]
-custom_minimum_size = Vector2(0, 200)
-custom_maximum_size = Vector2(0, 200)
+custom_minimum_size = Vector2(0, 170)
+custom_maximum_size = Vector2(0, 170)
 layout_mode = 2
+theme_override_styles/panel = SubResource("bottom_panel")
 
 [node name="BottomContent" type="VBoxContainer" parent="Root/BottomPanel"]
 layout_mode = 2
@@ -183,6 +234,9 @@ visible = false
 visible = false
 
 [node name="TimeTransition" parent="." instance=ExtResource("8_time_transition")]
+visible = false
+
+[node name="DreamTextDialog" parent="." instance=ExtResource("9_dream_dialog")]
 visible = false
 
 [node name="DangerConfirm" type="ConfirmationDialog" parent="."]

@@ -35,6 +35,9 @@ var _pending_events: Array = []
 ## 时间推进结果缓存（供 UI 同步读取）
 var _last_advance_result: Dictionary = {}
 
+## 已应用干预的事件锁定表：event_id -> {intervention_id, display_name}
+var _applied_interventions: Dictionary = {}
+
 func _init() -> void:
 	## 连接 Backend 信号
 	Backend.new_game_completed.connect(_on_new_game)
@@ -48,6 +51,7 @@ func _init() -> void:
 	## 初始化缓存
 	_pending_events.clear()
 	_last_advance_result.clear()
+	_applied_interventions.clear()
 
 ## 保存游戏到指定槽位。
 func save_game(slot: int = 1) -> void:
@@ -69,6 +73,7 @@ func _on_load_completed(data: Dictionary) -> void:
 	_events.clear()
 	event_history.clear()
 	_pending_events.clear()
+	_applied_interventions.clear()
 	state_changed.emit()
 
 ## NPC 对话响应（暂存，供 UI 读取）。
@@ -81,6 +86,7 @@ func _on_npc_response(data: Dictionary) -> void:
 func reset_to_new_game() -> void:
 	## 通过后端创建新局
 	event_history.clear()
+	_applied_interventions.clear()
 	Backend.new_game()
 
 func _on_new_game(state: Dictionary) -> void:
@@ -106,6 +112,7 @@ func _on_new_game(state: Dictionary) -> void:
 	_events.clear()
 	event_history.clear()
 	_last_advance_result.clear()
+	_applied_interventions.clear()
 	state_changed.emit()
 
 func _on_state_updated(state: Dictionary) -> void:
@@ -397,26 +404,118 @@ func get_interventions_for_event(event: Dictionary) -> Array:
 	return []
 
 ## 执行干预（通过 WebSocket 发送到后端）。
-func apply_intervention(event_id: String, intervention_id: String) -> Dictionary:
-	## 先扣除神力（本地乐观更新，失败会通过下次状态同步修正）
-	var cost = 2
-	var current_power = int(_state_cache.get("divine_power", 0))
+## context: {dream_text?: String} — 托梦文字仅入历史，不影响硬币结算。
+func apply_intervention(event_id: String, intervention_id: String, context: Dictionary = {}) -> Dictionary:
+	## 事件级锁定：同一事件只能干预一次
+	if _applied_interventions.has(event_id):
+		var prev: Dictionary = _applied_interventions[event_id]
+		var prev_name: String = String(prev.get("display_name", "干预"))
+		return {
+			"success": false,
+			"summary": "此事件已被【%s】干预，命运线不再接受二次干预。" % prev_name,
+		}
+
+	## 从事件缓存中查找 display_name、base_coins、difficulty
+	var display_name: String = intervention_id
+	var event_name: String = ""
+	var base_coins: int = 1
+	var difficulty: int = 1
+	var success_label: String = "命运线出现了微小的偏转。"
+	var failure_label: String = "命运线纹丝不动，干预未能奏效。"
+	for evt in _events:
+		if String(evt.get("event_id", "")) == event_id:
+			event_name = String(evt.get("event_name", ""))
+			base_coins = int(evt.get("base_coins", 1))
+			difficulty = int(evt.get("difficulty", 1))
+			success_label = String(evt.get("coin_success_label", success_label))
+			failure_label = String(evt.get("coin_failure_label", failure_label))
+			for iv in evt.get("available_interventions", []):
+				if String(iv.get("intervention_id", "")) == intervention_id:
+					display_name = String(iv.get("display_name", intervention_id))
+					break
+			break
+
+	## 消耗神力（对齐 Mock：托梦 2、赐福 3、默认 2）
+	var cost: int = 3 if intervention_id == "blessing" else 2
+	var current_power: int = int(_state_cache.get("divine_power", 0))
 	if current_power < cost:
 		return {"success": false, "summary": "神力不足"}
 
+	## 命运硬币结算
+	var bonus_coins: int = 1 if intervention_id == "blessing" else 0
+	var coin_result: Dictionary = _roll_coins(base_coins, bonus_coins, difficulty)
+	coin_result["outcome_label"] = success_label if bool(coin_result.get("success", false)) else failure_label
+
 	_state_cache["divine_power"] = current_power - cost
+	var yang_gain: int = 1 if bool(coin_result.get("success", false)) else 0
+	if yang_gain > 0:
+		_state_cache["yang_de"] = int(_state_cache.get("yang_de", 0)) + yang_gain
+
+	## 托梦文字（<=100 字，超出截断）
+	var dream_text: String = String(context.get("dream_text", ""))
+	if dream_text.length() > 100:
+		dream_text = dream_text.substr(0, 100)
+
+	_applied_interventions[event_id] = {
+		"intervention_id": intervention_id,
+		"display_name": display_name,
+		"dream_text": dream_text,
+		"coin_result": coin_result,
+	}
+
+	## 事件历史注入干预痕迹
+	for entry in event_history:
+		if String(entry.get("event_id", "")) == event_id:
+			entry["intervention_id"] = intervention_id
+			entry["intervention_display_name"] = display_name
+			if dream_text != "":
+				entry["dream_text"] = dream_text
+			entry["coin_result_success"] = bool(coin_result.get("success", false))
+			break
+
 	state_changed.emit()
 
-	## 通过 WebSocket 发送干预请求
+	## 通过 WebSocket 发送干预请求（后端可选记录托梦文字）
 	if not Backend.use_mock_fallback:
 		Backend.send_intervention(event_id, intervention_id)
+
+	var resource_delta: Dictionary = {"divine_power": -cost}
+	if yang_gain > 0:
+		resource_delta["yang_de"] = yang_gain
 
 	return {
 		"success": true,
 		"event_id": event_id,
 		"intervention_id": intervention_id,
 		"cost": cost,
-		"summary": "干预已执行，命运线产生了偏转。",
+		"summary": "%s：%s" % [event_name if event_name != "" else "事件", coin_result.get("outcome_label", "")],
+		"resource_delta": resource_delta,
+		"coin_result": coin_result,
+		"dream_text": dream_text,
+	}
+
+## 查询事件是否已被干预（用于 UI 锁定显示）。
+func get_applied_intervention(event_id: String) -> Dictionary:
+	return _applied_interventions.get(event_id, {})
+
+## 命运硬币投掷（对齐 Mock 实现）。
+func _roll_coins(base_coins: int, bonus_coins: int, difficulty: int) -> Dictionary:
+	var total: int = max(1, base_coins + bonus_coins)
+	var flips: Array = []
+	var heads: int = 0
+	for i in range(total):
+		var head: bool = randi() % 2 == 0
+		flips.append(head)
+		if head:
+			heads += 1
+	return {
+		"base_coins": base_coins,
+		"bonus_coins": bonus_coins,
+		"coins_thrown": total,
+		"flips": flips,
+		"heads": heads,
+		"difficulty": difficulty,
+		"success": heads >= difficulty,
 	}
 
 ## 结局判定：从状态缓存计算（由后端在第60天推送最终结局）。

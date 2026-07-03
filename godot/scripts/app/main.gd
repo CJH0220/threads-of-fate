@@ -19,7 +19,7 @@ const INTRO_DATA := {
 	"dialogue_segments": [
 		{"speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "归潮镇，一座靠海的小镇。潮水每天涨落，镇上的日子看似平静。"},
 		{"speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "你是这片土地的土地公，守护着归潮镇与它的居民。"},
-		{"speaker_id": "heaven_messenger", "speaker_name": "天界监察司", "line_type": "speech", "position": "left", "text": "土地公，天庭命你执掌命运织线器。六十日为限，香火不绝，神位可保。"},
+		{"speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "「天界监察司」土地公，天庭命你执掌命运织线器。六十日为限，香火不绝，神位可保。"},
 		{"speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "你能观察居民的命运，也能用神力轻轻推一把。但命运有自己的韧性……"},
 		{"speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "六十天后，潮水将带来一场大灾。你能守住这座小镇吗？"},
 	],

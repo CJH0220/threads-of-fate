@@ -5,6 +5,11 @@ signal closed()
 
 @onready var title_label: Label = $Panel/Content/TitleLabel
 @onready var summary_label: Label = $Panel/Content/SummaryLabel
+@onready var coin_result_box: VBoxContainer = $Panel/Content/CoinResult
+@onready var coin_row: HBoxContainer = $Panel/Content/CoinResult/CoinRow
+@onready var coin_summary_label: Label = $Panel/Content/CoinResult/CoinSummary
+@onready var coin_outcome_label: Label = $Panel/Content/CoinResult/CoinOutcome
+@onready var dream_text_label: Label = $Panel/Content/CoinResult/DreamText
 @onready var resource_changes_container: VBoxContainer = $Panel/Content/ResourceChanges/ChangesList
 @onready var character_changes_container: VBoxContainer = $Panel/Content/CharacterChanges/ChangesList
 @onready var event_changes_container: VBoxContainer = $Panel/Content/EventChanges/ChangesList
@@ -20,11 +25,57 @@ func show_settlement(settlement_data: Dictionary) -> void:
 	title_label.text = settlement_data.get("title", "结算摘要")
 	summary_label.text = settlement_data.get("summary", "时间已推进。")
 
+	_show_coin_result(settlement_data.get("coin_result", {}), String(settlement_data.get("dream_text", "")))
 	_show_resource_changes(settlement_data.get("resource_delta", {}))
 	_show_character_changes(settlement_data.get("character_changes", []))
 	_show_event_changes(settlement_data.get("event_changes", []))
 
 	visible = true
+
+func _show_coin_result(coin_result: Dictionary, dream_text: String) -> void:
+	for child in coin_row.get_children():
+		child.queue_free()
+
+	if coin_result.is_empty():
+		coin_result_box.visible = false
+		dream_text_label.visible = false
+		return
+
+	coin_result_box.visible = true
+
+	var flips: Array = coin_result.get("flips", [])
+	for flip in flips:
+		var head: bool = bool(flip)
+		var coin_label: Label = Label.new()
+		coin_label.text = "◉" if head else "○"
+		coin_label.add_theme_font_size_override("font_size", 22)
+		var color: Color = Color(1, 0.9, 0.55, 1) if head else Color(0.55, 0.6, 0.68, 1)
+		coin_label.add_theme_color_override("font_color", color)
+		coin_row.add_child(coin_label)
+
+	var heads: int = int(coin_result.get("heads", 0))
+	var total: int = int(coin_result.get("coins_thrown", 0))
+	var tails: int = max(0, total - heads)
+	var difficulty: int = int(coin_result.get("difficulty", 0))
+	var bonus: int = int(coin_result.get("bonus_coins", 0))
+	var success: bool = bool(coin_result.get("success", false))
+	var bonus_hint: String = "（赐福 +%d）" % bonus if bonus > 0 else ""
+	coin_summary_label.text = "掷出 %d 枚硬币%s，正 %d · 反 %d（需要 %d 枚正才能成功）" % [total, bonus_hint, heads, tails, difficulty]
+
+	var outcome_word: String = "成功" if success else "失败"
+	var outcome_label: String = String(coin_result.get("outcome_label", ""))
+	var outcome_color: Color = Color(0.72, 0.92, 0.72, 1) if success else Color(0.95, 0.72, 0.72, 1)
+	coin_outcome_label.add_theme_color_override("font_color", outcome_color)
+	if outcome_label != "":
+		coin_outcome_label.text = "%s · %s" % [outcome_word, outcome_label]
+	else:
+		coin_outcome_label.text = outcome_word
+
+	if dream_text != "":
+		dream_text_label.visible = true
+		dream_text_label.text = "托梦：%s" % dream_text
+	else:
+		dream_text_label.visible = false
 
 func _show_resource_changes(changes: Dictionary) -> void:
 	for child in resource_changes_container.get_children():

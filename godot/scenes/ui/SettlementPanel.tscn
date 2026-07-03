@@ -1,6 +1,25 @@
-[gd_scene load_steps=2 format=3 uid="uid://settlement_panel"]
+[gd_scene load_steps=3 format=3 uid="uid://settlement_panel"]
 
 [ext_resource type="Script" path="res://scripts/ui/settlement_panel.gd" id="1_settlement_script"]
+
+[sub_resource type="StyleBoxFlat" id="settle_panel"]
+content_margin_left = 26.0
+content_margin_top = 22.0
+content_margin_right = 26.0
+content_margin_bottom = 22.0
+bg_color = Color(0.055, 0.065, 0.09, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.82, 0.72, 0.48, 0.65)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 16
+shadow_offset = Vector2(0, 6)
 
 [node name="SettlementPanel" type="Control"]
 visible = false
@@ -20,7 +39,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.6)
+color = Color(0, 0, 0, 0.65)
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -29,35 +48,85 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -180.0
-offset_right = 260.0
-offset_bottom = 180.0
+offset_left = -230.0
+offset_top = -170.0
+offset_right = 230.0
+offset_bottom = 170.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("settle_panel")
 
 [node name="Content" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="Panel/Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 22
 text = "结算摘要"
 horizontal_alignment = 1
 
+[node name="HeaderSep" type="HSeparator" parent="Panel/Content"]
+layout_mode = 2
+
 [node name="SummaryLabel" type="Label" parent="Panel/Content"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.88, 1)
+theme_override_font_sizes/font_size = 14
 autowrap_mode = 3
 text = "时间已推进，命运线产生了新的变化。"
 horizontal_alignment = 1
 
+[node name="CoinResult" type="VBoxContainer" parent="Panel/Content"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Panel/Content/CoinResult"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
+text = "【命运硬币】"
+
+[node name="CoinRow" type="HBoxContainer" parent="Panel/Content/CoinResult"]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="CoinSummary" type="Label" parent="Panel/Content/CoinResult"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
+text = ""
+horizontal_alignment = 1
+
+[node name="CoinOutcome" type="Label" parent="Panel/Content/CoinResult"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
+text = ""
+horizontal_alignment = 1
+
+[node name="DreamText" type="Label" parent="Panel/Content/CoinResult"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+text = ""
+horizontal_alignment = 1
+
 [node name="ResourceChanges" type="VBoxContainer" parent="Panel/Content"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Panel/Content/ResourceChanges"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
 text = "【资源变化】"
 
 [node name="ChangesList" type="VBoxContainer" parent="Panel/Content/ResourceChanges"]
@@ -65,10 +134,12 @@ layout_mode = 2
 
 [node name="CharacterChanges" type="VBoxContainer" parent="Panel/Content"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Panel/Content/CharacterChanges"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
 text = "【人物变化】"
 
 [node name="ChangesList" type="VBoxContainer" parent="Panel/Content/CharacterChanges"]
@@ -76,15 +147,22 @@ layout_mode = 2
 
 [node name="EventChanges" type="VBoxContainer" parent="Panel/Content"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Panel/Content/EventChanges"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
 text = "【事件结果】"
 
 [node name="ChangesList" type="VBoxContainer" parent="Panel/Content/EventChanges"]
 layout_mode = 2
 
+[node name="FooterSep" type="HSeparator" parent="Panel/Content"]
+layout_mode = 2
+
 [node name="CloseButton" type="Button" parent="Panel/Content"]
 layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 15
 text = "关闭"

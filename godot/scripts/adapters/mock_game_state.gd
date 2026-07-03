@@ -68,6 +68,9 @@ var events: Array = []
 var interventions: Array = []
 var load_error: bool = false
 var event_history: Array = []
+## 已应用干预的事件锁定表：event_id -> {intervention_id, display_name}
+## 每个事件仅可干预一次；命中锁定的事件在 UI 上显示「已干预」并禁用全部干预按钮。
+var _applied_interventions: Dictionary = {}
 
 func _init() -> void:
 	reset_to_new_game()
@@ -80,6 +83,7 @@ func reset_to_new_game() -> void:
 	events = _load_array(EVENTS_PATH)
 	interventions = _load_array(INTERVENTIONS_PATH)
 	event_history.clear()
+	_applied_interventions.clear()
 	state_changed.emit()
 
 func get_event_history() -> Array:
@@ -170,7 +174,7 @@ func get_interventions_for_event(event: Dictionary) -> Array:
 			result.append(intervention)
 	return result
 
-func apply_intervention(event_id: String, intervention_id: String) -> Dictionary:
+func apply_intervention(event_id: String, intervention_id: String, context: Dictionary = {}) -> Dictionary:
 	var event: Dictionary = _find_by_id(events, "event_id", event_id)
 	var intervention: Dictionary = _find_by_id(interventions, "intervention_id", intervention_id)
 	if event.is_empty() or intervention.is_empty():
@@ -178,6 +182,15 @@ func apply_intervention(event_id: String, intervention_id: String) -> Dictionary
 			"success": false,
 			"error": "未知事件或干预。",
 			"summary": "命运织线器没有找到对应的事件。",
+			"changed_fields": [],
+		}
+	if _applied_interventions.has(event_id):
+		var prev: Dictionary = _applied_interventions[event_id]
+		var prev_name: String = String(prev.get("display_name", "干预"))
+		return {
+			"success": false,
+			"error": "事件已干预。",
+			"summary": "「%s」已被【%s】影响，命运线不再接受二次干预。" % [event.get("event_name", "未知事件"), prev_name],
 			"changed_fields": [],
 		}
 	var cost := int(intervention.get("cost_divine_power", 0))
@@ -189,18 +202,83 @@ func apply_intervention(event_id: String, intervention_id: String) -> Dictionary
 			"summary": "神力不足，无法执行该干预。",
 			"changed_fields": [],
 		}
+
+	## 命运硬币结算：赐福 +1 硬币，托梦不加成（文字只入历史）
+	var base_coins: int = int(event.get("base_coins", 1))
+	var difficulty: int = int(event.get("difficulty", 1))
+	var bonus_coins: int = 1 if intervention_id == "blessing" else 0
+	var coin_result: Dictionary = _roll_coins(base_coins, bonus_coins, difficulty)
+	var success_label: String = String(event.get("coin_success_label", "命运线出现了微小的偏转。"))
+	var failure_label: String = String(event.get("coin_failure_label", "命运线纹丝不动，干预未能奏效。"))
+	coin_result["outcome_label"] = success_label if bool(coin_result.get("success", false)) else failure_label
+
+	## 资源变化：神力必扣；阳德仅在成功时 +1；阴德在失败且是阴德倾向干预时 +1（MVP：托梦/赐福均阳德倾向，失败不产生阴德）
 	game_state["divine_power"] = divine_power - cost
-	game_state["yang_de"] = int(game_state.get("yang_de", 0)) + 1
+	var yang_gain: int = 1 if bool(coin_result.get("success", false)) else 0
+	if yang_gain > 0:
+		game_state["yang_de"] = int(game_state.get("yang_de", 0)) + yang_gain
+
+	## 托梦文字（<=100 字，超出截断）
+	var dream_text: String = String(context.get("dream_text", ""))
+	if dream_text.length() > 100:
+		dream_text = dream_text.substr(0, 100)
+
 	game_state["current_hint"] = "%s 已影响「%s」。" % [intervention.get("display_name", "未知干预"), event.get("event_name", "未知事件")]
+	_applied_interventions[event_id] = {
+		"intervention_id": intervention_id,
+		"display_name": String(intervention.get("display_name", "干预")),
+		"dream_text": dream_text,
+		"coin_result": coin_result,
+	}
+
+	## 事件历史注入干预痕迹
+	for entry in event_history:
+		if String(entry.get("event_id", "")) == event_id:
+			entry["intervention_id"] = intervention_id
+			entry["intervention_display_name"] = String(intervention.get("display_name", "干预"))
+			if dream_text != "":
+				entry["dream_text"] = dream_text
+			entry["coin_result_success"] = bool(coin_result.get("success", false))
+			break
+
 	state_changed.emit()
+
+	var resource_delta: Dictionary = {"divine_power": -cost}
+	if yang_gain > 0:
+		resource_delta["yang_de"] = yang_gain
+
 	return {
 		"success": true,
-		"summary": "%s：%s" % [event.get("event_name", "未知事件"), intervention.get("default_effect", "命运线产生了轻微变化。")],
-		"resource_delta": {
-			"divine_power": -cost,
-			"yang_de": 1,
-		},
+		"summary": "%s：%s" % [event.get("event_name", "未知事件"), coin_result.get("outcome_label", "")],
+		"resource_delta": resource_delta,
+		"coin_result": coin_result,
+		"dream_text": dream_text,
 		"changed_fields": ["divine_power", "yang_de", "events"],
+	}
+
+## 查询事件是否已被干预（用于 UI 锁定显示）。
+## 返回 {intervention_id, display_name, dream_text, coin_result}；未干预则返回空字典。
+func get_applied_intervention(event_id: String) -> Dictionary:
+	return _applied_interventions.get(event_id, {})
+
+## 命运硬币投掷（正面 50%）。返回 {coins_thrown, heads, flips, difficulty, base_coins, bonus_coins, success}。
+func _roll_coins(base_coins: int, bonus_coins: int, difficulty: int) -> Dictionary:
+	var total: int = max(1, base_coins + bonus_coins)
+	var flips: Array = []
+	var heads: int = 0
+	for i in range(total):
+		var head: bool = randi() % 2 == 0
+		flips.append(head)
+		if head:
+			heads += 1
+	return {
+		"base_coins": base_coins,
+		"bonus_coins": bonus_coins,
+		"coins_thrown": total,
+		"flips": flips,
+		"heads": heads,
+		"difficulty": difficulty,
+		"success": heads >= difficulty,
 	}
 
 func advance_time() -> Dictionary:

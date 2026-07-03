@@ -1,6 +1,25 @@
-[gd_scene load_steps=2 format=3 uid="uid://tof_bond_view"]
+[gd_scene load_steps=3 format=3 uid="uid://tof_bond_view"]
 
 [ext_resource type="Script" path="res://scripts/ui/bond_view.gd" id="1_bond_script"]
+
+[sub_resource type="StyleBoxFlat" id="bond_panel"]
+content_margin_left = 22.0
+content_margin_top = 18.0
+content_margin_right = 22.0
+content_margin_bottom = 18.0
+bg_color = Color(0.06, 0.07, 0.1, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.82, 0.72, 0.48, 0.7)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 16
+shadow_offset = Vector2(0, 6)
 
 [node name="BondView" type="Control"]
 layout_mode = 3
@@ -18,7 +37,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.7)
+color = Color(0, 0, 0, 0.75)
 
 [node name="Panel" type="PanelContainer" parent="Dim"]
 layout_mode = 1
@@ -27,16 +46,17 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = -240.0
-offset_right = 320.0
-offset_bottom = 240.0
+offset_left = -360.0
+offset_top = -260.0
+offset_right = 360.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("bond_panel")
 
 [node name="VBox" type="VBoxContainer" parent="Dim/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="Header" type="HBoxContainer" parent="Dim/Panel/VBox"]
 layout_mode = 2
@@ -44,6 +64,7 @@ layout_mode = 2
 [node name="TitleLabel" type="Label" parent="Dim/Panel/VBox/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
 theme_override_font_sizes/font_size = 24
 text = "缘线 · 居民羁绊"
 
@@ -60,7 +81,9 @@ theme_override_constants/separation = 8
 
 [node name="FilterLabel" type="Label" parent="Dim/Panel/VBox/FilterBar"]
 layout_mode = 2
-text = "筛选："
+theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+text = "筛选"
 
 [node name="FilterOption" type="OptionButton" parent="Dim/Panel/VBox/FilterBar"]
 layout_mode = 2
@@ -68,6 +91,7 @@ layout_mode = 2
 [node name="EmptyLabel" type="Label" parent="Dim/Panel/VBox"]
 visible = false
 layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.75, 0.78, 1)
 horizontal_alignment = 1
 text = "尚无已建立的缘线。"
 
@@ -79,4 +103,4 @@ size_flags_vertical = 3
 [node name="ListContainer" type="VBoxContainer" parent="Dim/Panel/VBox/ListScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6

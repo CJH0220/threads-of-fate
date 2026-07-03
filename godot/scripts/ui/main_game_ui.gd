@@ -23,9 +23,9 @@ const VIEW_CHARACTERS := "characters"
 const VIEW_EVENTS := "events"
 
 ## 顶栏：当前天/时段显示
-@onready var time_label: Label = $Root/TopBar/TimeLabel
+@onready var time_label: Label = $Root/TopBar/H/TimeLabel
 ## 顶栏：资源数值显示（香火/神力/阳德/阴德）
-@onready var resource_label: Label = $Root/TopBar/ResourceLabel
+@onready var resource_label: Label = $Root/TopBar/H/ResourceLabel
 ## 地图区域：地点图块容器
 @onready var locations_container: Control = $Root/MainArea/MapContent/MapScroll/MapArea/LocationsContainer
 ## 底栏 Tab：NPC 列表按钮
@@ -39,7 +39,7 @@ const VIEW_EVENTS := "events"
 ## 底栏 Tab：推进时间按钮
 @onready var advance_time_button: Button = $Root/BottomPanel/BottomContent/TabButtons/AdvanceTimeButton
 ## 顶栏：返回主菜单按钮
-@onready var menu_button: Button = $Root/TopBar/MenuButton
+@onready var menu_button: Button = $Root/TopBar/H/MenuButton
 ## 上下文列表容器（NPC/事件列表）
 @onready var context_list: VBoxContainer = $Root/BottomPanel/BottomContent/ContextBody/ContextListScroll/ContextListContainer/ContextList
 ## 详情面板容器（当前选中 NPC/事件的详情）
@@ -66,6 +66,8 @@ const VIEW_EVENTS := "events"
 @onready var dialogue_event_screen: Control = $DialogueEventScreen
 ## 时间推进过渡动画（织线生长 + 时段变化）
 @onready var time_transition: Control = $TimeTransition
+## 托梦文字输入弹窗
+@onready var dream_text_dialog: Control = $DreamTextDialog
 
 ## 绑定的游戏状态实例
 var state: MockGameState
@@ -85,6 +87,8 @@ var viewed_danger_event_ids: Dictionary = {}
 var _pending_intervention_event_id := ""
 ## 待确认干预的干预 ID
 var _pending_intervention_id := ""
+## 待确认干预携带的托梦文字（若非托梦则为空）
+var _pending_dream_text := ""
 ## 时间推进防重入标记
 var _advancing := false
 
@@ -101,6 +105,8 @@ func _ready() -> void:
 	menu_confirm.confirmed.connect(func() -> void: return_to_menu_requested.emit())
 	danger_confirm.confirmed.connect(_do_advance_time)
 	intervention_confirm.confirmed.connect(_on_intervention_confirmed)
+	dream_text_dialog.connect("confirmed", _on_dream_text_confirmed)
+	dream_text_dialog.connect("cancelled", _on_dream_text_cancelled)
 	detail_state.button_pressed.connect(_on_detail_state_button)
 	bond_view.character_selected.connect(_on_view_character_selected)
 	destiny_view.character_selected.connect(_on_view_character_selected)
@@ -356,8 +362,11 @@ func _show_event_popup(event_id: String) -> void:
 	var event_interventions: Array = state.get_interventions_for_event(event)
 	var game_dict: Dictionary = state.get_game_state()
 	var divine_power: int = int(game_dict.get("divine_power", 0))
+	var applied: Dictionary = {}
+	if state.has_method("get_applied_intervention"):
+		applied = state.get_applied_intervention(event_id)
 
-	panel.call("show_event", event, event_interventions, divine_power)
+	panel.call("show_event", event, event_interventions, divine_power, applied)
 	if panel.has_signal("intervention_applied") and not panel.intervention_applied.is_connected(_on_intervention_applied):
 		panel.intervention_applied.connect(_on_intervention_applied)
 	if panel.has_signal("enter_requested") and not panel.enter_requested.is_connected(_on_event_enter_requested):
@@ -419,38 +428,72 @@ func _on_intervention_applied(event_id: String, intervention_id: String) -> void
 	var event: Dictionary = _find_event(event_id)
 	if event.is_empty():
 		return
+	_pending_intervention_event_id = event_id
+	_pending_intervention_id = intervention_id
+	_pending_dream_text = ""
+	if intervention_id == "dream_hint":
+		var target_label: String = String(event.get("event_name", ""))
+		dream_text_dialog.call("open", target_label)
+		return
+	_show_intervention_confirm(event, intervention_id)
+
+func _show_intervention_confirm(event: Dictionary, intervention_id: String) -> void:
 	var intervention: Dictionary = _find_intervention(event, intervention_id)
 	var display_name: String = String(intervention.get("display_name", "干预"))
 	var cost: int = int(intervention.get("cost_divine_power", 0))
-	_pending_intervention_event_id = event_id
-	_pending_intervention_id = intervention_id
-	intervention_confirm.dialog_text = "确认消耗 %d 点神力进行【%s】吗？\n命运只会被轻推，结果未必如愿。" % [cost, display_name]
+	var extra: String = ""
+	if intervention_id == "dream_hint" and _pending_dream_text != "":
+		extra = "\n托梦内容：%s" % _pending_dream_text
+	intervention_confirm.dialog_text = "确认消耗 %d 点神力进行【%s】吗？\n命运只会被轻推，结果未必如愿。%s" % [cost, display_name, extra]
 	intervention_confirm.popup_centered()
+
+func _on_dream_text_confirmed(dream_text: String) -> void:
+	_pending_dream_text = dream_text
+	var event: Dictionary = _find_event(_pending_intervention_event_id)
+	if event.is_empty():
+		_pending_intervention_event_id = ""
+		_pending_intervention_id = ""
+		_pending_dream_text = ""
+		return
+	_show_intervention_confirm(event, _pending_intervention_id)
+
+func _on_dream_text_cancelled() -> void:
+	_pending_intervention_event_id = ""
+	_pending_intervention_id = ""
+	_pending_dream_text = ""
 
 func _on_intervention_confirmed() -> void:
 	var event_id: String = _pending_intervention_event_id
 	var intervention_id: String = _pending_intervention_id
+	var dream_text: String = _pending_dream_text
 	_pending_intervention_event_id = ""
 	_pending_intervention_id = ""
+	_pending_dream_text = ""
 	if event_id == "" or intervention_id == "":
 		return
 
 	detail_popup.call("hide_popup")
-	var result: Dictionary = state.apply_intervention(event_id, intervention_id)
+	var context: Dictionary = {}
+	if dream_text != "":
+		context["dream_text"] = dream_text
+	var result: Dictionary = state.apply_intervention(event_id, intervention_id, context)
 	if bool(result.get("success", false)):
 		var event: Dictionary = _find_event(event_id)
 		var event_name: String = String(event.get("event_name", "未知事件") if not event.is_empty() else "未知事件")
+		var coin_result: Dictionary = result.get("coin_result", {})
+		var outcome_label: String = String(coin_result.get("outcome_label", "已干预"))
+		var event_change: Dictionary = {
+			"event_name": event_name,
+			"outcome": outcome_label
+		}
 		var settlement_data: Dictionary = {
 			"title": "干预结算",
 			"summary": result.get("summary", "命运线产生了变化。"),
 			"resource_delta": result.get("resource_delta", {}),
 			"character_changes": [],
-			"event_changes": [
-				{
-					"event_name": event_name,
-					"outcome": "已干预"
-				}
-			]
+			"event_changes": [event_change],
+			"coin_result": coin_result,
+			"dream_text": dream_text
 		}
 		settlement_requested.emit(settlement_data)
 	else:

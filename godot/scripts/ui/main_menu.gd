@@ -6,12 +6,12 @@ signal settings_requested
 signal credits_requested
 signal quit_requested
 
-@onready var new_game_button: Button = $Root/NewGameButton
-@onready var quit_button: Button = $Root/QuitButton
-@onready var continue_button: Button = $Root/ContinueButton
-@onready var load_game_button: Button = $Root/LoadGameButton
-@onready var settings_button: Button = $Root/SettingsButton
-@onready var credits_button: Button = $Root/CreditsButton
+@onready var new_game_button: Button = $Panel/Root/NewGameButton
+@onready var quit_button: Button = $Panel/Root/QuitButton
+@onready var continue_button: Button = $Panel/Root/ContinueButton
+@onready var load_game_button: Button = $Panel/Root/LoadGameButton
+@onready var settings_button: Button = $Panel/Root/SettingsButton
+@onready var credits_button: Button = $Panel/Root/CreditsButton
 @onready var quit_confirm_dialog: ConfirmationDialog = $QuitConfirmDialog
 
 func _ready() -> void:

@@ -1,6 +1,25 @@
-[gd_scene load_steps=2 format=3 uid="uid://tof_tutorial_overlay"]
+[gd_scene load_steps=3 format=3 uid="uid://tof_tutorial_overlay"]
 
 [ext_resource type="Script" path="res://scripts/ui/tutorial_overlay.gd" id="1_tutorial_script"]
+
+[sub_resource type="StyleBoxFlat" id="tooltip_panel"]
+content_margin_left = 20.0
+content_margin_top = 16.0
+content_margin_right = 20.0
+content_margin_bottom = 16.0
+bg_color = Color(0.055, 0.065, 0.09, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.82, 0.72, 0.48, 0.7)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 14
+shadow_offset = Vector2(0, 4)
 
 [node name="TutorialOverlay" type="Control"]
 layout_mode = 3
@@ -34,12 +53,13 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -240.0
-offset_top = -110.0
-offset_right = 240.0
-offset_bottom = 110.0
+offset_left = -220.0
+offset_top = -100.0
+offset_right = 220.0
+offset_bottom = 100.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("tooltip_panel")
 
 [node name="VBox" type="VBoxContainer" parent="TooltipPanel"]
 layout_mode = 2
@@ -47,7 +67,8 @@ theme_override_constants/separation = 12
 
 [node name="TitleLabel" type="Label" parent="TooltipPanel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 18
 text = "欢迎来到归潮镇"
 
 [node name="HeaderSeparator" type="HSeparator" parent="TooltipPanel/VBox"]

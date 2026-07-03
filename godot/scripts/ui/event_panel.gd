@@ -17,7 +17,7 @@ var _event_id := ""
 func _ready() -> void:
 	enter_button.pressed.connect(func() -> void: enter_requested.emit(_event_id))
 
-func show_event(event: Dictionary, interventions: Array, divine_power: int) -> void:
+func show_event(event: Dictionary, interventions: Array, divine_power: int, applied: Dictionary = {}) -> void:
 	_event_id = String(event.get("event_id", ""))
 	title_label.text = String(event.get("event_name", "未知事件"))
 	risk_label.text = String(event.get("risk_level", "Low"))
@@ -28,6 +28,9 @@ func show_event(event: Dictionary, interventions: Array, divine_power: int) -> v
 
 	for child in interventions_container.get_children():
 		child.queue_free()
+
+	var is_locked: bool = not applied.is_empty()
+	var applied_display: String = String(applied.get("display_name", "")) if is_locked else ""
 
 	if interventions.is_empty():
 		var empty_label: Label = Label.new()
@@ -41,13 +44,20 @@ func show_event(event: Dictionary, interventions: Array, divine_power: int) -> v
 			var intervention_id: String = String(intervention.get("intervention_id", ""))
 			var display_name: String = String(intervention.get("display_name", "未知干预"))
 			var desc: String = String(intervention.get("description", ""))
-			button.text = "%s · 神力 %d\n%s" % [display_name, cost, desc]
 			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			if divine_power < cost:
+			if is_locked:
 				button.disabled = true
-				button.text += "\n（神力不足）"
-			button.pressed.connect(func() -> void: _on_intervention_clicked(event_id, intervention_id))
+				if intervention_id == String(applied.get("intervention_id", "")):
+					button.text = "%s · 神力 %d\n已干预：%s" % [display_name, cost, applied_display]
+				else:
+					button.text = "%s · 神力 %d\n（已干预，无法再次影响此事件）" % [display_name, cost]
+			else:
+				button.text = "%s · 神力 %d\n%s" % [display_name, cost, desc]
+				if divine_power < cost:
+					button.disabled = true
+					button.text += "\n（神力不足）"
+				button.pressed.connect(func() -> void: _on_intervention_clicked(event_id, intervention_id))
 			interventions_container.add_child(button)
 
 func show_empty() -> void:

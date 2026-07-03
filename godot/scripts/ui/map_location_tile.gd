@@ -30,18 +30,24 @@ func _update_ui() -> void:
 
 	var category: String = String(location_data.get("category", "Daily"))
 	match category:
-		"Home":
+		"Faith", "Religion":
+			icon_label.text = "⛩️"
+		"Daily":
+			icon_label.text = "🏫"
+		"Family", "Home":
 			icon_label.text = "🏠"
+		"Commerce":
+			icon_label.text = "⚓"
+		"Public":
+			icon_label.text = "📢"
+		"Nature":
+			icon_label.text = "🌲"
 		"Shop":
 			icon_label.text = "🏪"
-		"Public":
-			icon_label.text = "🏛️"
 		"Work":
 			icon_label.text = "🏭"
 		"Leisure":
 			icon_label.text = "🎮"
-		"Religion":
-			icon_label.text = "⛩️"
 		_:
 			icon_label.text = "📍"
 
