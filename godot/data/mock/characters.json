@@ -1,0 +1,102 @@
+[
+  {
+    "npc_id": "lin_chaoyin",
+    "display_name": "林潮音",
+    "agent_tier": "S",
+    "story_priority": 5,
+    "age_range": "17-18",
+    "role": "高中生",
+    "current_location_id": "school",
+    "current_location_label": "学校",
+    "current_state": "噩梦频繁、压力轻微",
+    "description": "从小体质特殊，经常梦见潮水吞没小镇，是旧信仰和青春线的核心人物。",
+    "schedule": {
+      "Morning": "school",
+      "Afternoon": "coffee_shop",
+      "Night": "temple"
+    },
+    "stats": {
+      "mind": 6,
+      "body": 4,
+      "charm": 7,
+      "faith": 5
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "chen_yuanzhou",
+        "target_display_name": "陈远舟",
+        "bond_type": "友情",
+        "level": 3,
+        "strength": 65
+      }
+    ],
+    "karma_summary": "巫女线：潮声入梦",
+    "karma_progress": 20,
+    "is_unlocked": true,
+    "risk_level": "Medium"
+  },
+  {
+    "npc_id": "chen_yuanzhou",
+    "display_name": "陈远舟",
+    "agent_tier": "S",
+    "story_priority": 5,
+    "age_range": "18",
+    "role": "高中生",
+    "current_location_id": "school",
+    "current_location_label": "学校",
+    "current_state": "备考中、想离岛",
+    "description": "想考上大学离开归潮镇，也想带林潮音一起走。",
+    "schedule": {
+      "Morning": "school",
+      "Afternoon": "coffee_shop",
+      "Night": "seafood_shop"
+    },
+    "stats": {
+      "mind": 7,
+      "body": 5,
+      "charm": 6,
+      "faith": 3
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "lin_chaoyin",
+        "target_display_name": "林潮音",
+        "bond_type": "友情",
+        "level": 3,
+        "strength": 65
+      }
+    ],
+    "karma_summary": "离岛梦想",
+    "karma_progress": 25,
+    "is_unlocked": true,
+    "risk_level": "Low"
+  },
+  {
+    "npc_id": "chen_haisheng",
+    "display_name": "陈海生",
+    "agent_tier": "S",
+    "story_priority": 5,
+    "age_range": "42-48",
+    "role": "渔民 / 海鲜店老板",
+    "current_location_id": "seafood_shop",
+    "current_location_label": "海鲜店",
+    "current_state": "压力高、怨气积累",
+    "description": "经济压力和家庭矛盾让他逐渐对旧信仰失望，容易被顾沉舟拉拢。",
+    "schedule": {
+      "Morning": "seafood_shop",
+      "Afternoon": "port",
+      "Night": "wine_bar"
+    },
+    "stats": {
+      "mind": 4,
+      "body": 7,
+      "charm": 3,
+      "faith": 2
+    },
+    "bond_summaries": [],
+    "karma_summary": "家庭悲剧风险",
+    "karma_progress": 30,
+    "is_unlocked": true,
+    "risk_level": "High"
+  }
+]

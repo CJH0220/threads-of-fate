@@ -14,6 +14,7 @@ import asyncio
 import json
 import time
 import uuid
+from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -21,6 +22,7 @@ from src.backend.server.state import (
     get_session, init_session, load_session, is_initialized,
 )
 from src.backend.engine.event import load_events, match_events, execute_events
+from src.backend.ai.narrator.narrator import generate_narrator_beat
 
 router = APIRouter()
 
@@ -77,6 +79,8 @@ async def ws_game(ws: WebSocket):
                 await _handle_load_game(ws, payload, request_id)
             elif msg_type == "save_game":
                 await _handle_save_game(ws, payload, request_id)
+            elif msg_type == "apply_intervention":
+                await _handle_apply_intervention(ws, payload, request_id)
             else:
                 await _send(ws, "error", {"message": f"未知的消息类型: {msg_type}"}, request_id)
 
@@ -136,9 +140,20 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                            week=result.week, participant_locations=locs)
 
     if matched:
+        # Build id → name map for participant_names field
+        id_name_map: dict = {}
+        for aid in session.agents.npc_ids:
+            ag = session.agents.get(aid)
+            if ag:
+                id_name_map[aid] = ag.name
+
         settlement = execute_events(matched, session.resource, session.agents,
                                     day=result.day, slot=result.slot)
-        for r in settlement:
+        # Zip matched (event, outcome) with settlement to enrich participants + location
+        for (evt_template, _outcome), r in zip(matched, settlement):
+            participants_ids = list(evt_template.participants or [])
+            participants_names = [id_name_map.get(pid, pid) for pid in participants_ids]
+            location_id = getattr(evt_template, "location", "") or ""
             await _send(ws, "event_triggered", {
                 "event_id": r.event_id,
                 "event_name": r.event_name,
@@ -147,6 +162,11 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                 "npc_changes": r.npc_changes,
                 "bonds_queued": r.bond_changes,
                 "karma_queued": r.karma_changes,
+                "participant_ids": participants_ids,
+                "participant_names": participants_names,
+                "location_id": location_id,
+                "risk_level": getattr(evt_template, "risk_level", "Low"),
+                "description": getattr(evt_template, "description", ""),
             }, request_id)
 
             # 应用缘线
@@ -190,6 +210,87 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
             "divine_power": session.resource.divine_power,
             "divine_power_max": session.resource.divine_power_max,
         },
+    }, request_id)
+
+    # 6. 故事编排 Agent：夜晚时生成一段旁白（土地公视角），异步不阻塞。
+    if result.slot.value == "night":
+        try:
+            recent_actions = [it for it in completed if it]
+            beat = await generate_narrator_beat(
+                session=session,
+                day=result.day,
+                slot=result.slot.value,
+                recent_actions=recent_actions,
+                llm=session.agents.get(session.agents.npc_ids[0]).llm if session.agents.npc_ids else None,
+            )
+            if beat:
+                await _send(ws, "narrator_beat", {
+                    "day": result.day,
+                    "slot": result.slot.value,
+                    "text": beat,
+                }, request_id)
+        except Exception as e:
+            print(f"[ws_game] narrator_beat 生成失败：{type(e).__name__}: {e}")
+
+
+async def _handle_apply_intervention(ws: WebSocket, payload: dict, request_id: str):
+    """处理神力干预：把托梦/赐福写入相关 NPC 的记忆库。
+
+    前端已在本地做过命运硬币结算（可复现的确定性程序）。
+    后端只负责：
+    - 记录托梦文字到目标 NPC 的记忆（importance=8，emotion=hopeful）
+    - 记录赐福护佑感应到目标 NPC 的记忆（importance=7）
+    - 广播 intervention_applied 供 UI 追加日志
+    """
+    if not is_initialized():
+        await _send(ws, "error", {"message": "游戏未初始化"}, request_id)
+        return
+
+    event_id: str = payload.get("event_id", "")
+    intervention_id: str = payload.get("intervention_id", "")
+    dream_text: str = payload.get("dream_text", "") or ""
+    target_npc_ids: list = payload.get("target_npc_ids", []) or []
+    coin_result: dict = payload.get("coin_result", {}) or {}
+
+    session = get_session()
+    day = session.time.day
+    slot = session.time.slot
+
+    from src.backend.models.npc import Emotion
+
+    affected: list = []
+    for npc_id in target_npc_ids:
+        agent = session.agents.get(npc_id)
+        if agent is None:
+            continue
+
+        if intervention_id == "dream_hint" and dream_text:
+            desc = f"（梦中）土地公托梦：{dream_text}"
+            agent.remember(
+                day=day, slot=slot, description=desc,
+                importance=8, emotion=Emotion.EXCITED,
+            )
+        elif intervention_id == "blessing":
+            outcome_flag = "感受到" if coin_result.get("success", False) else "隐约察觉"
+            desc = f"{outcome_flag}一股温暖的护佑降临身上，仿佛神明的赐福。"
+            agent.remember(
+                day=day, slot=slot, description=desc,
+                importance=7, emotion=Emotion.HAPPY,
+            )
+        else:
+            desc = f"命运的织线似乎被无形之手轻轻拨动了一下（{intervention_id}）。"
+            agent.remember(
+                day=day, slot=slot, description=desc,
+                importance=5, emotion=Emotion.NEUTRAL,
+            )
+        affected.append(npc_id)
+
+    await _send(ws, "intervention_applied", {
+        "event_id": event_id,
+        "intervention_id": intervention_id,
+        "dream_text": dream_text,
+        "coin_result": coin_result,
+        "affected_npc_ids": affected,
     }, request_id)
 
 

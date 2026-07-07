@@ -1,0 +1,120 @@
+[gd_scene load_steps=4 format=3 uid="uid://evt_panel_v0"]
+
+[ext_resource type="Script" path="res://scripts/ui/event_panel.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="risk_pill"]
+content_margin_left = 10.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+bg_color = Color(0.14, 0.16, 0.20, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.72, 0.48, 0.55)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="enter_btn"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.55, 0.35, 0.20, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 0.85, 0.55, 0.85)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="EventPanel" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "事件名称"
+
+[node name="RiskLabel" type="Label" parent="Header"]
+layout_mode = 2
+size_flags_vertical = 5
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("risk_pill")
+text = " Low "
+
+[node name="HeaderSep" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="MetaRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="LocationLabel" type="Label" parent="MetaRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 14
+text = "📍 地点未知"
+
+[node name="TypeLabel" type="Label" parent="MetaRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
+theme_override_font_sizes/font_size = 14
+text = "Daily"
+
+[node name="SummaryText" type="RichTextLabel" parent="."]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.93, 0.93, 0.9, 1)
+theme_override_font_sizes/normal_font_size = 15
+bbcode_enabled = true
+text = "暂无事件描述。"
+fit_content = true
+
+[node name="EnterButton" type="Button" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.96, 0.88, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("enter_btn")
+text = "▶ 进入事件演出"
+
+[node name="InterventionsSep" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="InterventionsSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="InterventionsTitle" type="Label" parent="InterventionsSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
+text = "可用干预"
+
+[node name="InterventionsContainer" type="VBoxContainer" parent="InterventionsSection"]
+layout_mode = 2
+theme_override_constants/separation = 6

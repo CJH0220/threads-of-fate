@@ -6,10 +6,13 @@ Demo 阶段：使用模块级单例持有 GameSession。
 
 from __future__ import annotations
 
+import os
 from typing import Optional
 
 from src.backend.ai.npc_agent.manager import AgentManager
 from src.backend.data.npc_loader import load_npcs
+from src.backend.ai.llm_client.interface import BaseLLMClient
+from src.backend.ai.llm_client.anthropic_client import AnthropicClient
 from src.backend.ai.llm_client.load_balanced import LoadBalancedClient
 from src.backend.engine.bond import BondManager
 from src.backend.engine.karma import KarmaManager
@@ -20,12 +23,47 @@ from src.backend.engine.game_session import GameSession
 
 # ── LLM 客户端 ───────────────────────────────────
 
-def _create_llm_client() -> LoadBalancedClient:
-    """创建负载均衡 LLM 客户端（连接本地 llama.cpp）。"""
+## LLM 后端切换开关（环境变量 LLM_BACKEND）：
+##   "llama"（默认）    -> 走本地 llama.cpp（172.21.125.241:8080），响应快、免公网
+##   "anthropic"        -> 走 Volcengine Ark Anthropic 兼容端点（公网、有额度限制）
+LLM_BACKEND = os.environ.get("LLM_BACKEND", "llama").lower()
+
+## Anthropic 兼容端点兜底配置（env 未设置时使用）。
+## 部署时优先使用环境变量 ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN / ANTHROPIC_MODEL。
+_FALLBACK_ANTHROPIC_BASE_URL = "https://ark.cn-beijing.volces.com/api/coding"
+_FALLBACK_ANTHROPIC_MODEL = "ark-code-latest"
+## 开发期硬编码 token（用户明确表示不介意泄露；生产环境请改用环境变量）
+_FALLBACK_ANTHROPIC_TOKEN = "ark-2fd6a835-b807-4f74-817f-b3d1bd8b4073-9fabe"
+
+
+def _create_llm_client() -> BaseLLMClient:
+    """创建 LLM 客户端。根据 LLM_BACKEND 环境变量切换实现。"""
+    if LLM_BACKEND == "anthropic":
+        # Anthropic 兼容端点（火山方舟 Coding）
+        base_url = os.environ.get("ANTHROPIC_BASE_URL") or _FALLBACK_ANTHROPIC_BASE_URL
+        token = (
+            os.environ.get("ANTHROPIC_AUTH_TOKEN")
+            or os.environ.get("ANTHROPIC_API_KEY")
+            or _FALLBACK_ANTHROPIC_TOKEN
+        )
+        model = os.environ.get("ANTHROPIC_MODEL") or _FALLBACK_ANTHROPIC_MODEL
+        print(f"[state] 使用 AnthropicClient base_url={base_url} model={model} token={'已配置' if token else '缺失'}")
+        return AnthropicClient(
+            base_url=base_url,
+            auth_token=token,
+            model=model,
+            timeout=60.0,
+            max_retries=2,
+            concurrency=4,
+        )
+
+    # 默认：本地 llama.cpp（OpenAI /v1/chat/completions 兼容）
+    endpoint = os.environ.get("LLAMA_ENDPOINT") or "http://172.21.125.241:8080/v1/chat/completions"
+    print(f"[state] 使用 LoadBalancedClient (llama.cpp) endpoint={endpoint}")
     return LoadBalancedClient(
-        endpoints=["http://172.21.125.241:8080/v1/chat/completions"],
+        endpoints=[endpoint],
         per_endpoint_concurrency=2,
-        timeout=60.0,
+        timeout=30.0,
         max_retries=2,
         default_extra_body={"chat_template_kwargs": {"enable_thinking": False}},
     )

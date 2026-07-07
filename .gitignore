@@ -87,6 +87,5 @@ $RECYCLE.BIN/
 # 团队成员可以在此添加本地特定忽略项
 # 如：本地测试文件、临时导出等
 
-# =========== CLAUDE CODE ===========
-.claude/__pycache__/
-__pycache__/
+ 
+ 

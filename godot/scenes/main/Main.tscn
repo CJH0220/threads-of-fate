@@ -1,0 +1,110 @@
+[gd_scene load_steps=14 format=3 uid="uid://cav1t7tr1hy8p"]
+
+[ext_resource type="Script" uid="uid://dmcx14adkjn8x" path="res://scripts/app/main.gd" id="1_main_script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/SettlementPanel.tscn" id="2_settlement_panel"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ConfirmDialog.tscn" id="3_confirm_dialog"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="4_pause_menu"]
+[ext_resource type="PackedScene" path="res://scenes/ui/SettingsScreen.tscn" id="5_settings_screen"]
+[ext_resource type="PackedScene" path="res://scenes/ui/CreditsScreen.tscn" id="6_credits_screen"]
+[ext_resource type="PackedScene" path="res://scenes/ui/FinalSummaryScreen.tscn" id="7_final_summary"]
+[ext_resource type="PackedScene" path="res://scenes/ui/EndingScreen.tscn" id="8_ending_screen"]
+[ext_resource type="PackedScene" path="res://scenes/ui/GameOverScreen.tscn" id="9_game_over"]
+[ext_resource type="PackedScene" path="res://scenes/ui/WeekSummaryScreen.tscn" id="10_week_summary"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TutorialOverlay.tscn" id="11_tutorial"]
+[ext_resource type="PackedScene" path="res://scenes/ui/EventHistoryScreen.tscn" id="12_event_history"]
+[ext_resource type="PackedScene" path="res://scenes/ui/EndingGalleryScreen.tscn" id="13_ending_gallery"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main_script")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.07, 0.06, 1)
+
+[node name="ScreenRoot" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = 24.0
+offset_right = -32.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PauseMenu" parent="." instance=ExtResource("4_pause_menu")]
+visible = false
+layout_mode = 1
+
+[node name="SettingsScreen" parent="." instance=ExtResource("5_settings_screen")]
+visible = false
+layout_mode = 1
+
+[node name="CreditsScreen" parent="." instance=ExtResource("6_credits_screen")]
+visible = false
+layout_mode = 1
+
+[node name="FinalSummaryScreen" parent="." instance=ExtResource("7_final_summary")]
+visible = false
+layout_mode = 1
+
+[node name="EndingScreen" parent="." instance=ExtResource("8_ending_screen")]
+visible = false
+layout_mode = 1
+
+[node name="GameOverScreen" parent="." instance=ExtResource("9_game_over")]
+visible = false
+layout_mode = 1
+
+[node name="WeekSummaryScreen" parent="." instance=ExtResource("10_week_summary")]
+visible = false
+layout_mode = 1
+
+[node name="TutorialOverlay" parent="." instance=ExtResource("11_tutorial")]
+visible = false
+layout_mode = 1
+
+[node name="EventHistoryScreen" parent="." instance=ExtResource("12_event_history")]
+visible = false
+layout_mode = 1
+
+[node name="EndingGalleryScreen" parent="." instance=ExtResource("13_ending_gallery")]
+visible = false
+layout_mode = 1
+
+[node name="ToastPanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = -80.0
+offset_right = -32.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ToastLabel" type="Label" parent="ToastPanel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SettlementPanel" parent="." instance=ExtResource("2_settlement_panel")]
+layout_mode = 1
+
+[node name="ConfirmDialog" parent="." instance=ExtResource("3_confirm_dialog")]

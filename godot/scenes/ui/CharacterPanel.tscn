@@ -1,0 +1,231 @@
+[gd_scene load_steps=3 format=3 uid="uid://char_panel_v0"]
+
+[ext_resource type="Script" path="res://scripts/ui/character_panel.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="portrait_bg"]
+bg_color = Color(0.09, 0.11, 0.14, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.72, 0.48, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="CharacterPanel" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Portrait" type="PanelContainer" parent="Header"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+size_flags_vertical = 5
+theme_override_styles/panel = SubResource("portrait_bg")
+
+[node name="PortraitImage" type="TextureRect" parent="Header/Portrait"]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="PortraitInitial" type="Label" parent="Header/Portrait"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 32
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeaderText" type="VBoxContainer" parent="Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
+
+[node name="NameLabel" type="Label" parent="Header/HeaderText"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "人物名称"
+
+[node name="RoleLabel" type="Label" parent="Header/HeaderText"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+text = "身份"
+
+[node name="ChatButton" type="Button" parent="Header"]
+layout_mode = 2
+size_flags_vertical = 5
+text = "对话"
+tooltip_text = "以土地公之身与其交谈"
+
+[node name="HeaderSep" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="BioText" type="RichTextLabel" parent="."]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/default_color = Color(0.93, 0.93, 0.9, 1)
+theme_override_font_sizes/normal_font_size = 14
+bbcode_enabled = true
+text = "暂无简介。"
+fit_content = true
+
+[node name="ScheduleSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ScheduleTitle" type="Label" parent="ScheduleSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
+text = "今日行程"
+
+[node name="MorningRow" type="HBoxContainer" parent="ScheduleSection"]
+layout_mode = 2
+
+[node name="SlotLabel" type="Label" parent="ScheduleSection/MorningRow"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+text = "早上"
+
+[node name="MorningLocationLabel" type="Label" parent="ScheduleSection/MorningRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "地点未知"
+
+[node name="AfternoonRow" type="HBoxContainer" parent="ScheduleSection"]
+layout_mode = 2
+
+[node name="SlotLabel2" type="Label" parent="ScheduleSection/AfternoonRow"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+text = "下午"
+
+[node name="AfternoonLocationLabel" type="Label" parent="ScheduleSection/AfternoonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "地点未知"
+
+[node name="NightRow" type="HBoxContainer" parent="ScheduleSection"]
+layout_mode = 2
+
+[node name="SlotLabel3" type="Label" parent="ScheduleSection/NightRow"]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+text = "夜晚"
+
+[node name="NightLocationLabel" type="Label" parent="ScheduleSection/NightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "地点未知"
+
+[node name="Sep1" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="StatsSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StatsTitle" type="Label" parent="StatsSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
+text = "当前状态"
+
+[node name="StateLabel" type="Label" parent="StatsSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "暂无状态。"
+
+[node name="StatsRow" type="HBoxContainer" parent="StatsSection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MindLabel" type="Label" parent="StatsSection/StatsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "心智 0"
+horizontal_alignment = 1
+
+[node name="BodyLabel" type="Label" parent="StatsSection/StatsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "体魄 0"
+horizontal_alignment = 1
+
+[node name="CharmLabel" type="Label" parent="StatsSection/StatsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "魅力 0"
+horizontal_alignment = 1
+
+[node name="FaithLabel" type="Label" parent="StatsSection/StatsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+text = "信仰 0"
+horizontal_alignment = 1
+
+[node name="Sep2" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="BondSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BondTitle" type="Label" parent="BondSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
+text = "缘线"
+
+[node name="BondContainer" type="VBoxContainer" parent="BondSection"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Sep3" type="HSeparator" parent="."]
+layout_mode = 2
+
+[node name="KarmaSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="KarmaTitle" type="Label" parent="KarmaSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
+text = "业线"
+
+[node name="KarmaLabel" type="Label" parent="KarmaSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "命运尚未显形（0%）"

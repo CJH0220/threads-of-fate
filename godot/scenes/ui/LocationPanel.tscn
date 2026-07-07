@@ -1,0 +1,115 @@
+[gd_scene load_steps=2 format=3 uid="uid://loc_panel_v0"]
+
+[ext_resource type="Script" path="res://scripts/ui/location_panel.gd" id="1_script"]
+
+[node name="LocationPanel" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+text = "地点名称"
+
+[node name="CategoryLabel" type="Label" parent="Header"]
+layout_mode = 2
+text = "Daily"
+horizontal_alignment = 2
+
+[node name="DescriptionText" type="RichTextLabel" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+text = "暂无地点描述。"
+
+[node name="FunctionSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="FunctionTitle" type="Label" parent="FunctionSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "用途"
+
+[node name="FunctionLabel" type="Label" parent="FunctionSection"]
+layout_mode = 2
+text = "暂无用途。"
+
+[node name="TimeSlotsSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="TimeSlotsTitle" type="Label" parent="TimeSlotsSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "主要时段"
+
+[node name="TimeSlotsLabel" type="Label" parent="TimeSlotsSection"]
+layout_mode = 2
+text = "—"
+
+[node name="DailyPresenceSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="PresenceTitle" type="Label" parent="DailyPresenceSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "今日停留"
+
+[node name="MorningRow" type="HBoxContainer" parent="DailyPresenceSection"]
+layout_mode = 2
+
+[node name="SlotLabel" type="Label" parent="DailyPresenceSection/MorningRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "早上："
+
+[node name="MorningPresenceLabel" type="Label" parent="DailyPresenceSection/MorningRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "无人停留"
+
+[node name="AfternoonRow" type="HBoxContainer" parent="DailyPresenceSection"]
+layout_mode = 2
+
+[node name="SlotLabel2" type="Label" parent="DailyPresenceSection/AfternoonRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "下午："
+
+[node name="AfternoonPresenceLabel" type="Label" parent="DailyPresenceSection/AfternoonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "无人停留"
+
+[node name="NightRow" type="HBoxContainer" parent="DailyPresenceSection"]
+layout_mode = 2
+
+[node name="SlotLabel3" type="Label" parent="DailyPresenceSection/NightRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 0)
+text = "晚上："
+
+[node name="NightPresenceLabel" type="Label" parent="DailyPresenceSection/NightRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "无人停留"
+
+[node name="EventsSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="EventsTitle" type="Label" parent="EventsSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "相关事件"
+
+[node name="EventsContainer" type="VBoxContainer" parent="EventsSection"]
+layout_mode = 2
