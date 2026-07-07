@@ -68,9 +68,11 @@ const VIEW_EVENTS := "events"
 @onready var time_transition: Control = $TimeTransition
 ## 托梦文字输入弹窗
 @onready var dream_text_dialog: Control = $DreamTextDialog
+@onready var npc_chat_dialog: Control = $NpcChatDialog
 
-## 绑定的游戏状态实例
-var state: MockGameState
+## 绑定的游戏状态实例（可能是 MockGameState 或 BackendGameState —
+## 两者签名一致，通过鸭子类型互换，故静态类型放宽为 RefCounted）
+var state: RefCounted
 ## 当前上下文列表视图模式（VIEW_CHARACTERS / VIEW_EVENTS）
 var active_view := VIEW_CHARACTERS
 ## 当前选中的 NPC ID
@@ -112,7 +114,13 @@ func _ready() -> void:
 	destiny_view.character_selected.connect(_on_view_character_selected)
 	destiny_view.ending_requested.connect(_on_view_ending_requested)
 
-func bind_state(next_state: MockGameState) -> void:
+	# 后端故事编排 Agent（土地公旁白）：仅在真实后端接入时才有信号
+	var backend: Node = get_node_or_null("/root/Backend")
+	if backend != null and backend.has_signal("narrator_beat"):
+		if not backend.narrator_beat.is_connected(_on_narrator_beat):
+			backend.narrator_beat.connect(_on_narrator_beat)
+
+func bind_state(next_state: RefCounted) -> void:
 	state = next_state
 	state.state_changed.connect(_refresh)
 	_refresh()
@@ -308,6 +316,30 @@ func _show_character_popup(character_id: String) -> void:
 	var panel: Control = CHARACTER_PANEL_SCENE.instantiate()
 	detail_popup.call("add_child_node", panel)
 	panel.call("show_character", character, Callable(func(location_id: String) -> String: return state.get_location_label(location_id)))
+	if panel.has_signal("chat_requested"):
+		panel.connect("chat_requested", _on_character_chat_requested)
+
+func _on_character_chat_requested(npc_id: String, display_name: String) -> void:
+	if npc_id == "":
+		return
+	var backend: Node = get_node_or_null("/root/Backend")
+	if backend == null or backend.use_mock_fallback:
+		toast_requested.emit("离线模式无法呼唤 %s。" % display_name)
+		return
+	detail_popup.call("hide_popup")
+	var game_state: Dictionary = state.get_game_state()
+	var day: int = int(game_state.get("day", 1))
+	npc_chat_dialog.call("open", npc_id, display_name, day)
+
+func _on_narrator_beat(payload: Dictionary) -> void:
+	var text: String = String(payload.get("text", "")).strip_edges()
+	if text == "":
+		return
+	var day: int = int(payload.get("day", 0))
+	if day > 0:
+		toast_requested.emit("土地公（第 %d 夜）：%s" % [day, text])
+	else:
+		toast_requested.emit("土地公：%s" % text)
 
 func _show_location_popup(location_id: String) -> void:
 	var location: Dictionary = state.find_location(location_id)
@@ -516,7 +548,11 @@ func _do_advance_time() -> void:
 	var before_state: Dictionary = state.get_game_state()
 	var before_label: String = "第 %d 天 · %s" % [before_state.get("day", 1), before_state.get("time_slot_label", "早上")]
 
-	var result: Dictionary = state.advance_time()
+	## 真实后端路径为异步（内部 await settlement_complete）；Mock 路径 await 会立即返回。
+	## state 静态类型为 MockGameState，静态分析器看不到 BackendGameState 的 await，
+	## 此处 await 在运行时对两种适配器都必要。
+	@warning_ignore("redundant_await")
+	var result: Dictionary = await state.advance_time()
 
 	var after_state: Dictionary = state.get_game_state()
 	var after_label: String = "第 %d 天 · %s" % [after_state.get("day", 1), after_state.get("time_slot_label", "早上")]

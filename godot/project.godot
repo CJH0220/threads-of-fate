@@ -25,6 +25,7 @@ buses/default_bus_layout="res://audio/default_bus_layout.tres"
 Settings="*res://scripts/app/settings_service.gd"
 TutorialState="*res://scripts/app/tutorial_state.gd"
 Backend="*res://scripts/app/backend_client.gd"
+PortraitService="*res://scripts/app/portrait_service.gd"
 
 [display]
 

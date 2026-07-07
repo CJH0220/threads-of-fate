@@ -1,6 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://char_panel_v0"]
+[gd_scene load_steps=3 format=3 uid="uid://char_panel_v0"]
 
 [ext_resource type="Script" path="res://scripts/ui/character_panel.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="portrait_bg"]
+bg_color = Color(0.09, 0.11, 0.14, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.72, 0.48, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="CharacterPanel" type="VBoxContainer"]
 anchors_preset = 15
@@ -16,21 +28,49 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
-[node name="NameLabel" type="Label" parent="Header"]
+[node name="Portrait" type="PanelContainer" parent="Header"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+size_flags_vertical = 5
+theme_override_styles/panel = SubResource("portrait_bg")
+
+[node name="PortraitImage" type="TextureRect" parent="Header/Portrait"]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="PortraitInitial" type="Label" parent="Header/Portrait"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 32
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeaderText" type="VBoxContainer" parent="Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 5
+
+[node name="NameLabel" type="Label" parent="Header/HeaderText"]
+layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
 theme_override_font_sizes/font_size = 22
 text = "人物名称"
 
-[node name="RoleLabel" type="Label" parent="Header"]
+[node name="RoleLabel" type="Label" parent="Header/HeaderText"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
+theme_override_font_sizes/font_size = 13
+text = "身份"
+
+[node name="ChatButton" type="Button" parent="Header"]
 layout_mode = 2
 size_flags_vertical = 5
-theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
-theme_override_font_sizes/font_size = 14
-text = "身份"
-horizontal_alignment = 2
+text = "对话"
+tooltip_text = "以土地公之身与其交谈"
 
 [node name="HeaderSep" type="HSeparator" parent="."]
 layout_mode = 2

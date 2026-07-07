@@ -1,9 +1,27 @@
 extends VBoxContainer
 class_name CharacterPanel
 
-@onready var name_label: Label = $Header/NameLabel
-@onready var role_label: Label = $Header/RoleLabel
+signal chat_requested(npc_id: String, display_name: String)
+
+@onready var name_label: Label = $Header/HeaderText/NameLabel
+@onready var role_label: Label = $Header/HeaderText/RoleLabel
+@onready var chat_button: Button = $Header/ChatButton
+@onready var portrait_panel: PanelContainer = $Header/Portrait
+@onready var portrait_image: TextureRect = $Header/Portrait/PortraitImage
+@onready var portrait_initial: Label = $Header/Portrait/PortraitInitial
 @onready var bio_text: RichTextLabel = $BioText
+
+var _npc_id: String = ""
+var _display_name: String = ""
+
+func _ready() -> void:
+	if chat_button != null:
+		chat_button.pressed.connect(_on_chat_pressed)
+
+func _on_chat_pressed() -> void:
+	if _npc_id == "":
+		return
+	chat_requested.emit(_npc_id, _display_name)
 @onready var morning_location_label: Label = $ScheduleSection/MorningRow/MorningLocationLabel
 @onready var afternoon_location_label: Label = $ScheduleSection/AfternoonRow/AfternoonLocationLabel
 @onready var night_location_label: Label = $ScheduleSection/NightRow/NightLocationLabel
@@ -16,11 +34,16 @@ class_name CharacterPanel
 @onready var karma_label: Label = $KarmaSection/KarmaLabel
 
 func show_character(character: Dictionary, location_label_provider: Callable) -> void:
-	name_label.text = "%s｜%s｜%s" % [
-		character.get("display_name", "未知居民"),
+	_npc_id = String(character.get("npc_id", ""))
+	_display_name = String(character.get("display_name", "未知居民"))
+	name_label.text = _display_name
+	role_label.text = "%s｜%s" % [
 		character.get("role", "身份未知"),
 		character.get("age_range", ""),
 	]
+	if chat_button != null:
+		chat_button.disabled = _npc_id == ""
+	_apply_portrait(_npc_id, _display_name)
 	bio_text.text = character.get("description", "暂无简介。")
 
 	var schedule: Dictionary = character.get("schedule", {})
@@ -59,9 +82,36 @@ func show_character(character: Dictionary, location_label_provider: Callable) ->
 		character.get("karma_progress", 0),
 	]
 
+## 应用头像：优先 PortraitService 加载纹理；缺图时以色块 + 首字兜底。
+func _apply_portrait(npc_id: String, display_name: String) -> void:
+	if portrait_image == null:
+		return
+	var tex: Texture2D = PortraitService.get_portrait(npc_id)
+	if tex != null:
+		portrait_image.texture = tex
+		portrait_image.visible = true
+		portrait_initial.visible = false
+	else:
+		portrait_image.texture = null
+		portrait_image.visible = false
+		portrait_initial.text = PortraitService.get_initial(display_name)
+		portrait_initial.modulate = PortraitService.get_color(npc_id)
+		portrait_initial.visible = true
+
 func show_empty() -> void:
+	_npc_id = ""
+	_display_name = ""
 	name_label.text = "人物"
 	role_label.text = ""
+	if chat_button != null:
+		chat_button.disabled = true
+	if portrait_image != null:
+		portrait_image.texture = null
+		portrait_image.visible = false
+	if portrait_initial != null:
+		portrait_initial.text = "?"
+		portrait_initial.modulate = Color(0.6, 0.6, 0.65, 1)
+		portrait_initial.visible = true
 	bio_text.text = "此刻还没有可查看的居民。"
 	morning_location_label.text = "—"
 	afternoon_location_label.text = "—"

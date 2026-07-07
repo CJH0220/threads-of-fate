@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/DialogueEventScreen.tscn" id="7_dialogue_event"]
 [ext_resource type="PackedScene" path="res://scenes/ui/TimeTransition.tscn" id="8_time_transition"]
 [ext_resource type="PackedScene" path="res://scenes/ui/DreamTextDialog.tscn" id="9_dream_dialog"]
+[ext_resource type="PackedScene" path="res://scenes/ui/NpcChatDialog.tscn" id="10_npc_chat"]
 
 [sub_resource type="StyleBoxFlat" id="topbar_panel"]
 content_margin_left = 20.0
@@ -237,6 +238,9 @@ visible = false
 visible = false
 
 [node name="DreamTextDialog" parent="." instance=ExtResource("9_dream_dialog")]
+visible = false
+
+[node name="NpcChatDialog" parent="." instance=ExtResource("10_npc_chat")]
 visible = false
 
 [node name="DangerConfirm" type="ConfirmationDialog" parent="."]

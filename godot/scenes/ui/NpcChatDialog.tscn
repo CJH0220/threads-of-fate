@@ -1,0 +1,103 @@
+[gd_scene load_steps=3 format=3 uid="uid://tof_npc_chat_dialog"]
+
+[ext_resource type="Script" path="res://scripts/ui/npc_chat_dialog.gd" id="1_chat_script"]
+
+[sub_resource type="StyleBoxFlat" id="chat_panel"]
+content_margin_left = 24.0
+content_margin_top = 20.0
+content_margin_right = 24.0
+content_margin_bottom = 20.0
+bg_color = Color(0.06, 0.07, 0.1, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.72, 0.82, 0.78, 0.75)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 16
+shadow_offset = Vector2(0, 6)
+
+[node name="NpcChatDialog" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_chat_script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.03, 0.03, 0.05, 0.7)
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -240.0
+offset_right = 320.0
+offset_bottom = 240.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("chat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 20
+text = "与居民交谈"
+horizontal_alignment = 1
+
+[node name="HeaderSeparator" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 2
+
+[node name="HistoryText" type="RichTextLabel" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 320)
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+scroll_following = true
+theme_override_colors/default_color = Color(0.93, 0.93, 0.9, 1)
+theme_override_font_sizes/normal_font_size = 14
+
+[node name="HintLabel" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
+theme_override_font_sizes/font_size = 12
+text = ""
+
+[node name="InputRow" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="InputEdit" type="LineEdit" parent="Panel/VBox/InputRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "以土地公之身说些什么……"
+max_length = 200
+
+[node name="SendButton" type="Button" parent="Panel/VBox/InputRow"]
+layout_mode = 2
+text = "垂询"
+
+[node name="CloseButton" type="Button" parent="Panel/VBox/InputRow"]
+layout_mode = 2
+text = "退下"
