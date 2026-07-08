@@ -84,6 +84,22 @@ theme_override_colors/font_color = Color(0.72, 0.72, 0.78, 1)
 theme_override_font_sizes/font_size = 14
 text = "Daily"
 
+[node name="ParticipantsRow" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 6
+custom_minimum_size = Vector2(0, 34)
+
+[node name="ParticipantsTitle" type="Label" parent="ParticipantsRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 13
+text = "涉及："
+
+[node name="ParticipantsContainer" type="HBoxContainer" parent="ParticipantsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = -6
+
 [node name="SummaryText" type="RichTextLabel" parent="."]
 custom_minimum_size = Vector2(0, 90)
 layout_mode = 2

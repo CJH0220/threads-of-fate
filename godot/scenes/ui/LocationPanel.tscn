@@ -1,6 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://loc_panel_v0"]
+[gd_scene load_steps=3 format=3 uid="uid://loc_panel_v0"]
 
 [ext_resource type="Script" path="res://scripts/ui/location_panel.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="loc_bg_frame"]
+bg_color = Color(0.05, 0.06, 0.09, 0.4)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.72, 0.48, 0.4)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="LocationPanel" type="VBoxContainer"]
 anchors_preset = 15
@@ -11,6 +23,16 @@ grow_vertical = 2
 script = ExtResource("1_script")
 theme_override_constants/separation = 8
 
+[node name="BackgroundFrame" type="PanelContainer" parent="."]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 140)
+theme_override_styles/panel = SubResource("loc_bg_frame")
+
+[node name="BackgroundImage" type="TextureRect" parent="BackgroundFrame"]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+
 [node name="Header" type="HBoxContainer" parent="."]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -18,18 +40,39 @@ size_flags_horizontal = 3
 [node name="NameLabel" type="Label" parent="Header"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
 theme_override_font_sizes/font_size = 18
 text = "地点名称"
 
 [node name="CategoryLabel" type="Label" parent="Header"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.8, 0.88, 1)
 text = "Daily"
 horizontal_alignment = 2
 
+[node name="PresentSection" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PresentTitle" type="Label" parent="PresentSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 14
+text = "此刻在此"
+
+[node name="PresentRow" type="HBoxContainer" parent="PresentSection"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 36)
+theme_override_constants/separation = 4
+
 [node name="DescriptionText" type="RichTextLabel" parent="."]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
 size_flags_vertical = 3
 bbcode_enabled = true
+fit_content = true
+theme_override_colors/default_color = Color(0.93, 0.93, 0.9, 1)
+theme_override_font_sizes/normal_font_size = 14
 text = "暂无地点描述。"
 
 [node name="FunctionSection" type="VBoxContainer" parent="."]

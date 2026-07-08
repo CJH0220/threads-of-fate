@@ -1,8 +1,7 @@
-[gd_scene load_steps=13 format=3 uid="uid://tof_main_game_ui"]
+[gd_scene load_steps=12 format=3 uid="uid://tof_main_game_ui"]
 
 [ext_resource type="Script" path="res://scripts/ui/main_game_ui.gd" id="1_hud_script"]
 [ext_resource type="PackedScene" path="res://scenes/ui/DetailPopup.tscn" id="2_detail_popup"]
-[ext_resource type="PackedScene" path="res://scenes/ui/UiState.tscn" id="3_ui_state"]
 [ext_resource type="PackedScene" path="res://scenes/ui/BondView.tscn" id="4_bond_view"]
 [ext_resource type="PackedScene" path="res://scenes/ui/DestinyView.tscn" id="5_destiny_view"]
 [ext_resource type="PackedScene" path="res://scenes/ui/CharacterEndingScreen.tscn" id="6_char_ending"]
@@ -155,8 +154,8 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="BottomPanel" type="PanelContainer" parent="Root"]
-custom_minimum_size = Vector2(0, 170)
-custom_maximum_size = Vector2(0, 170)
+custom_minimum_size = Vector2(0, 190)
+custom_maximum_size = Vector2(0, 190)
 layout_mode = 2
 theme_override_styles/panel = SubResource("bottom_panel")
 
@@ -167,57 +166,75 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 8
 
 [node name="TabButtons" type="HBoxContainer" parent="Root/BottomPanel/BottomContent"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 32)
+theme_override_constants/separation = 8
 
 [node name="CharactersTabButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(96, 0)
 toggle_mode = true
 text = "人物"
 
 [node name="EventsTabButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(96, 0)
 toggle_mode = true
 text = "事件"
 
+[node name="TabSpacer" type="Control" parent="Root/BottomPanel/BottomContent/TabButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="BondViewButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(80, 0)
 text = "缘线"
 
 [node name="DestinyViewButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(80, 0)
 text = "业线"
+
+[node name="TabDivider" type="VSeparator" parent="Root/BottomPanel/BottomContent/TabButtons"]
+layout_mode = 2
 
 [node name="AdvanceTimeButton" type="Button" parent="Root/BottomPanel/BottomContent/TabButtons"]
 layout_mode = 2
-size_flags_horizontal = 3
-text = "推进时间"
+custom_minimum_size = Vector2(140, 0)
+text = "推进时间 ▶"
 
-[node name="ContextBody" type="HSplitContainer" parent="Root/BottomPanel/BottomContent"]
+[node name="ContextTitleRow" type="HBoxContainer" parent="Root/BottomPanel/BottomContent"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ContextTitle" type="Label" parent="Root/BottomPanel/BottomContent/ContextTitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.9, 0.65, 1)
+theme_override_font_sizes/font_size = 13
+text = "人物"
+
+[node name="ContextHint" type="Label" parent="Root/BottomPanel/BottomContent/ContextTitleRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
+theme_override_font_sizes/font_size = 12
+text = "点击查看详情"
+
+[node name="ContextBody" type="ScrollContainer" parent="Root/BottomPanel/BottomContent"]
 layout_mode = 2
 size_flags_vertical = 3
-split_offset = 220
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
 
-[node name="ContextListScroll" type="ScrollContainer" parent="Root/BottomPanel/BottomContent/ContextBody"]
-custom_minimum_size = Vector2(220, 0)
-layout_mode = 2
-
-[node name="ContextListContainer" type="VBoxContainer" parent="Root/BottomPanel/BottomContent/ContextBody/ContextListScroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ContextList" type="VBoxContainer" parent="Root/BottomPanel/BottomContent/ContextBody/ContextListScroll/ContextListContainer"]
-layout_mode = 2
-
-[node name="DetailPanelContainer" type="MarginContainer" parent="Root/BottomPanel/BottomContent/ContextBody"]
+[node name="ContextList" type="HBoxContainer" parent="Root/BottomPanel/BottomContent/ContextBody"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-
-[node name="DetailState" parent="Root/BottomPanel/BottomContent/ContextBody/DetailPanelContainer" instance=ExtResource("3_ui_state")]
-layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="DetailPopup" parent="." instance=ExtResource("2_detail_popup")]
 visible = false

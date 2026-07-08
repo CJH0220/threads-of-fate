@@ -6,7 +6,11 @@ class_name NpcChatDialog
 
 signal closed()
 
-@onready var title_label: Label = $Panel/VBox/TitleLabel
+@onready var title_label: Label = $Panel/VBox/HeaderRow/TitleLabel
+@onready var npc_portrait_image: TextureRect = $Panel/VBox/HeaderRow/NpcPortrait/NpcPortraitImage
+@onready var npc_portrait_initial: Label = $Panel/VBox/HeaderRow/NpcPortrait/NpcPortraitInitial
+@onready var tudi_portrait_image: TextureRect = $Panel/VBox/HeaderRow/TudiPortrait/TudiPortraitImage
+@onready var tudi_portrait_initial: Label = $Panel/VBox/HeaderRow/TudiPortrait/TudiPortraitInitial
 @onready var history_text: RichTextLabel = $Panel/VBox/HistoryText
 @onready var input_edit: LineEdit = $Panel/VBox/InputRow/InputEdit
 @onready var send_button: Button = $Panel/VBox/InputRow/SendButton
@@ -23,6 +27,7 @@ func _ready() -> void:
 	send_button.pressed.connect(_on_send)
 	close_button.pressed.connect(_on_close)
 	input_edit.text_submitted.connect(func(_t): _on_send())
+	_apply_tudi_portrait()
 	visible = false
 
 func open(npc_id: String, npc_name: String, day: int) -> void:
@@ -31,6 +36,7 @@ func open(npc_id: String, npc_name: String, day: int) -> void:
 	_current_day = day
 	_waiting_reply = false
 	title_label.text = "与 %s 交谈" % npc_name
+	_apply_npc_portrait(npc_id, npc_name)
 	history_text.clear()
 	history_text.append_text("[color=#a4a6b0]（你以土地公之身，在无形中垂询 %s。）[/color]\n" % npc_name)
 	input_edit.text = ""
@@ -39,6 +45,34 @@ func open(npc_id: String, npc_name: String, day: int) -> void:
 	_ensure_backend_connected()
 	visible = true
 	input_edit.grab_focus()
+
+## 应用对方 NPC 头像（顶栏左侧）
+func _apply_npc_portrait(npc_id: String, display_name: String) -> void:
+	if npc_portrait_image == null:
+		return
+	var tex: Texture2D = PortraitService.get_portrait(npc_id)
+	if tex != null:
+		npc_portrait_image.texture = tex
+		npc_portrait_image.visible = true
+		npc_portrait_initial.visible = false
+	else:
+		npc_portrait_image.texture = null
+		npc_portrait_image.visible = false
+		npc_portrait_initial.text = PortraitService.get_initial(display_name)
+		npc_portrait_initial.modulate = PortraitService.get_color(npc_id)
+		npc_portrait_initial.visible = true
+
+## 应用玩家（土地公）头像（顶栏右侧），只在 _ready 时设置一次
+func _apply_tudi_portrait() -> void:
+	if tudi_portrait_image == null:
+		return
+	var tex: Texture2D = PortraitService.get_portrait("tudi_gong")
+	if tex != null:
+		tudi_portrait_image.texture = tex
+		tudi_portrait_image.visible = true
+		tudi_portrait_initial.visible = false
+	else:
+		tudi_portrait_initial.visible = true
 
 func close() -> void:
 	visible = false

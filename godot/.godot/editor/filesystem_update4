@@ -1,4 +1,1 @@
 res://scenes/main/Main.tscn
-res://scripts/app/main.gd
-res://scenes/ui/CharacterPanel.tscn
-res://scripts/ui/character_panel.gd

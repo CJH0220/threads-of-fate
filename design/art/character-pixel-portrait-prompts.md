@@ -1,12 +1,12 @@
 # 《命运的织线》角色像素立绘 AI 生成提示词
 
-> 文档状态：v5.0  
-> 更新日期：2026-07-02  
+> 文档状态：v5.1  
+> 更新日期：2026-07-08  
 > 用途：每条提示词独立完整，可直接复制给AI生成  
 > 目标风格：简约像素风，温暖小镇氛围，参考《星露谷物语》风格  
 > 规格：
-> - 对话大立绘：256x384，七分身，核心5角色6姿态/角色，扩展9角色3姿态/角色
-> - 角色头像：64x64，胸像，证件照风格，1个/角色
+> - 对话大立绘：256x384，七分身，核心5角色6姿态/角色，扩展9角色3姿态/角色，玩家角色（土地公）3姿态
+> - 角色头像：64x64，胸像，证件照风格，1个/角色（含土地公，共15个）
 
 ---
 
@@ -463,7 +463,52 @@ pixel art full body portrait, seven head proportion, 384x256 pixel, Zhao Shouzhe
 
 ---
 
-## AI 生成通用参数
+## 第四部分：玩家角色 - 土地公（岛爷） - 全套3姿态
+
+> 玩家扮演角色。归潮镇本地小神，被岛民私下称为「岛爷」——不是威严的上神，而是一个有些**懒散、会吐槽、香火不足**的老土地。神位在山坡老庙里，长年独守空炉。在 NPC 对话弹窗中作为玩家一侧的头像/立绘出现（面向 NPC 那一边）。
+
+### 形象设定
+
+- **年龄外貌**：60 余岁老者形态（神明年岁不定，取传统土地公样貌）
+- **脸型**：圆脸慈眉，眼角有细密皱纹，眉毛长而白微微下垂，鼻头略红
+- **胡须**：**银白色长胡须**及胸，是本形象最强的识别记号
+- **发/帽**：头戴**深赭红色圆顶员外帽**（传统土地公标志），帽顶缀一颗深棕木珠
+- **服饰**：褪色的**赭黄色（土黄）长袍**，外罩深棕短褂，腰系旧灰布带，袍摆边缘微磨损
+- **标志物**：右手握**一柄盘龙短木杖**（cane/walking stick），杖头一枚旧铜环
+- **神情基调**：慵懒但温和，一副「本来只想喝口茶」的表情
+- **色调**：金黄 + 赭石 + 深棕 + 银白胡须；避免用过亮饱和色，整体略"褪色感"呼应香火凋零
+- **构图**：与其他角色一致 384×256 七分身，纯白透明底，无阴影，16-bit pixel style，Stardew Valley aesthetic
+
+### 15. 土地公（岛爷） 头像
+**标志性物品：银白长胡须（及胸） + 深赭红圆顶员外帽**
+```
+pixel art ID photo portrait, 64x64 pixel, perfectly centered chest up shot, facing camera directly, elderly Chinese local earth deity Tudi Gong "Island Grandpa" in his 60s appearance, round kindly face with fine wrinkles at the corners of the eyes, long drooping white eyebrows, slightly red nose tip, long silver white beard flowing down to chest as the strongest identifying mark, wearing a dark ochre red round rimmed round topped Chinese official cap with a small dark wooden bead on top, wearing a faded earthy yellow long robe with dark brown short overcoat visible at the shoulders, sleepy but kindly relaxed expression, half lidded warm eyes, small tolerant knowing smile as if he was just interrupted from drinking tea, even front lighting, pure white transparent background, Stardew Valley portrait style, clean sharp pixel outline, warm ochre and gold tone with slight faded desaturation, small town village earth god aesthetic
+```
+
+> **文件命名**：其他角色遵循「音节分开」（如 `chen_hai_sheng.png`），但游戏侧 `PortraitService.PORTRAIT_FILES` 已经把 `tudi_gong` 映射为 `tudi_gong.png`（连写）。所以本角色头像存放为 `design/art/head_portrait/tudi_gong.png` 与 `godot/assets/portraits/tudi_gong.png`，命名保持连写，不再拆分为 `tu_di_gong`。若真图缺失，程序端 `_make_tudi_gong_portrait()` 输出「金色圆 + 土 字」占位兜底。
+
+### tudi_gong 全身立绘（256×384，3 姿态）
+
+在 NPC 对话弹窗中位于**右侧**（土地公一方），因此姿态构图应以**面朝画面左侧**（面向 NPC）为主。
+
+#### POSE 1 - 中立日常（慵懒守炉）
+```
+pixel art full body portrait, seven head proportion, 384x256 pixel, elderly Chinese local earth deity Tudi Gong "Island Grandpa", 60s appearance, round kind face with fine wrinkles at eye corners, long silver white beard flowing down to chest, long drooping white eyebrows, slightly red nose tip, wearing a dark ochre red round rimmed round topped Chinese official cap with a small dark wooden bead on top, wearing a faded earthy yellow long robe with dark brown short overcoat, gray cloth waist belt, worn robe hem, right hand loosely holding a short coiled dragon carved wooden cane with old bronze ring at the head, left hand tucked into sleeve, body facing slightly to the left of the frame, relaxed sleepy but kindly expression, half lidded warm eyes, small tolerant smile as if he just wanted a cup of tea, slightly stooped comfortable posture, pure white transparent background, no shadows, 16-bit pixel style, warm ochre and gold tone with faded desaturation to hint at declining incense, Stardew Valley aesthetic, clear pixel outline, rundown but affectionate small town earth god aesthetic
+```
+
+#### POSE 2 - 苦笑无奈（面对绩效压力）
+```
+pixel art full body portrait, seven head proportion, 384x256 pixel, Tudi Gong "Island Grandpa" wry helpless pose, elderly round faced local earth deity with long silver white beard, dark ochre red round official cap, faded earthy yellow long robe with dark brown short overcoat, right hand raising the short coiled dragon wooden cane slightly off the ground in a small resigned shrug, left hand rubbing the back of his neck under the beard, head tilted slightly to the left facing NPC direction, eyebrows lifted with a resigned wry smile, one eye squinting more than the other, expression of an old god who just read the celestial performance review and does not know where to start, pure white transparent background, no shadows, 16-bit pixel style, muted warm ochre tone, Stardew Valley aesthetic, clear pixel outline, half-complaining half-affectionate mood
+```
+
+#### POSE 3 - 显灵严肃（干预/警示）
+```
+pixel art full body portrait, seven head proportion, 384x256 pixel, Tudi Gong "Island Grandpa" solemn manifestation pose, elderly local earth deity with long silver white beard now slightly lifted as if by unseen wind, dark ochre red round official cap firmly on head, faded earthy yellow long robe with dark brown short overcoat now with subtle golden pixel embroidery visible along the hem catching divine light, standing straighter and taller than usual, right hand raising the coiled dragon wooden cane with old bronze ring vertically in front of him, left hand two fingers pointed upward in a small Taoist gesture, eyes fully open with unexpected steady authority replacing his usual sleepiness, mouth pressed into a thin serious line, faint warm golden halo pixel glow behind his silhouette, body facing slightly to the left toward the NPC, expression of a lazy village god who has decided now is the moment to actually do the job, pure white transparent background, no shadows, 16-bit pixel style, warm gold with subtle divine highlight, Stardew Valley aesthetic, clear pixel outline, rare glimpse of the real power under the sleepy old man
+```
+
+---
+
+
 
 ### Stable Diffusion 推荐参数
 | 参数 | 大立绘 | 小头像 |
@@ -486,7 +531,9 @@ pixel art full body portrait, seven head proportion, 384x256 pixel, Zhao Shouzhe
 | 优先级 | 资产 | 数量 | 状态 |
 |--------|------|------|------|
 | P0 | 14角色基础头像 | 14个 | ✅ 提示词完成 |
+| P0 | 土地公头像 | 1个 | ✅ 提示词完成 |
 | P1 | 核心5角色大立绘6姿态 | 30个 | ✅ 提示词完成 |
+| P1 | 土地公大立绘3姿态 | 3个 | ✅ 提示词完成 |
 | P2 | 扩展9角色大立绘3姿态 | 27个 | ✅ 提示词完成 |
 
-**合计提示词数**：14 + 30 + 27 = **71 条**独立可复制提示词。
+**合计提示词数**：14 + 1 + 30 + 3 + 27 = **75 条**独立可复制提示词。

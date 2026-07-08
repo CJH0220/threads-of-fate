@@ -126,6 +126,24 @@ func get_characters() -> Array:
 	return characters
 
 func get_locations() -> Array:
+	## 依据 characters.current_location 叠加 present_npc_ids / present_npc_names，供 UI 展示头像行。
+	var present_by_loc: Dictionary = {}
+	for character in characters:
+		var loc_id: String = String(character.get("current_location_id", character.get("current_location", "")))
+		if loc_id == "":
+			continue
+		if not present_by_loc.has(loc_id):
+			present_by_loc[loc_id] = []
+		present_by_loc[loc_id].append({
+			"npc_id": String(character.get("npc_id", "")),
+			"display_name": String(character.get("display_name", character.get("name", "未知"))),
+		})
+	for location in locations:
+		var loc_id: String = String(location.get("location_id", ""))
+		var present: Array = present_by_loc.get(loc_id, [])
+		location["present_npc_ids"] = present.map(func(x): return x["npc_id"])
+		location["present_npc_names"] = present.map(func(x): return x["display_name"])
+		location["npc_count"] = present.size()
 	return locations
 
 func get_events() -> Array:
@@ -147,7 +165,11 @@ func find_character(npc_id: String) -> Dictionary:
 	return _find_by_id(characters, "npc_id", npc_id)
 
 func find_location(location_id: String) -> Dictionary:
-	return _find_by_id(locations, "location_id", location_id)
+	## 通过 get_locations() 确保带上 present_npc_ids / present_npc_names。
+	for entry in get_locations():
+		if String(entry.get("location_id", "")) == location_id:
+			return entry
+	return {}
 
 func get_location_label(location_id: String) -> String:
 	var location := find_location(location_id)

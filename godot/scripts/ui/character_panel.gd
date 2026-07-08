@@ -68,14 +68,7 @@ func show_character(character: Dictionary, location_label_provider: Callable) ->
 		bond_container.add_child(empty_label)
 	else:
 		for bond in bonds:
-			var bond_label := Label.new()
-			bond_label.text = "%s｜%s Lv.%d｜强度 %d" % [
-				bond.get("target_display_name", "未知居民"),
-				bond.get("bond_type", "陌生"),
-				bond.get("level", 0),
-				bond.get("strength", 0),
-			]
-			bond_container.add_child(bond_label)
+			bond_container.add_child(_make_bond_row(bond))
 
 	karma_label.text = "%s（%d%%）" % [
 		character.get("karma_summary", "命运尚未显形"),
@@ -97,6 +90,59 @@ func _apply_portrait(npc_id: String, display_name: String) -> void:
 		portrait_initial.text = PortraitService.get_initial(display_name)
 		portrait_initial.modulate = PortraitService.get_color(npc_id)
 		portrait_initial.visible = true
+
+## 一条羁绊：小头像 + 关系文字。
+func _make_bond_row(bond: Dictionary) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var target_id: String = String(bond.get("target_npc_id", ""))
+	var target_name: String = String(bond.get("target_display_name", "未知居民"))
+	var avatar := _make_bond_avatar(target_id, target_name)
+	row.add_child(avatar)
+	var text_label := Label.new()
+	text_label.text = "%s｜%s Lv.%d｜强度 %d" % [
+		target_name,
+		bond.get("bond_type", "陌生"),
+		bond.get("level", 0),
+		bond.get("strength", 0),
+	]
+	text_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(text_label)
+	return row
+
+const BOND_AVATAR_SIZE: int = 28
+
+func _make_bond_avatar(npc_id: String, display_name: String) -> Control:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(BOND_AVATAR_SIZE, BOND_AVATAR_SIZE)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.set_corner_radius_all(BOND_AVATAR_SIZE / 2)
+	style.set_border_width_all(1)
+	style.border_color = Color(0.82, 0.72, 0.48, 0.7)
+	style.bg_color = Color(0.09, 0.11, 0.14, 1)
+	panel.add_theme_stylebox_override("panel", style)
+	panel.tooltip_text = display_name
+	var tex: Texture2D = PortraitService.get_portrait(npc_id)
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_child(tr)
+	else:
+		var initial := Label.new()
+		initial.text = PortraitService.get_initial(display_name)
+		initial.add_theme_font_size_override("font_size", 13)
+		initial.add_theme_color_override("font_color", PortraitService.get_color(npc_id))
+		initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		initial.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		initial.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		initial.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		panel.add_child(initial)
+	return panel
 
 func show_empty() -> void:
 	_npc_id = ""

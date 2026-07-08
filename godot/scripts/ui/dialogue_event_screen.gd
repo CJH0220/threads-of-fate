@@ -463,22 +463,14 @@ func _load_portrait(id: String) -> Texture2D:
 	return tex
 
 # 加载 {id}_pose{N}.png 全身立绘；越界或缺失则回退到 pose1，仍失败返回 null。
+# 委托给 PortraitService.get_full_portrait 以复用 tudi_gong 程序化占位与统一缓存。
 func _load_portrait_full(id: String, pose: int) -> Texture2D:
 	if id == "":
 		return null
-	var max_pose: int = int(PORTRAIT_FULL_MAX_POSE.get(id, 1))
-	var use_pose: int = pose if pose >= 1 and pose <= max_pose else 1
-	var key: String = "%s_pose%d" % [id, use_pose]
+	var key: String = "%s_pose%d" % [id, pose]
 	if _portrait_full_cache.has(key):
 		return _portrait_full_cache[key]
-	var path: String = "%s%s.jpg" % [PORTRAIT_FULL_DIR, key]
-	if not _resource_ready(path):
-		# 回退：尝试 pose1
-		if use_pose != 1:
-			return _load_portrait_full(id, 1)
-		_portrait_full_cache[key] = null
-		return null
-	var tex: Texture2D = load(path) as Texture2D
+	var tex: Texture2D = PortraitService.get_full_portrait(id, pose)
 	_portrait_full_cache[key] = tex
 	return tex
 

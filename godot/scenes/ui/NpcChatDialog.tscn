@@ -1,4 +1,4 @@
-[gd_scene load_steps=3 format=3 uid="uid://tof_npc_chat_dialog"]
+[gd_scene load_steps=4 format=3 uid="uid://tof_npc_chat_dialog"]
 
 [ext_resource type="Script" path="res://scripts/ui/npc_chat_dialog.gd" id="1_chat_script"]
 
@@ -20,6 +20,18 @@ corner_radius_bottom_left = 10
 shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 16
 shadow_offset = Vector2(0, 6)
+
+[sub_resource type="StyleBoxFlat" id="chat_portrait_bg"]
+bg_color = Color(0.09, 0.11, 0.14, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.72, 0.48, 0.55)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="NpcChatDialog" type="Control"]
 visible = false
@@ -59,12 +71,60 @@ theme_override_styles/panel = SubResource("chat_panel")
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="TitleLabel" type="Label" parent="Panel/VBox"]
+[node name="HeaderRow" type="HBoxContainer" parent="Panel/VBox"]
 layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NpcPortrait" type="PanelContainer" parent="Panel/VBox/HeaderRow"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("chat_portrait_bg")
+
+[node name="NpcPortraitImage" type="TextureRect" parent="Panel/VBox/HeaderRow/NpcPortrait"]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="NpcPortraitInitial" type="Label" parent="Panel/VBox/HeaderRow/NpcPortrait"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_font_sizes/font_size = 32
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Panel/VBox/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
 theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
 theme_override_font_sizes/font_size = 20
 text = "与居民交谈"
 horizontal_alignment = 1
+
+[node name="TudiPortrait" type="PanelContainer" parent="Panel/VBox/HeaderRow"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_styles/panel = SubResource("chat_portrait_bg")
+
+[node name="TudiPortraitImage" type="TextureRect" parent="Panel/VBox/HeaderRow/TudiPortrait"]
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="TudiPortraitInitial" type="Label" parent="Panel/VBox/HeaderRow/TudiPortrait"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.95, 0.78, 0.35, 1)
+theme_override_font_sizes/font_size = 32
+text = "土"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="HeaderSeparator" type="HSeparator" parent="Panel/VBox"]
 layout_mode = 2
