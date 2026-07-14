@@ -65,7 +65,7 @@ var game_state
 ## 当前屏幕（主菜单或 HUD）
 var current_screen: Control
 ## 是否处于游戏中（HUD 活跃时为 true，控制 Esc 暂停菜单是否可呼出）
-var in_game := false
+var in_game := true
 
 func _ready() -> void:
 	# 连接暂停菜单信号

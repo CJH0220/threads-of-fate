@@ -86,6 +86,9 @@ var _completed_events: Dictionary = {}
 ## 事件演出快照：event_id -> {finished_at, blessings:[{seg_index, bless, coin_result}], summary}
 ## 用于回看模式与结算展示。
 var _event_snapshots: Dictionary = {}
+## 当前时段内的逐条资源变化日志（每次干预/赐福/托梦追加一条）。
+## advance_time 返回后清空，供结算面板逐条展示。
+var _resource_change_log: Array = []
 
 func _init() -> void:
 	reset_to_new_game()
@@ -102,6 +105,7 @@ func reset_to_new_game() -> void:
 	dream_used_today = false
 	_completed_events.clear()
 	_event_snapshots.clear()
+	_resource_change_log.clear()
 	state_changed.emit()
 
 func get_event_history() -> Array:
@@ -261,9 +265,19 @@ func apply_intervention(event_id: String, intervention_id: String, context: Dict
 
 	## 资源变化：神力必扣；阳德仅在成功时 +1；阴德在失败且是阴德倾向干预时 +1（MVP：托梦/赐福均阳德倾向，失败不产生阴德）
 	game_state["divine_power"] = divine_power - cost
+	_resource_change_log.append({
+		"resource": "divine_power",
+		"change": -cost,
+		"reason": "%s · %s" % [String(intervention.get("display_name", "干预")), String(event.get("event_name", ""))],
+	})
 	var yang_gain: int = 1 if bool(coin_result.get("success", false)) else 0
 	if yang_gain > 0:
 		game_state["yang_de"] = int(game_state.get("yang_de", 0)) + yang_gain
+		_resource_change_log.append({
+			"resource": "yang_de",
+			"change": yang_gain,
+			"reason": "%s 成功" % String(intervention.get("display_name", "干预")),
+		})
 
 	## 托梦文字（<=100 字，超出截断）
 	var dream_text: String = String(context.get("dream_text", ""))
@@ -356,19 +370,24 @@ func advance_time() -> Dictionary:
 		game_state["time_slot_label"] = "早上"
 		## 新的一天：托梦额度刷新
 		dream_used_today = false
-		var old_power: int = int(game_state.get("divine_power", 0))
-		var new_power: int = min(old_power + 1, int(game_state.get("divine_power_max", 99)))
-		game_state["divine_power"] = new_power
-		if new_power != old_power:
-			resource_delta["divine_power"] = new_power - old_power
 		# 周结算判定：刚结束的「day」为 7 的倍数且未到 max_day（第 60 天走总评）。
 		if day % 7 == 0 and day < max_day:
 			game_state["current_hint"] = "新的一周开始，归潮镇又过了七日。"
+			## 神力回复 + 日志（周结算也需要带上）
+			var old_power_w: int = int(game_state.get("divine_power", 0))
+			var max_power_w: int = int(game_state.get("divine_power_max", 99))
+			if old_power_w < max_power_w:
+				game_state["divine_power"] = old_power_w + 1
+				resource_delta["divine_power"] = int(resource_delta.get("divine_power", 0)) + 1
+				_resource_change_log.append({"resource": "divine_power", "change": 1, "reason": "新的一天 · 神力回复"})
+			var slot_changes_w: Array = _resource_change_log.duplicate()
+			_resource_change_log.clear()
 			state_changed.emit()
 			return {
 				"week_finished": true,
 				"week_data": _build_week_data(day),
 				"resource_delta": resource_delta,
+				"resource_change_log": slot_changes_w,
 			}
 
 	# MVP：按当前天数和时段匹配 mock 事件并记录到历史。
@@ -381,11 +400,26 @@ func advance_time() -> Dictionary:
 			if ts == current_slot or ts == "Any":
 				_record_event(event)
 
-	game_state["current_hint"] = "命运线轻轻震动，新的时段已经开始。"
+	game_state["current_hint"] = "命运线轻轻震动，新的时段已经进入。"
+	## 神力自然回复（新的一天 +1）
+	if game_state.get("time_slot", "") == "Morning":
+		var old_power: int = int(game_state.get("divine_power", 0))
+		var max_power: int = int(game_state.get("divine_power_max", 99))
+		if old_power < max_power:
+			game_state["divine_power"] = old_power + 1
+			resource_delta["divine_power"] = int(resource_delta.get("divine_power", 0)) + 1
+			_resource_change_log.append({
+				"resource": "divine_power",
+				"change": 1,
+				"reason": "新的一天 · 神力回复",
+			})
+	var slot_changes: Array = _resource_change_log.duplicate()
+	_resource_change_log.clear()
 	state_changed.emit()
 	return {
 		"summary": "时间推进：第 %d 天 · %s" % [game_state.get("day", 1), game_state.get("time_slot_label", "早上")],
 		"resource_delta": resource_delta,
+		"resource_change_log": slot_changes,
 		"changed_fields": ["day", "time_slot", "divine_power"],
 	}
 
@@ -588,6 +622,11 @@ func apply_dream(npc_id: String, dream_text: String) -> Dictionary:
 	character["dream_memories"] = memories
 
 	game_state["divine_power"] = current_power - DREAM_COST
+	_resource_change_log.append({
+		"resource": "divine_power",
+		"change": -DREAM_COST,
+		"reason": "托梦 · %s" % String(character.get("display_name", "居民")),
+	})
 	dream_used_today = true
 	game_state["current_hint"] = "你向 %s 托了一梦。" % String(character.get("display_name", "居民"))
 
@@ -627,9 +666,19 @@ func apply_blessing(event_id: String, seg_index: int, prompt: Dictionary, choice
 
 	game_state["divine_power"] = current_power - cost
 	var resource_delta: Dictionary = {"divine_power": -cost}
+	_resource_change_log.append({
+		"resource": "divine_power",
+		"change": -cost,
+		"reason": "赐福 · %s" % String(event.get("event_name", "")),
+	})
 	if bool(coin_result.get("success", false)):
 		game_state["yang_de"] = int(game_state.get("yang_de", 0)) + 1
 		resource_delta["yang_de"] = 1
+		_resource_change_log.append({
+			"resource": "yang_de",
+			"change": 1,
+			"reason": "赐福成功",
+		})
 
 	_append_blessing_snapshot(event_id, seg_index, true, coin_result)
 	state_changed.emit()

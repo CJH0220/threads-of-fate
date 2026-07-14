@@ -1,10 +1,15 @@
 # UI 规格：主地图 HUD
 
-> 文档状态：初稿  
-> 更新日期：2026-06-10  
-> 所属阶段：P0  
-> 引擎方向：Godot  
+> 文档状态：v1.1（2026-07-14 前端重构同步）
+> 前次版本：初稿（2026-06-10）
+> 所属阶段：P0
+> 引擎方向：Godot
 > 美术方向：简约像素风
+
+## 更新说明（v1.1）
+
+- **危险征兆紧凑化**：左侧"危险提醒"从分行的垂直列表改为**横向紧凑筹码**（§5.1），不再占据地图视觉主导。
+- **地图头像行程显示**：地点瓦片内嵌**当前时段在场角色头像**（§5.2），`MAX_PORTRAITS = 3`，超出显示 `+N`。NPC 的位置由 schedule 实时驱动。
 
 ---
 
@@ -36,11 +41,15 @@
 ```text
 ┌──────────────────────────────────────────────┐
 │ 第12天 · 夜晚 │ 香火63 神力4 阳德20 阴德8 │ 设置 │
-├───────────────┬──────────────────────────────┤
-│ 当前提示       │                              │
-│ 天气 / 特殊日  │          归潮镇地图           │
-│ 危险提醒       │      地点按钮 + 事件标记       │
-├───────────────┴──────────────────────────────┤
+├──────────────────────────────────────────────┤
+│ 归潮镇地图                                       │
+│ 危险征兆筹码（紧凑）：[⚠ 港口] [✓ 寺庙]        │
+│                                                │
+│   [学校]   [寺庙]   [港口]                      │
+│   👤👤     👤+1     👤👤👤                    │
+│   [咖啡厅] [诊所]   [广场]   ...               │
+│     👤      👤                                  │
+├──────────────────────────────────────────────┤
 │ [人物] [事件] [缘线] [业线]     [推动时间]     │
 │ 当前上下文详情区                              │
 └──────────────────────────────────────────────┘
@@ -79,9 +88,9 @@
 | 顶栏 | `HBoxContainer` | 时间、资源、设置 | 设置按钮可点击 |
 | 时间显示 | `Label` | 第 X 天 · 早/午/晚 | Hover 显示周进度 |
 | 资源显示 | 图标 + `Label` | 香火、神力、阳德、阴德 | Hover 显示解释 |
-| 左侧提示区 | `PanelContainer` | 天气、特殊事件、警告 | 可点击相关事件 |
+| **危险征兆筹码**（v1.1） | `HBoxContainer` 内 `DangerWarningItem` 列表 | 横向紧凑筹码：未查看 `⚠ 地点名`，已查看 `✓ 地点名 已阅` | 点击打开事件详情弹窗；推动时间前若有未查看筹码会触发"是否仍要推进"二次确认 |
 | 地图区 | `Control` / `TextureRect` | 归潮镇地图 | 地点与事件可点击 |
-| 地点按钮 | `TextureButton` | 学校、寺庙、港口等 | 打开地点面板 |
+| **地点瓦片**（v1.1） | `PanelContainer` 内嵌头像行 | 地点名 + **当前时段在场角色头像**（最多 3 张，超出显示 `+N`） | 点击打开地点面板；头像 Hover 显示角色名 |
 | 事件标记 | `TextureButton` | 当前事件图标 | 打开事件面板 |
 | 底栏 Tab | Button 组 | 人物、事件、缘线、业线 | 切换上下文 |
 | 上下文区 | `PanelContainer` | 当前 Tab 内容 | 内容项可点击 |
@@ -96,10 +105,12 @@ MVP 阶段地图可以是固定尺寸像素背景，不强制实现缩放和平�
 | 操作 | 结果 |
 |---|---|
 | 点击地点 | 打开地点面板 |
+| 点击地点瓦片内的角色头像 | 打开人物面板（v1.1） |
 | 点击人物头像 / 标记 | 打开人物面板 |
 | 点击事件标记 | 打开事件推进面板或事件详情 |
 | Hover 地点 | 显示地点名和当前人数 |
 | Hover 事件 | 显示事件名、紧急程度 |
+| Hover 地点内头像 | 显示角色姓名 |
 
 事件标记优先级：
 
@@ -107,6 +118,49 @@ MVP 阶段地图可以是固定尺寸像素背景，不强制实现缩放和平�
 2. 主线事件
 3. NPC 业线事件
 4. 日常事件
+
+---
+
+## 5.1 危险征兆筹码（v1.1）
+
+危险征兆采用**横向紧凑筹码**形式，不再独占左侧面板：
+
+| 项目 | 规格 |
+|---|---|
+| 容器 | `HBoxContainer`，单行，间距 6px，高度 28px |
+| 条目 | `DangerWarningItem` 筹码（`PanelContainer`） |
+| 未查看态 | 红底红边（约 `#c1504a`），图标 `⚠`，文本仅显示 `地点名` |
+| 已查看态 | 绿底绿边（约 `#6a8a65`），图标 `✓`，文本 `{地点名} 已阅` |
+| 点击 | 打开对应事件详情弹窗 |
+| 推动时间前 | 若仍有**未查看**筹码，弹出二次确认对话框 |
+| 无危险征兆时 | 容器隐藏，不占地图空间 |
+
+设计意图：危险征兆从"地图左侧固定列"改为"地图上方紧凑筹码"，让地图视觉更主导，同时保留推动时间前的二次确认语义。
+
+---
+
+## 5.2 地点瓦片头像行（v1.1）
+
+每个地点瓦片在地点名下方嵌入**当前时段在场角色头像**，让玩家一眼看出"谁在哪里"。
+
+| 项目 | 规格 |
+|---|---|
+| 头像来源 | `PortraitService` 统一服务（v1.1） |
+| 最大显示 | `MAX_PORTRAITS = 3` |
+| 超出显示 | 显示前 3 张 + 文字 `+N`（N = 在场人数 − 3） |
+| 头像尺寸 | `PORTRAIT_SIZE = 32` px（像素风） |
+| 数据驱动 | NPC 的 `schedule[current_time_slot]` → `location_id`（v1.1 修复：原来用静态 `current_location_id`，导致时段变化后地点头像未刷新） |
+| 时段切换 | 推动时间后由状态服务发出 `npc_updated` 信号，地点瓦片订阅刷新 |
+| 点击头像 | 打开人物面板 |
+| 空地点 | 仅显示地点名，不显示头像行 |
+
+示例（Day 1 下午）：
+
+| 地点 | 在场 | 瓦片显示 |
+|---|---|---|
+| 学校 | 林潮音、陈海生 | 两张头像 |
+| 咖啡厅 | 林潮音、陈远舟 | 两张头像 |
+| 港口 | 4 人 | 前 3 头像 + `+1` |
 
 ---
 
@@ -158,18 +212,28 @@ MainGameUI (Control)
 │   ├── DivinePowerDisplay
 │   ├── YangVirtueDisplay
 │   ├── YinVirtueDisplay
-│   └── SettingsButton
-├── MainArea (HBoxContainer)
-│   ├── LeftInfoPanel (PanelContainer)
-│   └── MapArea (Control)
-│       ├── MapTexture (TextureRect)
-│       ├── LocationButtons (Control)
-│       └── EventMarkers (Control)
+│   ├── MenuButton
+├── MainArea (VBoxContainer)            # v1.1 改为 VBox
+│   ├── MapTitleBar (HBoxContainer)
+│   │   ├── MapTitle
+│   │   └── HintLabel
+│   ├── DangerWarnings (HBoxContainer)  # v1.1 紧凑筹码容器
+│   ├── MapScroll (ScrollContainer)
+│   │   └── MapArea (Control)
+│   │       ├── MapBackground (ColorRect)
+│   │       └── LocationsContainer (Control)  # v1.1 内嵌 MapLocationTile
 ├── BottomPanel (PanelContainer)
 │   ├── TabButtons (HBoxContainer)
-│   └── ContextPanel
-├── AdvanceTimeButton
-└── ModalLayer (CanvasLayer)
+│   │   ├── CharactersTabButton / EventsTabButton
+│   │   ├── BondViewButton / DestinyViewButton
+│   │   └── AdvanceTimeButton
+│   └── ContextBody (ScrollContainer)
+│       └── ContextList (HBoxContainer)
+├── ModalLayer (CanvasLayer)
+│   ├── DetailPopup (含 BondView / DestinyView / CharacterEndingScreen / DialogueEventScreen / TimeTransition / DreamTextDialog / NpcChatDialog)
+│   ├── DangerConfirm (ConfirmationDialog)
+│   ├── InterventionConfirm (ConfirmationDialog)
+│   └── MenuConfirm (ConfirmationDialog)
 ```
 
 ---
@@ -182,7 +246,9 @@ MainGameUI (Control)
 | 香火 / 神力 / 阳德 / 阴德 | PlayerResourceSystem | 事件、干预、结算后 |
 | 地点列表 | LocationRegistry | 初始化 |
 | 地点状态 | LocationStateSystem | 每时段 |
-| NPC 当前位置 | NPCScheduleSystem | 每时段 |
+| NPC 当前时段位置（v1.1） | **NPCScheduleSystem · `schedule[current_time_slot]`** | 每时段（推动时间时刷新） |
+| NPC 在场名单（v1.1） | StateService `get_locations()` | 每时段（适配器层聚合 `present_npc_ids` / `present_names` / `npc_count`） |
+| NPC 头像 | **PortraitService**（v1.1） | 按需异步加载 |
 | 事件标记 | EventScheduler | 每时段 |
 | 危险事件状态 | EventRiskSystem | 每时段 |
 
@@ -198,3 +264,7 @@ MainGameUI (Control)
 - [ ] 点击推动时间后，时段推进且地图事件刷新。
 - [ ] 有危险事件未查看时，推动时间前出现二次确认。
 - [ ] 神力为 0 时，干预入口不可点击并给出提示。
+- [ ] **v1.1**：危险征兆以横向紧凑筹码显示在地图上方，未查看为红色 `⚠`，已查看为绿色 `✓ 已阅`；无征兆时筹码容器隐藏。
+- [ ] **v1.1**：每个地点瓦片显示当前时段在场角色头像，最多 3 张；超出显示 `+N`。
+- [ ] **v1.1**：推动时间（时段切换）后，地点瓦片内的头像按 `schedule[current_time_slot]` 实时刷新。
+- [ ] **v1.1**：点击地点瓦片内的头像能打开对应人物面板。

@@ -47,6 +47,10 @@ var _ws: WebSocketPeer
 ## WebSocket 连接状态
 var _ws_connected: bool = false
 
+## 公共只读：外部判断 WebSocket 是否已连通（用于发送前的前置检查）。
+func is_ws_connected() -> bool:
+	return _ws_connected
+
 ## WebSocket 已发起过 connect_to_url，需要在 _process 里持续 poll
 var _ws_active: bool = false
 

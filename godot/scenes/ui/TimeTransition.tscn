@@ -1,6 +1,22 @@
-[gd_scene load_steps=2 format=3 uid="uid://tof_time_transition"]
+[gd_scene load_steps=4 format=3 uid="uid://tof_time_transition"]
 
 [ext_resource type="Script" path="res://scripts/ui/time_transition.gd" id="1_tt_script"]
+
+[sub_resource type="StyleBoxFlat" id="settlement_panel"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.08, 0.10, 0.14, 0.92)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.72, 0.48, 0.35)
 
 [node name="TimeTransition" type="Control"]
 layout_mode = 3
@@ -31,7 +47,8 @@ mouse_filter = 2
 
 [node name="VBox" type="VBoxContainer" parent="Center"]
 layout_mode = 2
-theme_override_constants/separation = 24
+custom_minimum_size = Vector2(560, 0)
+theme_override_constants/separation = 16
 
 [node name="TitleLabel" type="Label" parent="Center/VBox"]
 layout_mode = 2
@@ -60,3 +77,68 @@ theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(0.8, 0.8, 0.85, 1)
 text = "第 1 天 · 早上"
 horizontal_alignment = 1
+
+[node name="SettlementBox" type="PanelContainer" parent="Center/VBox"]
+visible = false
+layout_mode = 2
+theme_override_styles/panel = SubResource("settlement_panel")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Center/VBox/SettlementBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 180)
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ScrollInner" type="VBoxContainer" parent="Center/VBox/SettlementBox/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ResourceSection" type="VBoxContainer" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SectionTitle" type="Label" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner/ResourceSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
+text = "· 资源变化"
+
+[node name="ResourceList" type="VBoxContainer" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner/ResourceSection"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="CharacterSection" type="VBoxContainer" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SectionTitle2" type="Label" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner/CharacterSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
+text = "· 人物变化"
+
+[node name="CharacterList" type="VBoxContainer" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner/CharacterSection"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="EventSection" type="VBoxContainer" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SectionTitle3" type="Label" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner/EventSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
+text = "· 事件结果"
+
+[node name="EventList" type="VBoxContainer" parent="Center/VBox/SettlementBox/ScrollContainer/ScrollInner/EventSection"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="CloseButton" type="Button" parent="Center/VBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+text = "继续"
+tooltip_text = "关闭结算面板，继续探索命运"

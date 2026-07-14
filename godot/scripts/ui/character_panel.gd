@@ -13,11 +13,20 @@ signal dream_requested(npc_id: String, display_name: String)
 @onready var portrait_image: TextureRect = $Header/Portrait/PortraitImage
 @onready var portrait_initial: Label = $Header/Portrait/PortraitInitial
 @onready var bio_text: RichTextLabel = $BioText
+@onready var identity_label: Label = $IdentitySection/IdentityLabel
+@onready var traits_row: HBoxContainer = $IdentitySection/TraitsScroll/TraitsRow
+@onready var backstory_label: Label = $IdentitySection/BackstoryLabel
+@onready var state_label: Label = $StatsSection/StateLabel
+@onready var stats_row: HBoxContainer = $StatsSection/StatsRow
+@onready var bond_container: VBoxContainer = $BondSection/BondContainer
+@onready var karma_label: Label = $KarmaSection/KarmaLabel
 
 var _npc_id: String = ""
 var _display_name: String = ""
 ## 动态添加的托梦按钮（因原 .tscn 里没有节点，运行时注入到 Header 中 chat_button 之前）。
 var _dream_button: Button = null
+## 当前各能力值（用于 +/- 按钮的基准）。
+var _stats: Dictionary = {}
 
 func _ready() -> void:
 	if chat_button != null:
@@ -28,18 +37,8 @@ func _on_chat_pressed() -> void:
 	if _npc_id == "":
 		return
 	chat_requested.emit(_npc_id, _display_name)
-@onready var morning_location_label: Label = $ScheduleSection/MorningRow/MorningLocationLabel
-@onready var afternoon_location_label: Label = $ScheduleSection/AfternoonRow/AfternoonLocationLabel
-@onready var night_location_label: Label = $ScheduleSection/NightRow/NightLocationLabel
-@onready var state_label: Label = $StatsSection/StateLabel
-@onready var mind_label: Label = $StatsSection/StatsRow/MindLabel
-@onready var body_label: Label = $StatsSection/StatsRow/BodyLabel
-@onready var charm_label: Label = $StatsSection/StatsRow/CharmLabel
-@onready var faith_label: Label = $StatsSection/StatsRow/FaithLabel
-@onready var bond_container: VBoxContainer = $BondSection/BondContainer
-@onready var karma_label: Label = $KarmaSection/KarmaLabel
 
-func show_character(character: Dictionary, location_label_provider: Callable, dream_ctx: Dictionary = {}) -> void:
+func show_character(character: Dictionary, dream_ctx: Dictionary = {}) -> void:
 	_npc_id = String(character.get("npc_id", ""))
 	_display_name = String(character.get("display_name", "未知居民"))
 	name_label.text = _display_name
@@ -50,21 +49,14 @@ func show_character(character: Dictionary, location_label_provider: Callable, dr
 	if chat_button != null:
 		chat_button.disabled = _npc_id == ""
 	_apply_portrait(_npc_id, _display_name)
+	_render_identity(character)
 	bio_text.text = character.get("description", "暂无简介。")
 	_update_dream_button(dream_ctx)
 
-	var schedule: Dictionary = character.get("schedule", {})
-	morning_location_label.text = location_label_provider.call(schedule.get("Morning", ""))
-	afternoon_location_label.text = location_label_provider.call(schedule.get("Afternoon", ""))
-	night_location_label.text = location_label_provider.call(schedule.get("Night", ""))
-
 	state_label.text = character.get("current_state", "暂无状态。")
 
-	var stats: Dictionary = character.get("stats", {})
-	mind_label.text = "心智 %d" % stats.get("mind", 0)
-	body_label.text = "体魄 %d" % stats.get("body", 0)
-	charm_label.text = "魅力 %d" % stats.get("charm", 0)
-	faith_label.text = "信仰 %d" % stats.get("faith", 0)
+	_stats = character.get("stats", {})
+	_render_stats_row()
 
 	for child in bond_container.get_children():
 		child.queue_free()
@@ -151,6 +143,29 @@ func _make_bond_avatar(npc_id: String, display_name: String) -> Control:
 		panel.add_child(initial)
 	return panel
 
+## 渲染能力值行：只读展示每项数值。
+func _render_stats_row() -> void:
+	if stats_row == null:
+		return
+	for child in stats_row.get_children():
+		child.queue_free()
+	var stat_defs: Array = [
+		{"key": "mind", "label": "心智"},
+		{"key": "body", "label": "体魄"},
+		{"key": "charm", "label": "魅力"},
+		{"key": "faith", "label": "信仰"},
+	]
+	for stat_def in stat_defs:
+		var key: String = stat_def["key"]
+		var label_text: String = stat_def["label"]
+		var value: int = int(_stats.get(key, 0))
+		var lbl := Label.new()
+		lbl.text = "%s %d" % [label_text, value]
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stats_row.add_child(lbl)
+
 func show_empty() -> void:
 	_npc_id = ""
 	_display_name = ""
@@ -170,17 +185,70 @@ func show_empty() -> void:
 		portrait_initial.modulate = Color(0.6, 0.6, 0.65, 1)
 		portrait_initial.visible = true
 	bio_text.text = "此刻还没有可查看的居民。"
-	morning_location_label.text = "—"
-	afternoon_location_label.text = "—"
-	night_location_label.text = "—"
+	_render_identity({})
 	state_label.text = ""
-	mind_label.text = ""
-	body_label.text = ""
-	charm_label.text = ""
-	faith_label.text = ""
+	_stats = {}
+	_render_stats_row()
 	for child in bond_container.get_children():
 		child.queue_free()
 	karma_label.text = ""
+
+## 渲染"身份"区块：一句话身份标签 + 特质筹码 + 背景钩子。
+## 缺字段时按策划规范走占位文案，不破坏布局。
+func _render_identity(character: Dictionary) -> void:
+	if identity_label != null:
+		var identity_tag: String = String(character.get("identity_tag", ""))
+		if identity_tag == "":
+			identity_tag = String(character.get("role", "身份未知"))
+		identity_label.text = identity_tag
+	_clear_traits()
+	var trait_list: Array = character.get("traits", [])
+	if trait_list.is_empty():
+		var placeholder := Label.new()
+		placeholder.text = "暂无特质"
+		placeholder.add_theme_font_size_override("font_size", 12)
+		placeholder.add_theme_color_override("font_color", Color(0.55, 0.58, 0.65, 1))
+		if traits_row != null:
+			traits_row.add_child(placeholder)
+	else:
+		for t in trait_list:
+			_add_trait_chip(String(t))
+	if backstory_label != null:
+		var backstory: String = String(character.get("backstory_hint", ""))
+		if backstory == "":
+			backstory_label.text = ""
+			backstory_label.visible = false
+		else:
+			backstory_label.text = "· %s" % backstory
+			backstory_label.visible = true
+
+func _clear_traits() -> void:
+	if traits_row == null:
+		return
+	for child in traits_row.get_children():
+		child.queue_free()
+
+## 单个特质筹码：圆角小标签，沿用 .tscn 中的 trait_chip 样式。
+func _add_trait_chip(trait_text: String) -> void:
+	if traits_row == null or trait_text == "":
+		return
+	var chip := PanelContainer.new()
+	var label := Label.new()
+	label.text = trait_text
+	label.add_theme_font_size_override("font_size", 12)
+	label.add_theme_color_override("font_color", Color(1, 0.92, 0.7, 1))
+	chip.add_child(label)
+	var style := StyleBoxFlat.new()
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	style.set_border_width_all(1)
+	style.border_color = Color(0.82, 0.72, 0.48, 0.4)
+	style.bg_color = Color(0.18, 0.22, 0.28, 1)
+	chip.add_theme_stylebox_override("panel", style)
+	traits_row.add_child(chip)
 
 ## 惰性创建托梦按钮，插到 ChatButton 之前。
 ## dream_ctx 缺失时按钮直接置灰（例如角色为空 / MainGameUI 尚未提供上下文）。

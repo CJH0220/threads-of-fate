@@ -67,6 +67,8 @@ var dream_used_today: bool = false
 var _completed_events: Dictionary = {}
 ## 事件演出快照：event_id -> {finished_at, blessings, summary}
 var _event_snapshots: Dictionary = {}
+## 当前时段内的逐条资源变化日志（每次干预/赐福/托梦追加一条）。
+var _resource_change_log: Array = []
 
 func _init() -> void:
 	## 连接 Backend 信号
@@ -87,6 +89,7 @@ func _init() -> void:
 	dream_used_today = false
 	_completed_events.clear()
 	_event_snapshots.clear()
+	_resource_change_log.clear()
 
 ## 加载静态 JSON（locations/characters/events/interventions），backend 模式复用 Mock 内容。
 func _load_static_data() -> void:
@@ -135,6 +138,7 @@ func _on_load_completed(data: Dictionary) -> void:
 	dream_used_today = false
 	_completed_events.clear()
 	_event_snapshots.clear()
+	_resource_change_log.clear()
 	state_changed.emit()
 
 ## NPC 对话响应（暂存，供 UI 读取）。
@@ -156,6 +160,7 @@ func _on_new_game(state: Dictionary) -> void:
 		_state_cache = {
 			"day": 1,
 			"time_slot": "Morning",
+			"time_slot_label": "早上",
 			"incense": 100,
 			"divine_power": 10,
 			"divine_power_max": 10,
@@ -177,6 +182,10 @@ func _on_new_game(state: Dictionary) -> void:
 	dream_used_today = false
 	_completed_events.clear()
 	_event_snapshots.clear()
+	_resource_change_log.clear()
+	## Mock 降级：初始化事件列表（匹配 Day1 Morning 的事件）
+	if Backend.use_mock_fallback:
+		_populate_initial_events()
 	state_changed.emit()
 
 func _on_state_updated(state: Dictionary) -> void:
@@ -239,7 +248,9 @@ func _normalize_npcs(raw_list: Array) -> Array:
 		if not static_data.is_empty():
 			for key in ["description", "schedule", "bond_summaries", "karma_summary", "karma_progress",
 					"risk_level", "role", "age_range", "current_state", "stats", "story_priority",
-					"agent_tier", "is_unlocked"]:
+					"agent_tier", "is_unlocked",
+					## v1.2：身份 / 特质 / 背景钩子（策划案见 UI/ui-spec-character-panel.md §13）
+					"identity_tag", "traits", "backstory_hint"]:
 				if static_data.has(key) and not npc.has(key):
 					npc[key] = static_data[key]
 			## 兜底 display_name / occupation，避免后端字段缺失时空白
@@ -417,44 +428,134 @@ func advance_time() -> Dictionary:
 		## Mock 降级：本地模拟时间推进
 		return _mock_advance_time()
 
+	## WebSocket 未连通时降级到本地 Mock，避免 await 永久挂起
+	if not Backend.is_ws_connected():
+		printerr("[BackendGameState] advance_time: WebSocket 未连接，降级到本地 Mock")
+		return _mock_advance_time()
+
 	## 发送 WebSocket 请求，等待结算完成信号后再返回结果
 	Backend.send_advance_time()
-	## 等待后端推送 settlement_complete；_on_settlement_complete 会填充 _last_advance_result
-	await Backend.settlement_complete
+
+	## 超时兜底：15 秒内未收到 settlement_complete 则降级到 Mock
+	var timeout_sec: float = 15.0
+	var settled: bool = false
+	var _cb := func(_data: Dictionary) -> void: settled = true
+	Backend.settlement_complete.connect(_cb, CONNECT_ONE_SHOT)
+	var start_time: float = Time.get_ticks_msec()
+	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	while not settled:
+		await tree.process_frame
+		if (Time.get_ticks_msec() - start_time) / 1000.0 >= timeout_sec:
+			break
+	## 清理：若超时先到，断开回调避免野指针
+	if not settled:
+		if Backend.settlement_complete.is_connected(_cb):
+			Backend.settlement_complete.disconnect(_cb)
+		printerr("[BackendGameState] advance_time: %ds 超时，降级到本地 Mock" % int(timeout_sec))
+		return _mock_advance_time()
+
 	return _last_advance_result.duplicate()
 
 ## Mock 降级模式的本地时间推进（保持前端可独立测试）。
+## 对齐 MockGameState.advance_time 的事件匹配逻辑，确保第一天早上也能推进事件。
 func _mock_advance_time() -> Dictionary:
 	var day = int(_state_cache.get("day", 1))
 	var slot = String(_state_cache.get("time_slot", "Morning"))
+	var resource_delta: Dictionary = {}
 
 	## 时段轮转
 	if slot == "Morning":
 		_state_cache["time_slot"] = "Afternoon"
+		_state_cache["time_slot_label"] = "下午"
 	elif slot == "Afternoon":
 		_state_cache["time_slot"] = "Night"
+		_state_cache["time_slot_label"] = "晚上"
 	else:
 		_state_cache["time_slot"] = "Morning"
+		_state_cache["time_slot_label"] = "早上"
 		day += 1
 		_state_cache["day"] = day
-		## 新的一天：托梦额度刷新
+		## 新的一天：托梦额度刷新 + 神力回复
 		dream_used_today = false
-
-	## 资源变化
-	_state_cache["incense"] = int(_state_cache.get("incense", 100)) + randi_range(-5, 10)
-	_state_cache["divine_power"] = min(int(_state_cache.get("divine_power", 10)) + 1, int(_state_cache.get("divine_power_max", 10)))
+		var old_power: int = int(_state_cache.get("divine_power", 10))
+		var max_power: int = int(_state_cache.get("divine_power_max", 10))
+		if old_power < max_power:
+			_state_cache["divine_power"] = old_power + 1
+			resource_delta["divine_power"] = 1
+			_resource_change_log.append({"resource": "divine_power", "change": 1, "reason": "新的一天 · 神力回复"})
 
 	## 第60天局终检测
 	if day >= 60:
-		return {"run_finished": true, "ending": evaluate_ending(), "summary": "命运的织线已完成编织。"}
+		var slot_changes_end: Array = _resource_change_log.duplicate()
+		_resource_change_log.clear()
+		return {"run_finished": true, "ending": evaluate_ending(), "summary": "命运的织线已完成编织。", "resource_change_log": slot_changes_end}
 
 	## 周结算检测（每周日晚）
 	var week = (day - 1) / 7 + 1
 	if day % 7 == 0 and slot == "Night":
-		return {"week_finished": true, "week_data": {"week": week, "summary": "第 %d 周结束" % week}, "summary": "一周结束，命运产生了新的变化。"}
+		var slot_changes_w: Array = _resource_change_log.duplicate()
+		_resource_change_log.clear()
+		state_changed.emit()
+		return {"week_finished": true, "week_data": {"week": week, "summary": "第 %d 周结束" % week}, "summary": "一周结束，命运产生了新的变化。", "resource_change_log": slot_changes_w}
 
+	## 事件匹配（对齐 MockGameState：按当前天数和时段匹配静态事件）
+	var current_day := int(_state_cache.get("day", 1))
+	var current_slot := String(_state_cache.get("time_slot", "Morning"))
+	_events.clear()
+	var static_events: Array = _load_json_array(EVENTS_PATH)
+	for event in static_events:
+		var dr: String = String(event.get("day_range", ""))
+		var ts: String = String(event.get("time_slot", ""))
+		if dr != "" and _mock_day_in_range(dr, current_day):
+			if ts == current_slot or ts == "Any":
+				var evt = event.duplicate(true)
+				evt["location_label"] = get_location_label(String(event.get("location_id", "")))
+				_events.append(evt)
+				## 记录到事件历史
+				event_history.append({
+					"day": current_day,
+					"time_slot": current_slot,
+					"time_slot_label": get_time_slot_label(current_slot),
+					"location_id": String(event.get("location_id", "")),
+					"location_label": get_location_label(String(event.get("location_id", ""))),
+					"event_id": String(event.get("event_id", "")),
+					"event_name": String(event.get("event_name", "未知事件")),
+					"summary": String(event.get("description", "")),
+					"risk_level": String(event.get("risk_level", "Low")),
+					"participant_names": event.get("participant_display_names", []),
+				})
+
+	var slot_changes: Array = _resource_change_log.duplicate()
+	_resource_change_log.clear()
 	state_changed.emit()
-	return {"summary": "时间已推进，命运线产生了新的变化。", "resource_delta": {}}
+	return {
+		"summary": "时间已推进，命运线产生了新的变化。",
+		"resource_delta": resource_delta,
+		"resource_change_log": slot_changes,
+	}
+
+## Mock 天数范围判定（对齐 MockGameState._day_in_range）。
+func _mock_day_in_range(day_range: String, day: int) -> bool:
+	var s := day_range.replace("Day", "")
+	if s.contains("-"):
+		var parts := s.split("-")
+		return day >= int(parts[0]) and day <= int(parts[1])
+	return day == int(s)
+
+## 初始化事件列表（Mock 降级用）：按当前天/时段匹配静态事件。
+func _populate_initial_events() -> void:
+	_events.clear()
+	var current_day := int(_state_cache.get("day", 1))
+	var current_slot := String(_state_cache.get("time_slot", "Morning"))
+	var static_events: Array = _load_json_array(EVENTS_PATH)
+	for event in static_events:
+		var dr: String = String(event.get("day_range", ""))
+		var ts: String = String(event.get("time_slot", ""))
+		if dr != "" and _mock_day_in_range(dr, current_day):
+			if ts == current_slot or ts == "Any":
+				var evt = event.duplicate(true)
+				evt["location_label"] = get_location_label(String(event.get("location_id", "")))
+				_events.append(evt)
 
 ## 响应时间推进推送（先于事件和结算）。
 func _on_time_advanced(data: Dictionary) -> void:
@@ -555,6 +656,7 @@ func _on_settlement_complete(data: Dictionary) -> void:
 	_last_advance_result = {
 		"summary": data.get("summary", "命运线产生了新的变化。"),
 		"resource_delta": data.get("resource_delta", {}),
+		"resource_change_log": _resource_change_log.duplicate(),
 		"event_changes": event_changes,
 		"character_changes": [],
 	}
@@ -567,8 +669,9 @@ func _on_settlement_complete(data: Dictionary) -> void:
 		_last_advance_result["week_finished"] = true
 		_last_advance_result["week_data"] = data.get("week_data", {})
 
-	## 清空待处理事件队列
+	## 清空待处理事件队列和资源日志
 	_pending_events.clear()
+	_resource_change_log.clear()
 	## 最后触发状态刷新，UI 收到信号后读取新状态
 	state_changed.emit()
 
@@ -624,9 +727,19 @@ func apply_intervention(event_id: String, intervention_id: String, context: Dict
 	coin_result["outcome_label"] = success_label if bool(coin_result.get("success", false)) else failure_label
 
 	_state_cache["divine_power"] = current_power - cost
+	_resource_change_log.append({
+		"resource": "divine_power",
+		"change": -cost,
+		"reason": "%s · %s" % [display_name, event_name],
+	})
 	var yang_gain: int = 1 if bool(coin_result.get("success", false)) else 0
 	if yang_gain > 0:
 		_state_cache["yang_de"] = int(_state_cache.get("yang_de", 0)) + yang_gain
+		_resource_change_log.append({
+			"resource": "yang_de",
+			"change": yang_gain,
+			"reason": "%s 成功" % display_name,
+		})
 
 	## 托梦文字（<=100 字，超出截断）
 	var dream_text: String = String(context.get("dream_text", ""))
@@ -793,6 +906,11 @@ func apply_dream(npc_id: String, dream_text: String) -> Dictionary:
 			break
 
 	_state_cache["divine_power"] = current_power - DREAM_COST
+	_resource_change_log.append({
+		"resource": "divine_power",
+		"change": -DREAM_COST,
+		"reason": "托梦 · %s" % String(character.get("display_name", "居民")),
+	})
 	dream_used_today = true
 
 	## 真实后端：走 dream_hint 通道把文字写入后端 NPC 记忆库
@@ -833,9 +951,19 @@ func apply_blessing(event_id: String, seg_index: int, prompt: Dictionary, choice
 
 	_state_cache["divine_power"] = current_power - cost
 	var resource_delta: Dictionary = {"divine_power": -cost}
+	_resource_change_log.append({
+		"resource": "divine_power",
+		"change": -cost,
+		"reason": "赐福",
+	})
 	if bool(coin_result.get("success", false)):
 		_state_cache["yang_de"] = int(_state_cache.get("yang_de", 0)) + 1
 		resource_delta["yang_de"] = 1
+		_resource_change_log.append({
+			"resource": "yang_de",
+			"change": 1,
+			"reason": "赐福成功",
+		})
 
 	_append_blessing_snapshot(event_id, seg_index, true, coin_result)
 

@@ -311,7 +311,6 @@ func _show_character_popup(character_id: String) -> void:
 	panel.call(
 		"show_character",
 		character,
-		Callable(func(location_id: String) -> String: return state.get_location_label(location_id)),
 		dream_ctx,
 	)
 	if panel.has_signal("chat_requested"):
@@ -744,6 +743,7 @@ func _do_advance_time() -> void:
 
 	var before_state: Dictionary = state.get_game_state()
 	var before_label: String = "第 %d 天 · %s" % [before_state.get("day", 1), before_state.get("time_slot_label", "早上")]
+	var before_resources: Dictionary = _snapshot_resources(before_state)
 
 	## 真实后端路径为异步（内部 await settlement_complete）；Mock 路径 await 会立即返回。
 	## state 静态类型为 MockGameState，静态分析器看不到 BackendGameState 的 await，
@@ -754,7 +754,20 @@ func _do_advance_time() -> void:
 	var after_state: Dictionary = state.get_game_state()
 	var after_label: String = "第 %d 天 · %s" % [after_state.get("day", 1), after_state.get("time_slot_label", "早上")]
 
-	await time_transition.play(before_label, after_label)
+	## 实时结算：UI 端根据 before/after 快照计算资源差量（覆盖所有四类资源，
+	## 不依赖适配器是否返回 resource_delta）。人物变化与事件结果暂留接口给编剧 Agent。
+	var resource_delta: Dictionary = _compute_resource_delta(before_resources, _snapshot_resources(after_state))
+	var settlement_data: Dictionary = {
+		"title": "时间结算",
+		"summary": result.get("summary", "时间已推进，命运线产生了新的变化。"),
+		"resource_delta": resource_delta,
+		"resource_change_log": Array(result.get("resource_change_log", [])),
+		"before_resources": before_resources,
+		"character_changes": Array(result.get("character_changes", [])),
+		"event_changes": Array(result.get("event_changes", [])),
+	}
+
+	await time_transition.play(before_label, after_label, settlement_data)
 	_advancing = false
 
 	if bool(result.get("run_finished", false)):
@@ -763,11 +776,23 @@ func _do_advance_time() -> void:
 	if bool(result.get("week_finished", false)):
 		week_finished.emit(result.get("week_data", {}))
 		return
-	var settlement_data: Dictionary = {
-		"title": "时间结算",
-		"summary": result.get("summary", "时间已推进，命运线产生了新的变化。"),
-		"resource_delta": result.get("resource_delta", {}),
-		"character_changes": [],
-		"event_changes": []
+	## v1.2：结算摘要已在 TimeTransition 内嵌展示；不再额外弹出 SettlementPanel
+	## 以避免重复渲染。若后续需要明细（硬币翻面 / 托梦文本），可在此处恢复 emit。
+
+## 从 game_state 快照中抽取四类资源的当前值。
+func _snapshot_resources(state_dict: Dictionary) -> Dictionary:
+	return {
+		"incense": int(state_dict.get("incense", 0)),
+		"divine_power": int(state_dict.get("divine_power", 0)),
+		"yang_de": int(state_dict.get("yang_de", 0)),
+		"yin_de": int(state_dict.get("yin_de", 0)),
 	}
-	settlement_requested.emit(settlement_data)
+
+## 逐项求差；适配器无关（Mock 与 Backend 都适用）。
+func _compute_resource_delta(before_res: Dictionary, after_res: Dictionary) -> Dictionary:
+	var delta := {}
+	for key in ["incense", "divine_power", "yang_de", "yin_de"]:
+		var diff: int = int(after_res.get(key, 0)) - int(before_res.get(key, 0))
+		if diff != 0:
+			delta[key] = diff
+	return delta

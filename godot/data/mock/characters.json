@@ -4,8 +4,11 @@
     "display_name": "林潮音",
     "agent_tier": "S",
     "story_priority": 5,
-    "age_range": "17-18",
+    "age_range": "17",
     "role": "高中生",
+    "identity_tag": "旧庙香火下的少女，被预言为「潮声巫女」",
+    "traits": ["敏感", "执拗", "温柔", "易受梦困扰"],
+    "backstory_hint": "幼年被弃在寺庙门口，由慧圆师太抚养长大；体质特殊，自小便反复梦见潮水吞没归潮镇。",
     "current_location_id": "school",
     "current_location_label": "学校",
     "current_state": "噩梦频繁、压力轻微",
@@ -16,18 +19,39 @@
       "Night": "temple"
     },
     "stats": {
-      "mind": 6,
+      "mind": 8,
       "body": 4,
       "charm": 7,
-      "faith": 5
+      "faith": 3
+    },
+    "personality": {
+      "kindness": 0.8,
+      "aggression": 0.2,
+      "sensibility": 0.9,
+      "rationality": 0.6,
+      "curiosity": 0.7
     },
     "bond_summaries": [
       {
         "target_npc_id": "chen_yuanzhou",
         "target_display_name": "陈远舟",
-        "bond_type": "友情",
+        "bond_type": "青梅竹马",
         "level": 3,
         "strength": 65
+      },
+      {
+        "target_npc_id": "huiyuan",
+        "target_display_name": "慧圆",
+        "bond_type": "养育",
+        "level": 2,
+        "strength": 45
+      },
+      {
+        "target_npc_id": "lin_yueqin",
+        "target_display_name": "林月琴",
+        "bond_type": "母女",
+        "level": 2,
+        "strength": 40
       }
     ],
     "karma_summary": "巫女线：潮声入梦",
@@ -42,6 +66,9 @@
     "story_priority": 5,
     "age_range": "18",
     "role": "高中生",
+    "identity_tag": "想带青梅竹马离开小岛的优等生",
+    "traits": ["理性", "好胜", "压抑", "对潮音有保护欲"],
+    "backstory_hint": "父母早年离岛打工未归，与奶奶相依为命；成绩优异但家中经济吃紧，把所有出路押在一次高考上。",
     "current_location_id": "school",
     "current_location_label": "学校",
     "current_state": "备考中、想离岛",
@@ -53,17 +80,31 @@
     },
     "stats": {
       "mind": 7,
-      "body": 5,
+      "body": 6,
       "charm": 6,
-      "faith": 3
+      "faith": 4
+    },
+    "personality": {
+      "kindness": 0.7,
+      "aggression": 0.3,
+      "sensibility": 0.6,
+      "rationality": 0.7,
+      "curiosity": 0.8
     },
     "bond_summaries": [
       {
         "target_npc_id": "lin_chaoyin",
         "target_display_name": "林潮音",
-        "bond_type": "友情",
+        "bond_type": "青梅竹马",
         "level": 3,
         "strength": 65
+      },
+      {
+        "target_npc_id": "chen_haisheng",
+        "target_display_name": "陈海生",
+        "bond_type": "祖孙",
+        "level": 2,
+        "strength": 35
       }
     ],
     "karma_summary": "离岛梦想",
@@ -76,8 +117,11 @@
     "display_name": "陈海生",
     "agent_tier": "S",
     "story_priority": 5,
-    "age_range": "42-48",
+    "age_range": "45",
     "role": "渔民 / 海鲜店老板",
+    "identity_tag": "被渔获和债务压垮的中年父亲",
+    "traits": ["暴躁", "顾家", "倔强", "对旧信仰失望"],
+    "backstory_hint": "世代渔户，年轻时是岛上最勤快的船老大；近年渔获减少、欠下高利贷，妻子苏婉与他关系趋紧，独子陈远舟在备考。",
     "current_location_id": "seafood_shop",
     "current_location_label": "海鲜店",
     "current_state": "压力高、怨气积累",
@@ -89,14 +133,577 @@
     },
     "stats": {
       "mind": 4,
-      "body": 7,
+      "body": 8,
       "charm": 3,
       "faith": 2
     },
-    "bond_summaries": [],
+    "personality": {
+      "kindness": 0.3,
+      "aggression": 0.8,
+      "sensibility": 0.4,
+      "rationality": 0.3,
+      "curiosity": 0.2
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "su_wan",
+        "target_display_name": "苏婉",
+        "bond_type": "夫妻",
+        "level": 2,
+        "strength": 30
+      },
+      {
+        "target_npc_id": "chen_yuanzhou",
+        "target_display_name": "陈远舟",
+        "bond_type": "父子",
+        "level": 2,
+        "strength": 35
+      }
+    ],
     "karma_summary": "家庭悲剧风险",
     "karma_progress": 30,
     "is_unlocked": true,
     "risk_level": "High"
+  },
+  {
+    "npc_id": "gu_chenzhou",
+    "display_name": "顾沉舟",
+    "agent_tier": "S",
+    "story_priority": 5,
+    "age_range": "30",
+    "role": "富有游客 / 邪教传教士",
+    "identity_tag": "表面温和的旅人，实为换神计划的执行者",
+    "traits": ["优雅", "城府深", "煽动力强", "对旧神冷漠"],
+    "backstory_hint": "来历不明的富有青年，以旅游考察为名入驻归潮镇；暗中接触绝望之人，以新信仰换取灵魂。",
+    "current_location_id": "port",
+    "current_location_label": "港口",
+    "current_state": "低调渗透中",
+    "description": "表面温和优雅，实际想在灾难前完成换神计划。",
+    "schedule": {
+      "Morning": "plaza",
+      "Afternoon": "wine_bar",
+      "Night": "port"
+    },
+    "stats": {
+      "mind": 9,
+      "body": 5,
+      "charm": 9,
+      "faith": 2
+    },
+    "personality": {
+      "kindness": 0.2,
+      "aggression": 0.8,
+      "sensibility": 0.3,
+      "rationality": 0.9,
+      "curiosity": 0.6
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "jiang_xueyi",
+        "target_display_name": "江雪仪",
+        "bond_type": "共谋",
+        "level": 3,
+        "strength": 55
+      },
+      {
+        "target_npc_id": "chen_haisheng",
+        "target_display_name": "陈海生",
+        "bond_type": "诱惑",
+        "level": 1,
+        "strength": 20
+      }
+    ],
+    "karma_summary": "邪教传播线：换神倒计时",
+    "karma_progress": 15,
+    "is_unlocked": true,
+    "risk_level": "Fatal"
+  },
+  {
+    "npc_id": "huiyuan",
+    "display_name": "慧圆",
+    "agent_tier": "A",
+    "story_priority": 4,
+    "age_range": "40",
+    "role": "寺庙和尚 / 管理者",
+    "identity_tag": "贪财的守庙人，在信仰与利益间摇摆",
+    "traits": ["世故", "贪财", "表面虔诚", "利用心强"],
+    "backstory_hint": "约十年前来到归潮镇接手寺庙，表面虔诚实则贪财，试图利用林潮音灵力举办庙会挽回声望。",
+    "current_location_id": "temple",
+    "current_location_label": "土地庙",
+    "current_state": "筹划庙会、暗中牟利",
+    "description": "约十年前来到归潮镇接手寺庙，表面虔诚实则贪财，试图利用林潮音灵力举办庙会挽回声望。",
+    "schedule": {
+      "Morning": "temple",
+      "Afternoon": "temple",
+      "Night": "wine_bar"
+    },
+    "stats": {
+      "mind": 6,
+      "body": 4,
+      "charm": 6,
+      "faith": 8
+    },
+    "personality": {
+      "kindness": 0.3,
+      "aggression": 0.5,
+      "sensibility": 0.4,
+      "rationality": 0.6,
+      "curiosity": 0.3
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "lin_chaoyin",
+        "target_display_name": "林潮音",
+        "bond_type": "养育 / 利用",
+        "level": 2,
+        "strength": 45
+      }
+    ],
+    "karma_summary": "寺庙腐败线",
+    "karma_progress": 20,
+    "is_unlocked": true,
+    "risk_level": "Medium"
+  },
+  {
+    "npc_id": "jiang_xueyi",
+    "display_name": "江雪仪",
+    "agent_tier": "S",
+    "story_priority": 5,
+    "age_range": "35",
+    "role": "新医生",
+    "identity_tag": "以治疗之名潜入小镇的邪教接应者",
+    "traits": ["冷静", "专业", "表里不一", "对顾沉舟忠诚"],
+    "backstory_hint": "接手诊所后快速获得镇民信任，实际与顾沉舟有关联，以医疗渠道辅助换神计划。",
+    "current_location_id": "clinic",
+    "current_location_label": "诊所",
+    "current_state": "获取信任中",
+    "description": "接手诊所后快速获得信任，实际与顾沉舟有关。",
+    "schedule": {
+      "Morning": "clinic",
+      "Afternoon": "clinic",
+      "Night": "wine_bar"
+    },
+    "stats": {
+      "mind": 9,
+      "body": 4,
+      "charm": 7,
+      "faith": 3
+    },
+    "personality": {
+      "kindness": 0.3,
+      "aggression": 0.6,
+      "sensibility": 0.4,
+      "rationality": 0.9,
+      "curiosity": 0.5
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "gu_chenzhou",
+        "target_display_name": "顾沉舟",
+        "bond_type": "共谋",
+        "level": 3,
+        "strength": 55
+      },
+      {
+        "target_npc_id": "xu_qing",
+        "target_display_name": "许晴",
+        "bond_type": "医患",
+        "level": 1,
+        "strength": 25
+      }
+    ],
+    "karma_summary": "医疗线：以药换信",
+    "karma_progress": 10,
+    "is_unlocked": true,
+    "risk_level": "High"
+  },
+  {
+    "npc_id": "xu_mingchuan",
+    "display_name": "许明川",
+    "agent_tier": "S",
+    "story_priority": 5,
+    "age_range": "25",
+    "role": "新任民警",
+    "identity_tag": "初到小镇的年轻警察，逐渐发现异常",
+    "traits": ["正义", "敏锐", "保护欲强", "经验不足"],
+    "backstory_hint": "初到归潮镇的年轻警察，带着保护妹妹许晴的责任感，逐渐发现小镇不寻常的秘密。",
+    "current_location_id": "port",
+    "current_location_label": "港口",
+    "current_state": "调查初期、警觉中",
+    "description": "初到归潮镇的年轻警察，逐渐发现小镇异常。",
+    "schedule": {
+      "Morning": "police_station",
+      "Afternoon": "plaza",
+      "Night": "port"
+    },
+    "stats": {
+      "mind": 7,
+      "body": 7,
+      "charm": 5,
+      "faith": 5
+    },
+    "personality": {
+      "kindness": 0.7,
+      "aggression": 0.3,
+      "sensibility": 0.5,
+      "rationality": 0.8,
+      "curiosity": 0.5
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "xu_qing",
+        "target_display_name": "许晴",
+        "bond_type": "兄妹",
+        "level": 4,
+        "strength": 75
+      },
+      {
+        "target_npc_id": "zhao_shouzheng",
+        "target_display_name": "赵守正",
+        "bond_type": "师徒",
+        "level": 2,
+        "strength": 40
+      }
+    ],
+    "karma_summary": "侦探线：秩序代理",
+    "karma_progress": 10,
+    "is_unlocked": true,
+    "risk_level": "Medium"
+  },
+  {
+    "npc_id": "xu_qing",
+    "display_name": "许晴",
+    "agent_tier": "A",
+    "story_priority": 4,
+    "age_range": "17",
+    "role": "外来学生",
+    "identity_tag": "敏感的外来少女，最先察觉诊所异常",
+    "traits": ["敏感", "细腻", "内向", "观察力强"],
+    "backstory_hint": "许明川的妹妹，随哥哥来到归潮镇；因看病接触诊所，敏感地察觉到江雪仪的不对劲。",
+    "current_location_id": "school",
+    "current_location_label": "学校",
+    "current_state": "适应中、隐约不安",
+    "description": "许明川的妹妹，敏感细腻，容易注意到诊所异常。",
+    "schedule": {
+      "Morning": "school",
+      "Afternoon": "clinic",
+      "Night": "residence"
+    },
+    "stats": {
+      "mind": 6,
+      "body": 5,
+      "charm": 7,
+      "faith": 4
+    },
+    "personality": {
+      "kindness": 0.7,
+      "aggression": 0.2,
+      "sensibility": 0.8,
+      "rationality": 0.5,
+      "curiosity": 0.7
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "xu_mingchuan",
+        "target_display_name": "许明川",
+        "bond_type": "兄妹",
+        "level": 4,
+        "strength": 75
+      },
+      {
+        "target_npc_id": "jiang_xueyi",
+        "target_display_name": "江雪仪",
+        "bond_type": "医患",
+        "level": 1,
+        "strength": 25
+      }
+    ],
+    "karma_summary": "外来视角线",
+    "karma_progress": 5,
+    "is_unlocked": true,
+    "risk_level": "Medium"
+  },
+  {
+    "npc_id": "zhou_xingzhi",
+    "display_name": "周行知",
+    "agent_tier": "A",
+    "story_priority": 4,
+    "age_range": "23",
+    "role": "实习记者 / 民俗调查者",
+    "identity_tag": "以民俗为课题的调查者，常撞见不该撞见的事",
+    "traits": ["好奇", "执着", "有点冒失", "正义感"],
+    "backstory_hint": "以海岛民俗为课题来到归潮镇的实习记者，总在不该出现的地方出现，成为侦探线的意外助力。",
+    "current_location_id": "port",
+    "current_location_label": "港口",
+    "current_state": "采风中、好奇心旺盛",
+    "description": "以海岛民俗为课题来到归潮镇，常撞见不该撞见的事。",
+    "schedule": {
+      "Morning": "temple",
+      "Afternoon": "bookstore",
+      "Night": "wine_bar"
+    },
+    "stats": {
+      "mind": 8,
+      "body": 5,
+      "charm": 6,
+      "faith": 3
+    },
+    "personality": {
+      "kindness": 0.6,
+      "aggression": 0.3,
+      "sensibility": 0.5,
+      "rationality": 0.7,
+      "curiosity": 0.9
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "xu_mingchuan",
+        "target_display_name": "许明川",
+        "bond_type": "线索共享",
+        "level": 1,
+        "strength": 20
+      }
+    ],
+    "karma_summary": "信息记录者线",
+    "karma_progress": 5,
+    "is_unlocked": true,
+    "risk_level": "Low"
+  },
+  {
+    "npc_id": "su_wan",
+    "display_name": "苏婉",
+    "agent_tier": "A",
+    "story_priority": 4,
+    "age_range": "43",
+    "role": "海鲜店老板娘",
+    "identity_tag": "长期忍耐的母亲，家庭的道德镜子",
+    "traits": ["坚韧", "隐忍", "温柔", "道德感强"],
+    "backstory_hint": "陈海生的妻子，长期忍受丈夫的压力与暴躁，仍努力维持家庭完整，是陈远舟心中的道德锚点。",
+    "current_location_id": "seafood_shop",
+    "current_location_label": "海鲜店",
+    "current_state": "疲惫中维持家庭",
+    "description": "陈远舟的母亲，长期忍受陈海生压力但仍维持家庭。",
+    "schedule": {
+      "Morning": "seafood_shop",
+      "Afternoon": "seafood_shop",
+      "Night": "residence"
+    },
+    "stats": {
+      "mind": 5,
+      "body": 3,
+      "charm": 8,
+      "faith": 6
+    },
+    "personality": {
+      "kindness": 0.9,
+      "aggression": 0.1,
+      "sensibility": 0.7,
+      "rationality": 0.5,
+      "curiosity": 0.3
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "chen_haisheng",
+        "target_display_name": "陈海生",
+        "bond_type": "夫妻",
+        "level": 2,
+        "strength": 30
+      },
+      {
+        "target_npc_id": "chen_yuanzhou",
+        "target_display_name": "陈远舟",
+        "bond_type": "母子",
+        "level": 3,
+        "strength": 60
+      }
+    ],
+    "karma_summary": "家庭线：隐忍的天平",
+    "karma_progress": 15,
+    "is_unlocked": true,
+    "risk_level": "Medium"
+  },
+  {
+    "npc_id": "ye_keke",
+    "display_name": "叶可可",
+    "agent_tier": "B",
+    "story_priority": 3,
+    "age_range": "28",
+    "role": "咖啡奶茶店店长",
+    "identity_tag": "开朗的咖啡店老板，镇上的情绪枢纽",
+    "traits": ["开朗", "热心", "八卦", "浪漫主义"],
+    "backstory_hint": "从城里回来开咖啡店的年轻女性，店里是所有年轻人的避风港，她自己也期待一段浪漫爱情。",
+    "current_location_id": "coffee_shop",
+    "current_location_label": "咖啡店",
+    "current_state": "经营稳定、心情好",
+    "description": "开朗热心，容易成为八卦和轻松日常的承载者。",
+    "schedule": {
+      "Morning": "coffee_shop",
+      "Afternoon": "coffee_shop",
+      "Night": "wine_bar"
+    },
+    "stats": {
+      "mind": 5,
+      "body": 5,
+      "charm": 8,
+      "faith": 5
+    },
+    "personality": {
+      "kindness": 0.8,
+      "aggression": 0.2,
+      "sensibility": 0.7,
+      "rationality": 0.5,
+      "curiosity": 0.6
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "lin_chaoyin",
+        "target_display_name": "林潮音",
+        "bond_type": "常客",
+        "level": 1,
+        "strength": 20
+      }
+    ],
+    "karma_summary": "日常线：温暖角落",
+    "karma_progress": 5,
+    "is_unlocked": true,
+    "risk_level": "Low"
+  },
+  {
+    "npc_id": "lin_yueqin",
+    "display_name": "林月琴",
+    "agent_tier": "A",
+    "story_priority": 4,
+    "age_range": "40",
+    "role": "酒屋老板娘",
+    "identity_tag": "复杂圆滑的母亲，在爱与掌控间拉扯",
+    "traits": ["圆滑", "强势", "矛盾", "爱女心切"],
+    "backstory_hint": "林潮音的母亲，当年将女儿留在寺庙后离开；如今经营酒屋，努力弥补却又害怕失去。",
+    "current_location_id": "wine_bar",
+    "current_location_label": "酒吧",
+    "current_state": "经营酒屋、暗中关注女儿",
+    "description": "林潮音的母亲，圆滑复杂，努力让女儿过得比自己好。",
+    "schedule": {
+      "Morning": "residence",
+      "Afternoon": "plaza",
+      "Night": "wine_bar"
+    },
+    "stats": {
+      "mind": 6,
+      "body": 4,
+      "charm": 7,
+      "faith": 3
+    },
+    "personality": {
+      "kindness": 0.5,
+      "aggression": 0.4,
+      "sensibility": 0.6,
+      "rationality": 0.7,
+      "curiosity": 0.5
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "lin_chaoyin",
+        "target_display_name": "林潮音",
+        "bond_type": "母女",
+        "level": 2,
+        "strength": 40
+      }
+    ],
+    "karma_summary": "母女线：迟来的弥补",
+    "karma_progress": 10,
+    "is_unlocked": true,
+    "risk_level": "Low"
+  },
+  {
+    "npc_id": "he_laosan",
+    "display_name": "何老三",
+    "agent_tier": "B",
+    "story_priority": 3,
+    "age_range": "48",
+    "role": "水手船长 / 港口灰色中介",
+    "identity_tag": "贪财怕事的老水手，掌握所有海路秘密",
+    "traits": ["贪财", "怕麻烦", "老江湖", "嘴严"],
+    "backstory_hint": "熟悉所有海路的老船长，贪财怕麻烦，不是邪教徒但可能帮错人，成为港口偷渡线的关键节点。",
+    "current_location_id": "port",
+    "current_location_label": "港口",
+    "current_state": "跑船间隙喝酒",
+    "description": "熟悉所有海路，贪财怕麻烦，不是邪教徒但可能帮错人。",
+    "schedule": {
+      "Morning": "port",
+      "Afternoon": "port",
+      "Night": "wine_bar"
+    },
+    "stats": {
+      "mind": 5,
+      "body": 7,
+      "charm": 4,
+      "faith": 4
+    },
+    "personality": {
+      "kindness": 0.3,
+      "aggression": 0.4,
+      "sensibility": 0.3,
+      "rationality": 0.6,
+      "curiosity": 0.4
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "chen_haisheng",
+        "target_display_name": "陈海生",
+        "bond_type": "旧识",
+        "level": 1,
+        "strength": 15
+      }
+    ],
+    "karma_summary": "港口线：灰色航道",
+    "karma_progress": 5,
+    "is_unlocked": true,
+    "risk_level": "Medium"
+  },
+  {
+    "npc_id": "zhao_shouzheng",
+    "display_name": "赵守正",
+    "agent_tier": "B",
+    "story_priority": 3,
+    "age_range": "52",
+    "role": "老警察 / 派出所负责人",
+    "identity_tag": "见过太多小镇秘密的老警察，秩序的最后一道锚",
+    "traits": ["沉稳", "老练", "有底线", "不愿多事"],
+    "backstory_hint": "归潮镇老警察，见过很多小镇不能明说的关系，是许明川的导师，也是镇上秩序的隐形守护者。",
+    "current_location_id": "police_station",
+    "current_location_label": "警局",
+    "current_state": "日常值守、关注新人",
+    "description": "归潮镇老警察，见过很多小镇不能明说的关系。",
+    "schedule": {
+      "Morning": "police_station",
+      "Afternoon": "plaza",
+      "Night": "police_station"
+    },
+    "stats": {
+      "mind": 7,
+      "body": 6,
+      "charm": 5,
+      "faith": 5
+    },
+    "personality": {
+      "kindness": 0.6,
+      "aggression": 0.3,
+      "sensibility": 0.4,
+      "rationality": 0.7,
+      "curiosity": 0.4
+    },
+    "bond_summaries": [
+      {
+        "target_npc_id": "xu_mingchuan",
+        "target_display_name": "许明川",
+        "bond_type": "师徒",
+        "level": 2,
+        "strength": 40
+      }
+    ],
+    "karma_summary": "秩序线：最后的锚",
+    "karma_progress": 5,
+    "is_unlocked": true,
+    "risk_level": "Low"
   }
 ]
