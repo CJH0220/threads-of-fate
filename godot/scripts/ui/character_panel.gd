@@ -2,6 +2,9 @@ extends VBoxContainer
 class_name CharacterPanel
 
 signal chat_requested(npc_id: String, display_name: String)
+## 玩家在角色框点击「托梦」按钮，请求外层弹起托梦文字输入对话框。
+## MainGameUI 会做真正的执行 —— 面板本身不消费神力也不写记忆。
+signal dream_requested(npc_id: String, display_name: String)
 
 @onready var name_label: Label = $Header/HeaderText/NameLabel
 @onready var role_label: Label = $Header/HeaderText/RoleLabel
@@ -13,10 +16,13 @@ signal chat_requested(npc_id: String, display_name: String)
 
 var _npc_id: String = ""
 var _display_name: String = ""
+## 动态添加的托梦按钮（因原 .tscn 里没有节点，运行时注入到 Header 中 chat_button 之前）。
+var _dream_button: Button = null
 
 func _ready() -> void:
 	if chat_button != null:
 		chat_button.pressed.connect(_on_chat_pressed)
+	_ensure_dream_button()
 
 func _on_chat_pressed() -> void:
 	if _npc_id == "":
@@ -33,7 +39,7 @@ func _on_chat_pressed() -> void:
 @onready var bond_container: VBoxContainer = $BondSection/BondContainer
 @onready var karma_label: Label = $KarmaSection/KarmaLabel
 
-func show_character(character: Dictionary, location_label_provider: Callable) -> void:
+func show_character(character: Dictionary, location_label_provider: Callable, dream_ctx: Dictionary = {}) -> void:
 	_npc_id = String(character.get("npc_id", ""))
 	_display_name = String(character.get("display_name", "未知居民"))
 	name_label.text = _display_name
@@ -45,6 +51,7 @@ func show_character(character: Dictionary, location_label_provider: Callable) ->
 		chat_button.disabled = _npc_id == ""
 	_apply_portrait(_npc_id, _display_name)
 	bio_text.text = character.get("description", "暂无简介。")
+	_update_dream_button(dream_ctx)
 
 	var schedule: Dictionary = character.get("schedule", {})
 	morning_location_label.text = location_label_provider.call(schedule.get("Morning", ""))
@@ -151,6 +158,10 @@ func show_empty() -> void:
 	role_label.text = ""
 	if chat_button != null:
 		chat_button.disabled = true
+	if _dream_button != null:
+		_dream_button.disabled = true
+		_dream_button.text = "托梦"
+		_dream_button.tooltip_text = ""
 	if portrait_image != null:
 		portrait_image.texture = null
 		portrait_image.visible = false
@@ -170,3 +181,62 @@ func show_empty() -> void:
 	for child in bond_container.get_children():
 		child.queue_free()
 	karma_label.text = ""
+
+## 惰性创建托梦按钮，插到 ChatButton 之前。
+## dream_ctx 缺失时按钮直接置灰（例如角色为空 / MainGameUI 尚未提供上下文）。
+func _ensure_dream_button() -> void:
+	if _dream_button != null:
+		return
+	if chat_button == null:
+		return
+	var parent := chat_button.get_parent()
+	if parent == null:
+		return
+	_dream_button = Button.new()
+	_dream_button.name = "DreamButton"
+	_dream_button.text = "托梦"
+	_dream_button.disabled = true
+	_dream_button.pressed.connect(_on_dream_pressed)
+	parent.add_child(_dream_button)
+	parent.move_child(_dream_button, chat_button.get_index())
+
+func _on_dream_pressed() -> void:
+	if _npc_id == "":
+		return
+	dream_requested.emit(_npc_id, _display_name)
+
+## 根据当前 game_state 与 npc 状态刷新托梦按钮的可用性与提示。
+## dream_ctx 期望字段：{time_slot: String, divine_power: int, dream_used_today: bool, dream_cost: int}
+func _update_dream_button(dream_ctx: Dictionary) -> void:
+	if _dream_button == null:
+		return
+	if _npc_id == "":
+		_dream_button.disabled = true
+		_dream_button.text = "托梦"
+		_dream_button.tooltip_text = "先选择一位居民"
+		return
+	if dream_ctx.is_empty():
+		_dream_button.disabled = true
+		_dream_button.text = "托梦"
+		_dream_button.tooltip_text = ""
+		return
+	var slot: String = String(dream_ctx.get("time_slot", "Morning"))
+	var used: bool = bool(dream_ctx.get("dream_used_today", false))
+	var power: int = int(dream_ctx.get("divine_power", 0))
+	var cost: int = int(dream_ctx.get("dream_cost", 3))
+	if slot != "Night":
+		_dream_button.disabled = true
+		_dream_button.text = "托梦（限夜）"
+		_dream_button.tooltip_text = "托梦须在夜晚。"
+	elif used:
+		_dream_button.disabled = true
+		_dream_button.text = "托梦（今日已用）"
+		_dream_button.tooltip_text = "今日已托过一梦，明夜再来。"
+	elif power < cost:
+		_dream_button.disabled = true
+		_dream_button.text = "托梦（神力不足）"
+		_dream_button.tooltip_text = "托梦需 %d 点神力，当前 %d 点。" % [cost, power]
+	else:
+		_dream_button.disabled = false
+		_dream_button.text = "托梦 · 神力 %d" % cost
+		_dream_button.tooltip_text = "在梦中写下最多 100 字，向 TA 递去启示。"

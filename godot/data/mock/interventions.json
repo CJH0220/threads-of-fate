@@ -2,7 +2,7 @@
   {
     "intervention_id": "dream_hint",
     "display_name": "托梦",
-    "cost_divine_power": 2,
+    "cost_divine_power": 3,
     "target_type": "Npc",
     "route_bias": "YangOrNeutral",
     "unlock_day": 1,

@@ -7,6 +7,14 @@ class_name MockGameState
 ## 核心功能：资源管理、时间推进、NPC/地点/事件查询、干预执行、结局判定、事件历史。
 
 signal state_changed
+## 单个 NPC 的动态字段（位置/幸福度/记忆等）发生变化时发射，
+## 详情弹窗据此做细粒度刷新，避免整屏重建。
+signal npc_updated(npc_id: String)
+## 事件演出完成并锁定时发射，携带该事件的最终快照（币结果 / 赐福链 / 结局标签）。
+signal event_completed(event_id: String, snapshot: Dictionary)
+
+## 托梦消耗的神力（对齐总策划案 §10.2）。
+const DREAM_COST := 3
 
 const GAME_STATE_PATH := "res://data/mock/game_state.json"
 const CHARACTERS_PATH := "res://data/mock/characters.json"
@@ -71,6 +79,13 @@ var event_history: Array = []
 ## 已应用干预的事件锁定表：event_id -> {intervention_id, display_name}
 ## 每个事件仅可干预一次；命中锁定的事件在 UI 上显示「已干预」并禁用全部干预按钮。
 var _applied_interventions: Dictionary = {}
+## 当天是否已托梦过（每次切到 Morning 时重置）。托梦作用在角色而非事件，故独立于 _applied_interventions。
+var dream_used_today: bool = false
+## 已演出完成的事件集合：event_id -> true。演出结束即锁定，事件卡片显示「回看」。
+var _completed_events: Dictionary = {}
+## 事件演出快照：event_id -> {finished_at, blessings:[{seg_index, bless, coin_result}], summary}
+## 用于回看模式与结算展示。
+var _event_snapshots: Dictionary = {}
 
 func _init() -> void:
 	reset_to_new_game()
@@ -84,6 +99,9 @@ func reset_to_new_game() -> void:
 	interventions = _load_array(INTERVENTIONS_PATH)
 	event_history.clear()
 	_applied_interventions.clear()
+	dream_used_today = false
+	_completed_events.clear()
+	_event_snapshots.clear()
 	state_changed.emit()
 
 func get_event_history() -> Array:
@@ -126,10 +144,17 @@ func get_characters() -> Array:
 	return characters
 
 func get_locations() -> Array:
-	## 依据 characters.current_location 叠加 present_npc_ids / present_npc_names，供 UI 展示头像行。
+	## 依据 characters 的 schedule[当前时段] 叠加 present_npc_ids / present_npc_names，供 UI 展示头像行。
+	## 兼容旧数据：若 schedule 缺失该时段，则回落到静态 current_location_id / current_location。
+	var current_slot: String = String(game_state.get("time_slot", "Morning"))
 	var present_by_loc: Dictionary = {}
 	for character in characters:
-		var loc_id: String = String(character.get("current_location_id", character.get("current_location", "")))
+		var loc_id: String = ""
+		var schedule: Dictionary = character.get("schedule", {})
+		if schedule.has(current_slot):
+			loc_id = String(schedule.get(current_slot, ""))
+		if loc_id == "":
+			loc_id = String(character.get("current_location_id", character.get("current_location", "")))
 		if loc_id == "":
 			continue
 		if not present_by_loc.has(loc_id):
@@ -329,6 +354,8 @@ func advance_time() -> Dictionary:
 		game_state["day"] = min(day + 1, int(game_state.get("max_day", 60)))
 		game_state["time_slot"] = "Morning"
 		game_state["time_slot_label"] = "早上"
+		## 新的一天：托梦额度刷新
+		dream_used_today = false
 		var old_power: int = int(game_state.get("divine_power", 0))
 		var new_power: int = min(old_power + 1, int(game_state.get("divine_power_max", 99)))
 		game_state["divine_power"] = new_power
@@ -526,3 +553,126 @@ func _load_json(path: String) -> Variant:
 	if parsed == null:
 		push_warning("Mock JSON parse failed: %s" % path)
 	return parsed
+
+# ──────────────────────────────────────────
+# 托梦 / 赐福 / 事件锁定（角色维度 + 演出内决策）
+# ──────────────────────────────────────────
+
+## 托梦：仅夜晚可用、每日一次、消耗 DREAM_COST 神力。
+## 语义：只把这条梦写进目标 NPC 的运行时 dream_memories 列表，不直接改 NPC 数值。
+## 返回 {success, summary, resource_delta?, dream_text?}。
+func apply_dream(npc_id: String, dream_text: String) -> Dictionary:
+	var slot: String = String(game_state.get("time_slot", "Morning"))
+	if slot != "Night":
+		return {"success": false, "summary": "托梦须在夜晚。"}
+	if dream_used_today:
+		return {"success": false, "summary": "今日已托过一梦，明夜再来。"}
+	var current_power: int = int(game_state.get("divine_power", 0))
+	if current_power < DREAM_COST:
+		return {"success": false, "summary": "神力不足，托梦需 %d 点神力。" % DREAM_COST}
+	var character: Dictionary = _find_by_id(characters, "npc_id", npc_id)
+	if character.is_empty():
+		return {"success": false, "summary": "找不到这位居民。"}
+
+	var text: String = dream_text.strip_edges()
+	if text.length() > 100:
+		text = text.substr(0, 100)
+
+	## 写入运行时字段（不落回 JSON；重开新局即消失）。
+	var memories: Array = character.get("dream_memories", [])
+	memories.append({
+		"day": int(game_state.get("day", 1)),
+		"time_slot": slot,
+		"text": text,
+	})
+	character["dream_memories"] = memories
+
+	game_state["divine_power"] = current_power - DREAM_COST
+	dream_used_today = true
+	game_state["current_hint"] = "你向 %s 托了一梦。" % String(character.get("display_name", "居民"))
+
+	state_changed.emit()
+	npc_updated.emit(npc_id)
+
+	return {
+		"success": true,
+		"summary": "托梦已入 %s 的梦境。" % String(character.get("display_name", "居民")),
+		"resource_delta": {"divine_power": -DREAM_COST},
+		"dream_text": text,
+	}
+
+## 演出内赐福：在某个 dialogue_segment 上触发。
+## prompt 结构（来自事件脚本）：{purpose, difficulty_text, difficulty_value, cost, success_effect, failure_effect}
+## 返回 {success, blessed, coin_result?, resource_delta?, summary}
+##   - success=false: 神力不足等硬性阻断（对话仍继续，UI 只 toast）
+##   - blessed=false: 玩家选了「不干预」
+##   - blessed=true : 抛硬币，success 字段进 coin_result
+func apply_blessing(event_id: String, seg_index: int, prompt: Dictionary, choice: bool) -> Dictionary:
+	if not choice:
+		_append_blessing_snapshot(event_id, seg_index, false, {})
+		return {"success": true, "blessed": false, "summary": "命运未被打扰。"}
+
+	var cost: int = int(prompt.get("cost", 3))
+	var current_power: int = int(game_state.get("divine_power", 0))
+	if current_power < cost:
+		return {"success": false, "blessed": false, "summary": "神力不足，赐福需 %d 点神力。" % cost}
+
+	var event: Dictionary = _find_by_id(events, "event_id", event_id)
+	var base_coins: int = int(event.get("base_coins", 1))
+	var difficulty: int = int(prompt.get("difficulty_value", event.get("difficulty", 1)))
+	var coin_result: Dictionary = _roll_coins(base_coins, 1, difficulty)
+	var success_label: String = String(prompt.get("success_effect", "命运线出现了微小的偏转。"))
+	var failure_label: String = String(prompt.get("failure_effect", "命运线纹丝不动，赐福未能奏效。"))
+	coin_result["outcome_label"] = success_label if bool(coin_result.get("success", false)) else failure_label
+
+	game_state["divine_power"] = current_power - cost
+	var resource_delta: Dictionary = {"divine_power": -cost}
+	if bool(coin_result.get("success", false)):
+		game_state["yang_de"] = int(game_state.get("yang_de", 0)) + 1
+		resource_delta["yang_de"] = 1
+
+	_append_blessing_snapshot(event_id, seg_index, true, coin_result)
+	state_changed.emit()
+
+	return {
+		"success": true,
+		"blessed": true,
+		"coin_result": coin_result,
+		"resource_delta": resource_delta,
+		"summary": coin_result.get("outcome_label", ""),
+	}
+
+func _append_blessing_snapshot(event_id: String, seg_index: int, blessed: bool, coin_result: Dictionary) -> void:
+	var snap: Dictionary = _event_snapshots.get(event_id, {})
+	var blessings: Array = snap.get("blessings", [])
+	blessings.append({
+		"seg_index": seg_index,
+		"bless": blessed,
+		"coin_result": coin_result,
+	})
+	snap["blessings"] = blessings
+	_event_snapshots[event_id] = snap
+
+## 事件演出结束：标记为已完成并落定最终快照。
+func mark_event_completed(event_id: String, extra_snapshot: Dictionary = {}) -> void:
+	if event_id == "":
+		return
+	if _completed_events.has(event_id):
+		return
+	var snap: Dictionary = _event_snapshots.get(event_id, {})
+	for key in extra_snapshot.keys():
+		snap[key] = extra_snapshot[key]
+	snap["finished_at"] = {
+		"day": int(game_state.get("day", 1)),
+		"time_slot": String(game_state.get("time_slot", "Morning")),
+	}
+	_event_snapshots[event_id] = snap
+	_completed_events[event_id] = true
+	state_changed.emit()
+	event_completed.emit(event_id, snap)
+
+func is_event_completed(event_id: String) -> bool:
+	return _completed_events.has(event_id)
+
+func get_event_snapshot(event_id: String) -> Dictionary:
+	return _event_snapshots.get(event_id, {})

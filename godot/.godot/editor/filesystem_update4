@@ -1,1 +1,8 @@
 res://scenes/main/Main.tscn
+res://scenes/ui/DangerWarningItem.tscn
+res://scenes/ui/MainGameUI.tscn
+res://scripts/adapters/backend_game_state.gd
+res://scripts/adapters/mock_game_state.gd
+res://scripts/ui/danger_warning_item.gd
+res://scripts/ui/main_game_ui.gd
+res://scripts/app/main.gd

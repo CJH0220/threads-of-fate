@@ -284,7 +284,17 @@
     "dialogue_segments": [
       { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "沙滩的下午光线过分明亮，那片黑色显得格外刺眼。" },
       { "speaker_id": "lin_chaoyin", "speaker_name": "林潮音", "line_type": "speech", "position": "left", "pose": 4, "text": "……这不是油。也不是海藻。" },
-      { "speaker_id": "lin_chaoyin", "speaker_name": "林潮音", "line_type": "thought", "position": "left", "pose": 5, "text": "（梦里的海，好像也是这个颜色。）" },
+      {
+        "speaker_id": "lin_chaoyin", "speaker_name": "林潮音", "line_type": "thought", "position": "left", "pose": 5, "text": "（梦里的海，好像也是这个颜色。）",
+        "blessing_prompt": {
+          "purpose": "让潮音相信自己的直觉，把线索带回镇上",
+          "difficulty_text": "梦与实的边界正模糊 · 需求 2 面",
+          "difficulty_value": 2,
+          "cost": 3,
+          "success_effect": "潮音心头一凛，掏出手机记下位置，转身往镇里走。",
+          "failure_effect": "神力散在潮气里，她盯着痕迹看得出了神。"
+        }
+      },
       { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "她蹲下想看得更近一点，风忽然停了一瞬。" }
     ],
     "available_intervention_ids": ["dream_hint", "blessing"],
@@ -316,9 +326,29 @@
     ],
     "dialogue_segments": [
       { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "港口夜里没有人，只有雾灯把栈桥照得半亮不亮。" },
-      { "speaker_id": "chen_haisheng", "speaker_name": "陈海生", "line_type": "speech", "position": "left", "pose": 2, "text": "……你听说过？跑这一趟能顶我半年账本。" },
+      {
+        "speaker_id": "chen_haisheng", "speaker_name": "陈海生", "line_type": "speech", "position": "left", "pose": 2, "text": "……你听说过？跑这一趟能顶我半年账本。",
+        "blessing_prompt": {
+          "purpose": "拨开黑船邀约的诱惑",
+          "difficulty_text": "夜色浓，怨气重 · 需求 2 面",
+          "difficulty_value": 2,
+          "cost": 3,
+          "success_effect": "海生心头忽有一丝清明，压下想问下去的念头。",
+          "failure_effect": "神力散在雾里，海生把那笔账反复算了又算。"
+        }
+      },
       { "speaker_id": "chen_haisheng", "speaker_name": "陈海生", "line_type": "thought", "position": "left", "pose": 4, "text": "（远舟的学费、家里的欠账……我不该心动的。）" },
-      { "speaker_id": "chen_haisheng", "speaker_name": "陈海生", "line_type": "speech", "position": "left", "pose": 3, "text": "让我再想想，就今晚。" },
+      {
+        "speaker_id": "chen_haisheng", "speaker_name": "陈海生", "line_type": "speech", "position": "left", "pose": 3, "text": "让我再想想，就今晚。",
+        "blessing_prompt": {
+          "purpose": "让海生把这一夜留给家",
+          "difficulty_text": "临门一脚 · 需求 2 面",
+          "difficulty_value": 2,
+          "cost": 3,
+          "success_effect": "海生忽然想起远舟前夜说过的一句话，转身朝家走。",
+          "failure_effect": "神力被夜风吹散，海生把船票稳稳收进内袋。"
+        }
+      },
       { "speaker_id": "", "speaker_name": "", "line_type": "narration", "position": "center", "text": "陌生人没多留，把烟头扔进海里，转身消失在雾里。" }
     ],
     "available_intervention_ids": ["dream_hint", "blessing"],

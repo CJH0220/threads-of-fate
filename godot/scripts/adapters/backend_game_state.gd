@@ -10,6 +10,13 @@ class_name BackendGameState
 ##   - 事件历史记录（同 Mock 逻辑）
 
 signal state_changed
+## 单个 NPC 动态字段变化时发射（细粒度刷新用）。
+signal npc_updated(npc_id: String)
+## 事件演出完成并锁定时发射。
+signal event_completed(event_id: String, snapshot: Dictionary)
+
+## 托梦消耗（对齐总策划案 §10.2）
+const DREAM_COST := 3
 
 ## 静态数据文件（与 Mock 共用同一份 JSON，保证内容一致）。
 ## 后端目前只推送动态位置/情绪，静态描述/日程/结局文案等仍来自本地静态资源。
@@ -54,6 +61,13 @@ var _last_advance_result: Dictionary = {}
 ## 已应用干预的事件锁定表：event_id -> {intervention_id, display_name}
 var _applied_interventions: Dictionary = {}
 
+## 当天是否已托梦过（每次切到 Morning / new_day 时重置）
+var dream_used_today: bool = false
+## 已演出完成的事件集合：event_id -> true
+var _completed_events: Dictionary = {}
+## 事件演出快照：event_id -> {finished_at, blessings, summary}
+var _event_snapshots: Dictionary = {}
+
 func _init() -> void:
 	## 连接 Backend 信号
 	Backend.new_game_completed.connect(_on_new_game)
@@ -70,6 +84,9 @@ func _init() -> void:
 	_pending_events.clear()
 	_last_advance_result.clear()
 	_applied_interventions.clear()
+	dream_used_today = false
+	_completed_events.clear()
+	_event_snapshots.clear()
 
 ## 加载静态 JSON（locations/characters/events/interventions），backend 模式复用 Mock 内容。
 func _load_static_data() -> void:
@@ -115,6 +132,9 @@ func _on_load_completed(data: Dictionary) -> void:
 	event_history.clear()
 	_pending_events.clear()
 	_applied_interventions.clear()
+	dream_used_today = false
+	_completed_events.clear()
+	_event_snapshots.clear()
 	state_changed.emit()
 
 ## NPC 对话响应（暂存，供 UI 读取）。
@@ -154,6 +174,9 @@ func _on_new_game(state: Dictionary) -> void:
 	event_history.clear()
 	_last_advance_result.clear()
 	_applied_interventions.clear()
+	dream_used_today = false
+	_completed_events.clear()
+	_event_snapshots.clear()
 	state_changed.emit()
 
 func _on_state_updated(state: Dictionary) -> void:
@@ -263,11 +286,18 @@ func get_characters() -> Array:
 func get_locations() -> Array:
 	## 以静态地点为主干（包含 display_name / description / function / primary_time_slots 等富字段），
 	## 叠加当前 NPC 分布（present_npc_ids / npc_count），生成 Mock 结构一致的列表。
+	## NPC 位置优先取 schedule[当前时段]，缺失时回落到 npc.location / npc.current_location_id。
 	_locations.clear()
+	var current_slot: String = String(_state_cache.get("time_slot", "Morning"))
 	## 先统计每个地点当前有哪些 NPC
 	var present_by_loc: Dictionary = {}
 	for npc in _characters:
-		var loc_id: String = String(npc.get("location", ""))
+		var loc_id: String = ""
+		var schedule: Dictionary = npc.get("schedule", {})
+		if schedule.has(current_slot):
+			loc_id = String(schedule.get(current_slot, ""))
+		if loc_id == "":
+			loc_id = String(npc.get("current_location_id", npc.get("location", "")))
 		if loc_id == "":
 			continue
 		if not present_by_loc.has(loc_id):
@@ -407,6 +437,8 @@ func _mock_advance_time() -> Dictionary:
 		_state_cache["time_slot"] = "Morning"
 		day += 1
 		_state_cache["day"] = day
+		## 新的一天：托梦额度刷新
+		dream_used_today = false
 
 	## 资源变化
 	_state_cache["incense"] = int(_state_cache.get("incense", 100)) + randi_range(-5, 10)
@@ -439,6 +471,9 @@ func _on_time_advanced(data: Dictionary) -> void:
 	## 保留 is_new_day / is_new_week 标记
 	_state_cache["is_new_day"] = bool(data.get("is_new_day", false))
 	_state_cache["is_new_week"] = bool(data.get("is_new_week", false))
+	## 新的一天：托梦额度刷新
+	if bool(data.get("is_new_day", false)):
+		dream_used_today = false
 	## 暂不触发 state_changed，等结算完成后统一刷新
 
 ## 响应事件触发推送（一个时段可能触发多个事件，累积到待处理队列）。
@@ -717,3 +752,138 @@ func evaluate_ending() -> Dictionary:
 ## 检查是否有加载错误（与 Mock API 对齐）。
 func has_load_error() -> bool:
 	return false
+
+# ──────────────────────────────────────────
+# 托梦 / 赐福 / 事件锁定（角色维度 + 演出内决策）
+# 与 MockGameState API 完全对齐，UI 侧鸭子类型互换。
+# ──────────────────────────────────────────
+
+## 托梦：仅夜晚可用、每日一次、消耗 DREAM_COST 神力。
+## 语义：把梦写入目标 NPC 的运行时 dream_memories；真实后端下同时通过 send_intervention
+## 走 dream_hint 通道，让后端把这段文字写入 NPC 记忆库。
+func apply_dream(npc_id: String, dream_text: String) -> Dictionary:
+	var slot: String = String(_state_cache.get("time_slot", "Morning"))
+	if slot != "Night":
+		return {"success": false, "summary": "托梦须在夜晚。"}
+	if dream_used_today:
+		return {"success": false, "summary": "今日已托过一梦，明夜再来。"}
+	var current_power: int = int(_state_cache.get("divine_power", 0))
+	if current_power < DREAM_COST:
+		return {"success": false, "summary": "神力不足，托梦需 %d 点神力。" % DREAM_COST}
+	var character: Dictionary = find_character(npc_id)
+	if character.is_empty():
+		return {"success": false, "summary": "找不到这位居民。"}
+
+	var text: String = dream_text.strip_edges()
+	if text.length() > 100:
+		text = text.substr(0, 100)
+
+	## 前端本地内存：写入运行时 dream_memories
+	var memories: Array = character.get("dream_memories", [])
+	memories.append({
+		"day": int(_state_cache.get("day", 1)),
+		"time_slot": slot,
+		"text": text,
+	})
+	character["dream_memories"] = memories
+	## 同步回缓存
+	for i in range(_characters.size()):
+		if String(_characters[i].get("npc_id", "")) == npc_id:
+			_characters[i]["dream_memories"] = memories
+			break
+
+	_state_cache["divine_power"] = current_power - DREAM_COST
+	dream_used_today = true
+
+	## 真实后端：走 dream_hint 通道把文字写入后端 NPC 记忆库
+	if not Backend.use_mock_fallback:
+		Backend.send_intervention("", "dream_hint", text, [npc_id], {})
+
+	state_changed.emit()
+	npc_updated.emit(npc_id)
+
+	return {
+		"success": true,
+		"summary": "托梦已入 %s 的梦境。" % String(character.get("display_name", "居民")),
+		"resource_delta": {"divine_power": -DREAM_COST},
+		"dream_text": text,
+	}
+
+## 演出内赐福（键点决策）。与 Mock 语义对齐。
+func apply_blessing(event_id: String, seg_index: int, prompt: Dictionary, choice: bool) -> Dictionary:
+	if not choice:
+		_append_blessing_snapshot(event_id, seg_index, false, {})
+		return {"success": true, "blessed": false, "summary": "命运未被打扰。"}
+
+	var cost: int = int(prompt.get("cost", 3))
+	var current_power: int = int(_state_cache.get("divine_power", 0))
+	if current_power < cost:
+		return {"success": false, "blessed": false, "summary": "神力不足，赐福需 %d 点神力。" % cost}
+
+	var base_coins: int = 1
+	for evt in _events:
+		if String(evt.get("event_id", "")) == event_id:
+			base_coins = int(evt.get("base_coins", 1))
+			break
+	var difficulty: int = int(prompt.get("difficulty_value", 1))
+	var coin_result: Dictionary = _roll_coins(base_coins, 1, difficulty)
+	var success_label: String = String(prompt.get("success_effect", "命运线出现了微小的偏转。"))
+	var failure_label: String = String(prompt.get("failure_effect", "命运线纹丝不动，赐福未能奏效。"))
+	coin_result["outcome_label"] = success_label if bool(coin_result.get("success", false)) else failure_label
+
+	_state_cache["divine_power"] = current_power - cost
+	var resource_delta: Dictionary = {"divine_power": -cost}
+	if bool(coin_result.get("success", false)):
+		_state_cache["yang_de"] = int(_state_cache.get("yang_de", 0)) + 1
+		resource_delta["yang_de"] = 1
+
+	_append_blessing_snapshot(event_id, seg_index, true, coin_result)
+
+	## 真实后端：赐福同步走 blessing 通道（后端只需硬币结果，seg_index 是前端快照维度不上报）
+	if not Backend.use_mock_fallback:
+		Backend.send_intervention(event_id, "blessing", "", [], coin_result)
+
+	state_changed.emit()
+
+	return {
+		"success": true,
+		"blessed": true,
+		"coin_result": coin_result,
+		"resource_delta": resource_delta,
+		"summary": coin_result.get("outcome_label", ""),
+	}
+
+func _append_blessing_snapshot(event_id: String, seg_index: int, blessed: bool, coin_result: Dictionary) -> void:
+	var snap: Dictionary = _event_snapshots.get(event_id, {})
+	var blessings: Array = snap.get("blessings", [])
+	blessings.append({
+		"seg_index": seg_index,
+		"bless": blessed,
+		"coin_result": coin_result,
+	})
+	snap["blessings"] = blessings
+	_event_snapshots[event_id] = snap
+
+## 事件演出结束：标记为已完成并落定最终快照。
+func mark_event_completed(event_id: String, extra_snapshot: Dictionary = {}) -> void:
+	if event_id == "":
+		return
+	if _completed_events.has(event_id):
+		return
+	var snap: Dictionary = _event_snapshots.get(event_id, {})
+	for key in extra_snapshot.keys():
+		snap[key] = extra_snapshot[key]
+	snap["finished_at"] = {
+		"day": int(_state_cache.get("day", 1)),
+		"time_slot": String(_state_cache.get("time_slot", "Morning")),
+	}
+	_event_snapshots[event_id] = snap
+	_completed_events[event_id] = true
+	state_changed.emit()
+	event_completed.emit(event_id, snap)
+
+func is_event_completed(event_id: String) -> bool:
+	return _completed_events.has(event_id)
+
+func get_event_snapshot(event_id: String) -> Dictionary:
+	return _event_snapshots.get(event_id, {})

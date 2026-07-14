@@ -5,8 +5,12 @@ extends Control
 ## 特性：逐字打字效果、自动播放、跳过已读、展开对话日志回顾、立绘入场动画
 ## 无障碍：角色区分依靠 位置 / 名字 / 头像首字 / 发言中标记 四重提示，不唯一依赖颜色
 ## Settings 接入：text/typing_speed / text/auto_speed / text/skip_read / accessibility/reduce_motion
+## 关键点决策：dialogue_segments[i] 若含 blessing_prompt，播到此段时暂停并弹出赐福决策对话框。
+## 演出结束时通过 state.mark_event_completed 锁定事件，之后事件面板显示为「回看」。
 
 signal finished()
+
+const BLESSING_DIALOG_SCENE: PackedScene = preload("res://scenes/ui/BlessingDecisionDialog.tscn")
 
 ## 对话分段类型：角色正常说话
 const TYPE_SPEECH := "speech"
@@ -121,6 +125,19 @@ var _history: Array = []
 var _slot_pos := {}   # position -> {"id":..., "name":..., "pose":int}
 var _slot_current_pose := {"left": 0, "right": 0}   # 已加载的姿态号，避免每句都重设纹理
 
+## 关键点决策所需上下文：
+## - _event_id / _state：由 open() 注入；state 为 MockGameState / BackendGameState 之一。
+## - _blessing_dialog：惰性实例化的赐福决策弹窗；同一场演出复用。
+## - _awaiting_blessing：正处于「等待玩家在弹窗做决定」的状态，屏蔽 _advance/_unhandled_input。
+## - _blessed_segments：本场演出已处理过赐福决策的段落 index 集合，避免同段重复触发。
+## - _dialog_signal_bound：跟踪 blessing_dialog.blessing_decided 是否已连接，避免二次连接。
+var _event_id: String = ""
+var _state: RefCounted = null
+var _blessing_dialog: Control = null
+var _awaiting_blessing: bool = false
+var _blessed_segments: Dictionary = {}
+var _dialog_signal_bound: bool = false
+
 func _ready() -> void:
 	visible = false
 	expand_button.pressed.connect(_toggle_log)
@@ -130,7 +147,11 @@ func _ready() -> void:
 	log_close_button.pressed.connect(_toggle_log)
 	auto_timer.timeout.connect(_on_auto_timeout)
 
-func open(event: Dictionary) -> void:
+func open(event: Dictionary, state: RefCounted = null) -> void:
+	_event_id = String(event.get("event_id", ""))
+	_state = state
+	_blessed_segments.clear()
+	_awaiting_blessing = false
 	_segments = _build_segments(event)
 	if _segments.is_empty():
 		_segments = [{
@@ -307,11 +328,18 @@ func _on_line_complete() -> void:
 	var last := _index >= _segments.size() - 1
 	continue_hint.text = "▼ 点击结束" if last else "▼ 点击 / 空格 继续"
 	continue_hint.visible = true
+	## 关键点决策：若当前段落含 blessing_prompt，此段完成后暂停并弹赐福对话框。
+	## _awaiting_blessing 期间 _advance / 自动播放 / 键盘输入都被屏蔽。
+	if _maybe_open_blessing_prompt():
+		auto_timer.stop()
+		return
 	if _auto:
 		auto_timer.start(AUTO_WAIT.get(_auto_speed(), 1.5))
 
 func _advance() -> void:
 	if log_panel.visible:
+		return
+	if _awaiting_blessing:
 		return
 	auto_timer.stop()
 	if _typing:
@@ -380,6 +408,9 @@ func _on_auto_timeout() -> void:
 func _finish() -> void:
 	auto_timer.stop()
 	_typing = false
+	## 演出结束：把事件锁定为已完成（重复调用无副作用）。
+	if _state != null and _event_id != "" and _state.has_method("mark_event_completed"):
+		_state.mark_event_completed(_event_id, {})
 	if not _reduce_motion():
 		_slot_exit_tween(slot_left)
 		_slot_exit_tween(slot_right)
@@ -412,6 +443,8 @@ func _reduce_motion() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
+	if _awaiting_blessing:
+		return
 	if event.is_action_pressed("ui_cancel"):
 		if log_panel.visible:
 			_toggle_log()
@@ -425,6 +458,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	# 根节点 mouse_filter=STOP，拦截点击避免穿透到背后的 HUD；空白处点击=推进。
+	if _awaiting_blessing:
+		return
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_advance()
 		accept_event()
@@ -526,3 +561,65 @@ func _auto_speed() -> int:
 
 func _event_font_size() -> int:
 	return FONT_SIZE.get(int(Settings.get_value("text", "event_font_size")), 22)
+
+# ──────────────────────────────────────────
+# 关键点决策（赐福）
+# ──────────────────────────────────────────
+
+## 检查当前段落是否含 blessing_prompt；若含且未处理过，弹出决策对话框并返回 true。
+func _maybe_open_blessing_prompt() -> bool:
+	if _state == null or _event_id == "":
+		return false
+	if _index >= _segments.size():
+		return false
+	if _blessed_segments.has(_index):
+		return false
+	var seg: Dictionary = _segments[_index]
+	var prompt: Variant = seg.get("blessing_prompt", null)
+	if prompt == null or typeof(prompt) != TYPE_DICTIONARY:
+		return false
+	## 已完成事件的回看模式：跳过赐福对话，仅提示历史结果。
+	if _state.has_method("is_event_completed") and _state.is_event_completed(_event_id):
+		_blessed_segments[_index] = true
+		return false
+	_ensure_blessing_dialog()
+	if _blessing_dialog == null:
+		return false
+	var divine_power: int = 0
+	if _state.has_method("get_game_state"):
+		var gs: Dictionary = _state.get_game_state()
+		divine_power = int(gs.get("divine_power", 0))
+	_awaiting_blessing = true
+	continue_hint.visible = false
+	_blessing_dialog.call("open", prompt, divine_power)
+	return true
+
+func _ensure_blessing_dialog() -> void:
+	if _blessing_dialog != null:
+		return
+	_blessing_dialog = BLESSING_DIALOG_SCENE.instantiate()
+	add_child(_blessing_dialog)
+	if not _dialog_signal_bound:
+		_blessing_dialog.connect("blessing_decided", _on_blessing_decided)
+		_dialog_signal_bound = true
+
+func _on_blessing_decided(bless: bool) -> void:
+	if not _awaiting_blessing:
+		return
+	_awaiting_blessing = false
+	_blessed_segments[_index] = true
+	var seg: Dictionary = _segments[_index]
+	var prompt: Dictionary = seg.get("blessing_prompt", {})
+	if _state != null and _state.has_method("apply_blessing"):
+		var result: Dictionary = _state.apply_blessing(_event_id, _index, prompt, bless)
+		## 神力不足等硬性阻断：把提示追加到当前对话下方（不阻塞剧情推进）
+		if not bool(result.get("success", false)):
+			continue_hint.text = String(result.get("summary", "无法赐福。"))
+			continue_hint.visible = true
+	## 决策完成 → 恢复播放。
+	if _auto:
+		auto_timer.start(AUTO_WAIT.get(_auto_speed(), 1.5))
+	else:
+		var last := _index >= _segments.size() - 1
+		continue_hint.text = "▼ 点击结束" if last else "▼ 点击 / 空格 继续"
+		continue_hint.visible = true

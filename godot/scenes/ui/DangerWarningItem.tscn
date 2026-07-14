@@ -4,23 +4,22 @@
 
 [node name="DangerWarningItem" type="PanelContainer"]
 mouse_filter = 0
+size_flags_vertical = 4
 script = ExtResource("1_script")
 
 [node name="Content" type="HBoxContainer" parent="."]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="IconLabel" type="Label" parent="Content"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 13
 text = "⚠"
 
 [node name="TextLabel" type="Label" parent="Content"]
 layout_mode = 2
 mouse_filter = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
-autowrap_mode = 3
+theme_override_font_sizes/font_size = 12
 text = "危险提示"

@@ -48,8 +48,8 @@ const VIEW_EVENTS := "events"
 @onready var context_hint: Label = $Root/BottomPanel/BottomContent/ContextTitleRow/ContextHint
 ## 通用详情弹窗（NPC/地点/事件）
 @onready var detail_popup: Control = $DetailPopup
-## 地图上方：危险事件警告条容器
-@onready var danger_warnings: VBoxContainer = $Root/MainArea/MapContent/DangerWarnings
+## 地图上方：危险事件警告条容器（横向紧凑筹码）
+@onready var danger_warnings: HBoxContainer = $Root/MainArea/MapContent/DangerWarnings
 ## 确认对话框：未查看危险事件仍要推进时间
 @onready var danger_confirm: ConfirmationDialog = $DangerConfirm
 ## 确认对话框：消耗神力执行干预
@@ -85,12 +85,14 @@ var current_detail_panel: Control
 var location_tiles: Array = []
 ## 已查看的危险事件 ID 集合（避免重复警告）
 var viewed_danger_event_ids: Dictionary = {}
-## 待确认干预的事件 ID
-var _pending_intervention_event_id := ""
-## 待确认干预的干预 ID
-var _pending_intervention_id := ""
-## 待确认干预携带的托梦文字（若非托梦则为空）
-var _pending_dream_text := ""
+## 当前打开的详情弹窗类型："" | "character" | "event"
+var _open_popup_kind := ""
+## 当前打开的详情弹窗目标 ID（npc_id 或 event_id）
+var _open_popup_target_id := ""
+## 待确认托梦的目标 NPC ID（角色框托梦入口发起）
+var _pending_dream_npc_id := ""
+## 待确认托梦的目标 NPC 显示名
+var _pending_dream_display_name := ""
 ## 时间推进防重入标记
 var _advancing := false
 
@@ -106,9 +108,9 @@ func _ready() -> void:
 	menu_button.pressed.connect(func() -> void: menu_confirm.popup_centered())
 	menu_confirm.confirmed.connect(func() -> void: return_to_menu_requested.emit())
 	danger_confirm.confirmed.connect(_do_advance_time)
-	intervention_confirm.confirmed.connect(_on_intervention_confirmed)
 	dream_text_dialog.connect("confirmed", _on_dream_text_confirmed)
 	dream_text_dialog.connect("cancelled", _on_dream_text_cancelled)
+	detail_popup.connect("closed", _on_detail_popup_closed)
 	bond_view.character_selected.connect(_on_view_character_selected)
 	destiny_view.character_selected.connect(_on_view_character_selected)
 	destiny_view.ending_requested.connect(_on_view_ending_requested)
@@ -122,6 +124,10 @@ func _ready() -> void:
 func bind_state(next_state: RefCounted) -> void:
 	state = next_state
 	state.state_changed.connect(_refresh)
+	if state.has_signal("npc_updated") and not state.is_connected("npc_updated", _on_state_npc_updated):
+		state.connect("npc_updated", _on_state_npc_updated)
+	if state.has_signal("event_completed") and not state.is_connected("event_completed", _on_state_event_completed):
+		state.connect("event_completed", _on_state_event_completed)
 	_refresh()
 
 func _refresh() -> void:
@@ -242,8 +248,8 @@ func _refresh_danger_warnings() -> void:
 func _danger_message(event: Dictionary, viewed: bool) -> String:
 	var location_label: String = String(event.get("location_label", "镇上某处"))
 	if viewed:
-		return "%s 的危险征兆已查看" % location_label
-	return "%s 出现危险征兆，建议尽快查看" % location_label
+		return "%s 已阅" % location_label
+	return location_label
 
 func _on_danger_warning_clicked(event_id: String, _location_id: String) -> void:
 	viewed_danger_event_ids[event_id] = true
@@ -296,12 +302,40 @@ func _show_character_popup(character_id: String) -> void:
 	if character.is_empty():
 		return
 
+	_open_popup_kind = "character"
+	_open_popup_target_id = character_id
 	detail_popup.call("show_popup", "人物详情")
 	var panel: Control = CHARACTER_PANEL_SCENE.instantiate()
 	detail_popup.call("add_child_node", panel)
-	panel.call("show_character", character, Callable(func(location_id: String) -> String: return state.get_location_label(location_id)))
+	var dream_ctx: Dictionary = _build_dream_ctx()
+	panel.call(
+		"show_character",
+		character,
+		Callable(func(location_id: String) -> String: return state.get_location_label(location_id)),
+		dream_ctx,
+	)
 	if panel.has_signal("chat_requested"):
 		panel.connect("chat_requested", _on_character_chat_requested)
+	if panel.has_signal("dream_requested"):
+		panel.connect("dream_requested", _on_character_dream_requested)
+
+## 构造 CharacterPanel 需要的托梦上下文。dream_cost 与 mock/interventions.json 保持一致。
+func _build_dream_ctx() -> Dictionary:
+	if state == null:
+		return {}
+	var game_dict: Dictionary = state.get_game_state()
+	var dream_cost: int = 3
+	if "DREAM_COST" in state:
+		dream_cost = int(state.DREAM_COST)
+	var used_today: bool = false
+	if "dream_used_today" in state:
+		used_today = bool(state.dream_used_today)
+	return {
+		"time_slot": String(game_dict.get("time_slot", "Morning")),
+		"divine_power": int(game_dict.get("divine_power", 0)),
+		"dream_used_today": used_today,
+		"dream_cost": dream_cost,
+	}
 
 func _on_character_chat_requested(npc_id: String, display_name: String) -> void:
 	if npc_id == "":
@@ -311,6 +345,8 @@ func _on_character_chat_requested(npc_id: String, display_name: String) -> void:
 		toast_requested.emit("离线模式无法呼唤 %s。" % display_name)
 		return
 	detail_popup.call("hide_popup")
+	_open_popup_kind = ""
+	_open_popup_target_id = ""
 	var game_state: Dictionary = state.get_game_state()
 	var day: int = int(game_state.get("day", 1))
 	npc_chat_dialog.call("open", npc_id, display_name, day)
@@ -355,7 +391,8 @@ func _show_events() -> void:
 		var location_id: String = String(event.get("location_id", ""))
 		var location_label: String = String(event.get("location_label", state.get_location_label(location_id)))
 		var risk: String = String(event.get("risk_level", "Low"))
-		var card := _make_event_card(event_id, event_name, location_id, location_label, risk, event_id == selected_event_id)
+		var is_completed: bool = state.has_method("is_event_completed") and state.is_event_completed(event_id)
+		var card := _make_event_card(event_id, event_name, location_id, location_label, risk, event_id == selected_event_id, is_completed)
 		context_list.add_child(card)
 
 func _select_event(event_id: String) -> void:
@@ -372,20 +409,20 @@ func _show_event_popup(event_id: String) -> void:
 		viewed_danger_event_ids[event_id] = true
 		_refresh_danger_warnings()
 
+	_open_popup_kind = "event"
+	_open_popup_target_id = event_id
 	detail_popup.call("show_popup", "事件详情")
 	var panel: Control = EVENT_PANEL_SCENE.instantiate()
 	detail_popup.call("add_child_node", panel)
 
-	var event_interventions: Array = state.get_interventions_for_event(event)
-	var game_dict: Dictionary = state.get_game_state()
-	var divine_power: int = int(game_dict.get("divine_power", 0))
-	var applied: Dictionary = {}
-	if state.has_method("get_applied_intervention"):
-		applied = state.get_applied_intervention(event_id)
+	var is_completed: bool = false
+	if state.has_method("is_event_completed"):
+		is_completed = bool(state.is_event_completed(event_id))
+	var snapshot: Dictionary = {}
+	if state.has_method("get_event_snapshot"):
+		snapshot = state.get_event_snapshot(event_id)
 
-	panel.call("show_event", event, event_interventions, divine_power, applied)
-	if panel.has_signal("intervention_applied") and not panel.intervention_applied.is_connected(_on_intervention_applied):
-		panel.intervention_applied.connect(_on_intervention_applied)
+	panel.call("show_event", event, is_completed, snapshot)
 	if panel.has_signal("enter_requested") and not panel.enter_requested.is_connected(_on_event_enter_requested):
 		panel.enter_requested.connect(_on_event_enter_requested)
 
@@ -394,9 +431,11 @@ func _on_event_enter_requested(event_id: String) -> void:
 	if event.is_empty():
 		return
 	detail_popup.call("hide_popup")
+	_open_popup_kind = ""
+	_open_popup_target_id = ""
 	if not dialogue_event_screen.finished.is_connected(_on_dialogue_finished):
 		dialogue_event_screen.finished.connect(_on_dialogue_finished)
-	dialogue_event_screen.open(event)
+	dialogue_event_screen.open(event, state)
 
 func _on_dialogue_finished() -> void:
 	# 演出结束后回到事件详情，保留干预入口。
@@ -505,15 +544,20 @@ func _make_character_card(npc_id: String, display_name: String, role_text: Strin
 	return button
 
 ## 事件卡片：地点图标 + 事件名 + 地点标签 + 风险等级色标。
-func _make_event_card(event_id: String, event_name: String, location_id: String, location_label: String, risk: String, is_selected: bool) -> Control:
+## is_completed=true 时降饱和度并把风险标签替换为「✓ 已完成」。
+func _make_event_card(event_id: String, event_name: String, location_id: String, location_label: String, risk: String, is_selected: bool, is_completed: bool = false) -> Control:
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(CARD_EVENT_W, CARD_EVENT_H)
-	button.tooltip_text = "%s · %s · %s" % [event_name, location_label, risk]
+	var tooltip_suffix: String = "  · 已演出" if is_completed else ""
+	button.tooltip_text = "%s · %s · %s%s" % [event_name, location_label, risk, tooltip_suffix]
 	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_stylebox_override("normal", _make_card_style(is_selected, _risk_border_color(risk)))
-	button.add_theme_stylebox_override("hover", _make_card_style(true, _risk_border_color(risk)))
-	button.add_theme_stylebox_override("pressed", _make_card_style(true, _risk_border_color(risk)))
-	button.add_theme_stylebox_override("focus", _make_card_style(is_selected, _risk_border_color(risk)))
+	var border: Color = Color(0.55, 0.72, 0.6, 1) if is_completed else _risk_border_color(risk)
+	button.add_theme_stylebox_override("normal", _make_card_style(is_selected, border))
+	button.add_theme_stylebox_override("hover", _make_card_style(true, border))
+	button.add_theme_stylebox_override("pressed", _make_card_style(true, border))
+	button.add_theme_stylebox_override("focus", _make_card_style(is_selected, border))
+	if is_completed:
+		button.modulate = Color(0.78, 0.82, 0.85, 1)
 
 	var vbox := VBoxContainer.new()
 	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -554,9 +598,13 @@ func _make_event_card(event_id: String, event_name: String, location_id: String,
 	meta_row.add_child(loc_label)
 
 	var risk_label := Label.new()
-	risk_label.text = risk
+	if is_completed:
+		risk_label.text = "✓ 已完成"
+		risk_label.add_theme_color_override("font_color", Color(0.6, 0.85, 0.7, 1))
+	else:
+		risk_label.text = risk
+		risk_label.add_theme_color_override("font_color", _risk_border_color(risk))
 	risk_label.add_theme_font_size_override("font_size", 11)
-	risk_label.add_theme_color_override("font_color", _risk_border_color(risk))
 	risk_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	meta_row.add_child(risk_label)
 	vbox.add_child(meta_row)
@@ -632,86 +680,53 @@ func _events_at_location(location_id: String) -> Array:
 			result.append(event)
 	return result
 
-func _find_intervention(event: Dictionary, intervention_id: String) -> Dictionary:
-	for intervention in state.get_interventions_for_event(event):
-		if String(intervention.get("intervention_id", "")) == intervention_id:
-			return intervention
-	return {}
-
-func _on_intervention_applied(event_id: String, intervention_id: String) -> void:
-	var event: Dictionary = _find_event(event_id)
-	if event.is_empty():
+func _on_character_dream_requested(npc_id: String, display_name: String) -> void:
+	if npc_id == "":
 		return
-	_pending_intervention_event_id = event_id
-	_pending_intervention_id = intervention_id
-	_pending_dream_text = ""
-	if intervention_id == "dream_hint":
-		var target_label: String = String(event.get("event_name", ""))
-		dream_text_dialog.call("open", target_label)
-		return
-	_show_intervention_confirm(event, intervention_id)
-
-func _show_intervention_confirm(event: Dictionary, intervention_id: String) -> void:
-	var intervention: Dictionary = _find_intervention(event, intervention_id)
-	var display_name: String = String(intervention.get("display_name", "干预"))
-	var cost: int = int(intervention.get("cost_divine_power", 0))
-	var extra: String = ""
-	if intervention_id == "dream_hint" and _pending_dream_text != "":
-		extra = "\n托梦内容：%s" % _pending_dream_text
-	intervention_confirm.dialog_text = "确认消耗 %d 点神力进行【%s】吗？\n命运只会被轻推，结果未必如愿。%s" % [cost, display_name, extra]
-	intervention_confirm.popup_centered()
+	_pending_dream_npc_id = npc_id
+	_pending_dream_display_name = display_name
+	dream_text_dialog.call("open", display_name)
 
 func _on_dream_text_confirmed(dream_text: String) -> void:
-	_pending_dream_text = dream_text
-	var event: Dictionary = _find_event(_pending_intervention_event_id)
-	if event.is_empty():
-		_pending_intervention_event_id = ""
-		_pending_intervention_id = ""
-		_pending_dream_text = ""
+	var npc_id: String = _pending_dream_npc_id
+	var display_name: String = _pending_dream_display_name
+	_pending_dream_npc_id = ""
+	_pending_dream_display_name = ""
+	if npc_id == "":
 		return
-	_show_intervention_confirm(event, _pending_intervention_id)
+	if not state.has_method("apply_dream"):
+		toast_requested.emit("此适配器暂不支持托梦。")
+		return
+	var result: Dictionary = state.apply_dream(npc_id, dream_text)
+	if bool(result.get("success", false)):
+		var summary: String = String(result.get("summary", "梦已递出。"))
+		toast_requested.emit("托梦 · %s：%s" % [display_name, summary])
+	else:
+		toast_requested.emit(String(result.get("summary", "托梦未能奏效。")))
 
 func _on_dream_text_cancelled() -> void:
-	_pending_intervention_event_id = ""
-	_pending_intervention_id = ""
-	_pending_dream_text = ""
+	_pending_dream_npc_id = ""
+	_pending_dream_display_name = ""
 
-func _on_intervention_confirmed() -> void:
-	var event_id: String = _pending_intervention_event_id
-	var intervention_id: String = _pending_intervention_id
-	var dream_text: String = _pending_dream_text
-	_pending_intervention_event_id = ""
-	_pending_intervention_id = ""
-	_pending_dream_text = ""
-	if event_id == "" or intervention_id == "":
-		return
+## 详情弹窗关闭时清空跟踪状态，供 npc_updated / event_completed 判断是否需要刷新。
+func _on_detail_popup_closed() -> void:
+	_open_popup_kind = ""
+	_open_popup_target_id = ""
 
-	detail_popup.call("hide_popup")
-	var context: Dictionary = {}
-	if dream_text != "":
-		context["dream_text"] = dream_text
-	var result: Dictionary = state.apply_intervention(event_id, intervention_id, context)
-	if bool(result.get("success", false)):
-		var event: Dictionary = _find_event(event_id)
-		var event_name: String = String(event.get("event_name", "未知事件") if not event.is_empty() else "未知事件")
-		var coin_result: Dictionary = result.get("coin_result", {})
-		var outcome_label: String = String(coin_result.get("outcome_label", "已干预"))
-		var event_change: Dictionary = {
-			"event_name": event_name,
-			"outcome": outcome_label
-		}
-		var settlement_data: Dictionary = {
-			"title": "干预结算",
-			"summary": result.get("summary", "命运线产生了变化。"),
-			"resource_delta": result.get("resource_delta", {}),
-			"character_changes": [],
-			"event_changes": [event_change],
-			"coin_result": coin_result,
-			"dream_text": dream_text
-		}
-		settlement_requested.emit(settlement_data)
-	else:
-		toast_requested.emit(result.get("summary", "干预失败。"))
+## 角色数据发生变化：若当前弹窗正显示该角色，则重建面板以刷新头像/羁绊/托梦状态。
+func _on_state_npc_updated(npc_id: String) -> void:
+	if _open_popup_kind == "character" and _open_popup_target_id == npc_id:
+		_show_character_popup(npc_id)
+
+## 事件演出完成：刷新事件卡列表 + 若弹窗正显示该事件则重建为回看态；给一条提示。
+func _on_state_event_completed(event_id: String, _snapshot: Dictionary) -> void:
+	var event: Dictionary = _find_event(event_id)
+	var event_name: String = String(event.get("event_name", "该事件") if not event.is_empty() else "该事件")
+	toast_requested.emit("%s · 演出已定" % event_name)
+	if active_view == VIEW_EVENTS:
+		_show_events()
+	if _open_popup_kind == "event" and _open_popup_target_id == event_id:
+		_show_event_popup(event_id)
 
 func _advance_time() -> void:
 	var unviewed: Array = _unviewed_danger_events()

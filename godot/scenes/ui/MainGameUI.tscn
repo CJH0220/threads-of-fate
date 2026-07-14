@@ -124,9 +124,10 @@ theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
 theme_override_font_sizes/font_size = 13
 text = "拖拽移动 · 点击地点查看详情"
 
-[node name="DangerWarnings" type="VBoxContainer" parent="Root/MainArea/MapContent"]
+[node name="DangerWarnings" type="HBoxContainer" parent="Root/MainArea/MapContent"]
 layout_mode = 2
-theme_override_constants/separation = 4
+custom_minimum_size = Vector2(0, 28)
+theme_override_constants/separation = 6
 
 [node name="MapScroll" type="ScrollContainer" parent="Root/MainArea/MapContent"]
 layout_mode = 2

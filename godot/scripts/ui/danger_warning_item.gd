@@ -26,9 +26,12 @@ func _on_gui_input(event: InputEvent) -> void:
 
 func _make_style(viewed: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(8)
-	style.set_border_width_all(2)
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	style.set_border_width_all(1)
 	if viewed:
 		style.bg_color = Color(0.16, 0.18, 0.16, 0.9)
 		style.border_color = Color(0.4, 0.55, 0.4, 1.0)
