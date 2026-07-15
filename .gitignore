@@ -83,6 +83,28 @@ $RECYCLE.BIN/
 # =========== LFS CACHED FILES (just in case) ===========
 .git/lfs/objects/*
 
+# =========== PYTHON ===========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+
+# =========== GODOT ===========
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+*.translation
+
 # =========== LOCAL CONFIGURATION ===========
 # 团队成员可以在此添加本地特定忽略项
 # 如：本地测试文件、临时导出等
