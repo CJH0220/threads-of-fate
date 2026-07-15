@@ -60,6 +60,7 @@ const INTRO_DATA := {
 ## true = 使用真实后端（BackendGameState），false = 使用本地 Mock（MockGameState）
 const USE_BACKEND := true
 
+
 ## 当前游戏状态实例（基类，兼容 MockGameState 与 BackendGameState）
 var game_state
 ## 当前屏幕（主菜单或 HUD）

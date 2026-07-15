@@ -71,6 +71,18 @@
 | **WebSocket 通道** | WebSocket | 持久双向连接 `/ws/game`：时间推进结算、事件流、NPC 行动推送 |
 | **流式推送** | Streaming Push | 时段推进后逐条发送结算消息（time_advanced → event_triggered → npc_action → settlement_complete），而非一次性返回 |
 
+## 剧情大纲与编剧
+
+| 术语 | 英文 | 定义 |
+|------|------|------|
+| **剧情大纲** | Story Outline | 编剧 Agent 的核心输入。以"节拍表"替代旧 CSV 的"时刻表"，描述每段故事要讲什么，但不限定具体时间地点 |
+| **故事弧线** | Story Arc | 跨越数周的叙事线（如邪教渗透线、巫女线），包含一组有序节拍 |
+| **叙事节拍** | Story Beat | 弧线内的单个叙事节点。包含 `what_must_happen`（叙事内容）、`latest_by`（最晚触发时间）、`outcomes`（结果分支） |
+| **编剧 Agent** | Screenwriter Agent | 替代旧 `match_events()` 的 AI 编排器。读取大纲 + NPC 意图 → 放行/软引导/硬编排 → 生成事件 |
+| **软引导** | Soft Guidance | 编剧 Agent 通过 `agent.remember()` 向 NPC 注入暗示记忆，NPC 下次 `think()` 自主决定是否采纳。不破坏 NPC 自主性 |
+| **硬编排** | Hard Orchestration | 编剧 Agent 直接调用 `agent.dynamic.set_location()` 移动 NPC，仅在锚点事件或 `latest_by` 即将到期时使用 |
+| **调性约束** | Tone Rule | 全局叙事规则（如"夜晚优先悬疑""每周至少 2 个多人社交场景"），注入编剧 Agent 的 system prompt |
+
 ## 系统模块
 
 | 术语 | 英文 | 定义 |
