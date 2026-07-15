@@ -6,13 +6,14 @@ It's the unit of save/load: to_dict() serializes everything, from_dict() rebuild
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict
 
 from src.backend.engine.time import TimeState
 from src.backend.engine.resource import ResourceState
 from src.backend.engine.bond import BondManager
 from src.backend.engine.karma import KarmaManager
+from src.backend.engine.story import StoryState
 from src.backend.ai.npc_agent.manager import AgentManager
 
 
@@ -28,6 +29,7 @@ class GameSession:
     agents: AgentManager
     bonds: BondManager
     karma: KarmaManager
+    story: StoryState = field(default_factory=StoryState)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize all modules to a single dict."""
@@ -37,6 +39,7 @@ class GameSession:
             "agents": self.agents.to_dict(),
             "bonds": self.bonds.to_dict(),
             "karma": self.karma.to_dict(),
+            "story": self.story.to_dict(),
         }
 
     @classmethod
@@ -56,6 +59,7 @@ class GameSession:
         bonds.register_npcs([n.id for n in npcs])
 
         karma = KarmaManager.from_dict(data.get("karma", {}))
+        story = StoryState.from_dict(data.get("story", {}))
 
         # Rebuild name_map for each agent (lost during serialization)
         name_map = {aid: agent.static.name for aid, agent in agents._agents.items()}
@@ -69,4 +73,5 @@ class GameSession:
             agents=agents,
             bonds=bonds,
             karma=karma,
+            story=story,
         )

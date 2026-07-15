@@ -22,6 +22,8 @@ from src.backend.server.state import (
     get_session, init_session, load_session, is_initialized,
 )
 from src.backend.engine.event import load_events, match_events, execute_events
+from src.backend.engine.story import load_story_outline
+from src.backend.ai.screenwriter import screenwriter_think
 from src.backend.ai.narrator.narrator import generate_narrator_beat
 
 router = APIRouter()
@@ -95,7 +97,7 @@ async def ws_game(ws: WebSocket):
 # ═══════════════════════════════════════════════════
 
 async def _handle_advance_time(ws: WebSocket, request_id: str):
-    """推进一个时段：时间 → 事件 → 结算 → NPC行动。"""
+    """推进一个时段：时间 → NPC思考 → 编剧编排 → 事件结算 → 旁白。"""
     if not is_initialized():
         await _send(ws, "error", {"message": "游戏未初始化"}, request_id)
         return
@@ -122,35 +124,93 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
     if result.is_new_day:
         session.resource.apply_daily()
 
-    # 3. 周结算（由编排器根据 is_new_week 处理，这里先跳过）
+    # 3. NPC 行为决策（S/A 级并发）—— 移到事件匹配之前
+    await _send(ws, "npc_actions_start", {}, request_id)
 
-    # 4. 事件匹配 + 执行
+    npc_intentions: list = []  # [(npc_id, name, action_text, location), ...]
+
+    async def _think_and_collect(agent):
+        if agent.static.tier.value in ("S", "A"):
+            action = await agent.think(result.day, result.slot)
+            return (agent.npc_id, agent.name, action,
+                    agent.dynamic.current.location.value)
+        return None
+
+    tasks = [_think_and_collect(session.agents.get(aid))
+             for aid in session.agents.npc_ids]
+    completed = await asyncio.gather(*tasks)
+
+    for item in completed:
+        if item is None:
+            continue
+        npc_id, name, action, loc = item
+        npc_intentions.append((npc_id, name, action or "", loc))
+        await _send(ws, "npc_action", {
+            "npc_id": npc_id, "npc_name": name, "action": action,
+        }, request_id)
+
+    # 4. 编剧 Agent：大纲驱动的叙事编排
+    outline = load_story_outline()
+    screenwriter_llm = None
+    for aid in session.agents.npc_ids:
+        agent = session.agents.get(aid)
+        if agent and agent.static.tier.value == "S":
+            screenwriter_llm = agent.llm
+            break
+
+    screenwriter_ok, beat_events = await screenwriter_think(
+        session=session,
+        story_outline=outline,
+        day=result.day,
+        slot=result.slot,
+        week=result.week,
+        phase_name=result.phase_name,
+        npc_intentions=npc_intentions,
+        llm=screenwriter_llm,
+    )
+
+    # 5. CSV 事件匹配（补充/兜底）
     locs = {}
     for aid in session.agents.npc_ids:
         agent = session.agents.get(aid)
         if agent:
             locs[aid] = agent.dynamic.current.location.value
-    # C 级 NPC
     locs.update({
         "heaven_messenger": "temple", "tudi_gong": "temple",
         "underworld_messenger": "temple", "town_representative": "plaza",
     })
 
-    matched = match_events(events, day=result.day, slot=result.slot,
-                           week=result.week, participant_locations=locs)
+    csv_matched = match_events(events, day=result.day, slot=result.slot,
+                               week=result.week, participant_locations=locs)
 
-    if matched:
-        # Build id → name map for participant_names field
+    # Merge: screenwriter beat events first, then CSV events (deduped by event_id)
+    max_total = outline.global_constraints.max_events_per_slot if outline else 3
+    # Build dedup set: both beat_id and any CSV event_id the beat references
+    beat_event_ids: set = {e[0].id for e in beat_events}
+    if outline:
+        for e, _ in beat_events:
+            for beat in outline.all_beats():
+                if beat.id == e.id and beat.event_id:
+                    beat_event_ids.add(beat.event_id)
+    all_matched: list = list(beat_events)
+
+    for csv_pair in csv_matched:
+        if len(all_matched) >= max_total:
+            break
+        if csv_pair[0].id not in beat_event_ids:
+            all_matched.append(csv_pair)
+
+    # 6. 执行事件
+    if all_matched:
         id_name_map: dict = {}
         for aid in session.agents.npc_ids:
             ag = session.agents.get(aid)
             if ag:
                 id_name_map[aid] = ag.name
 
-        settlement = execute_events(matched, session.resource, session.agents,
+        settlement = execute_events(all_matched, session.resource, session.agents,
                                     day=result.day, slot=result.slot)
-        # Zip matched (event, outcome) with settlement to enrich participants + location
-        for (evt_template, _outcome), r in zip(matched, settlement):
+        for (evt_template, _outcome), r in zip(all_matched, settlement):
             participants_ids = list(evt_template.participants or [])
             participants_names = [id_name_map.get(pid, pid) for pid in participants_ids]
             location_id = getattr(evt_template, "location", "") or ""
@@ -169,38 +229,13 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                 "description": getattr(evt_template, "description", ""),
             }, request_id)
 
-            # 应用缘线
             if r.bond_changes:
                 delta_parts = [f"bond_{k}:{v:+d}" for k, v in r.bond_changes.items()]
                 session.bonds.apply_delta(";".join(delta_parts))
 
-            # 应用业线
             if r.karma_changes:
                 delta_parts = [f"{k}:{v:+d}" for k, v in r.karma_changes.items()]
                 session.karma.apply_delta(";".join(delta_parts))
-
-    # 5. NPC 行为决策（S/A 级并发，流式返回）
-    await _send(ws, "npc_actions_start", {}, request_id)
-
-    async def _think_and_send(agent):
-        if agent.static.tier.value in ("S", "A"):
-            action = await agent.think(result.day, result.slot)
-            return (agent.npc_id, agent.name, action)
-        return None
-
-    tasks = [_think_and_send(session.agents.get(aid))
-             for aid in session.agents.npc_ids]
-    completed = await asyncio.gather(*tasks)
-
-    for item in completed:
-        if item is None:
-            continue
-        npc_id, name, action = item
-        await _send(ws, "npc_action", {
-            "npc_id": npc_id,
-            "npc_name": name,
-            "action": action,
-        }, request_id)
 
     await _send(ws, "settlement_complete", {
         "day": result.day,
@@ -212,7 +247,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
         },
     }, request_id)
 
-    # 6. 故事编排 Agent：夜晚时生成一段旁白（土地公视角），异步不阻塞。
+    # 7. 夜间旁白（土地公视角）
     if result.slot.value == "night":
         try:
             recent_actions = [it for it in completed if it]
@@ -221,7 +256,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                 day=result.day,
                 slot=result.slot.value,
                 recent_actions=recent_actions,
-                llm=session.agents.get(session.agents.npc_ids[0]).llm if session.agents.npc_ids else None,
+                llm=screenwriter_llm,
             )
             if beat:
                 await _send(ws, "narrator_beat", {

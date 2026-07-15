@@ -33,13 +33,13 @@ _SYSTEM_PROMPT = (
 
 
 def _summarize_actions(recent_actions: List[Tuple[str, str, str]]) -> str:
-    """把 (npc_id, name, action) 列表压成一段简述。"""
+    """把 (npc_id, name, action, ...) 列表压成一段简述。"""
     if not recent_actions:
         return "镇上今日无事，众人各安其位。"
     lines: List[str] = []
     for item in recent_actions[:6]:
         try:
-            _npc_id, name, action = item
+            _npc_id, name, action, *_ = item  # tuple may have 3 or 4 elements
         except (TypeError, ValueError):
             continue
         action_str = (action or "").strip().replace("\n", " ")

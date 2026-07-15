@@ -1,0 +1,237 @@
+{
+  "version": "1.0",
+  "game_days": 60,
+  "weeks": 9,
+
+  "arcs": [
+    {
+      "id": "intro_arc",
+      "name": "归潮镇引入",
+      "description": "土地公接受天界考核、发现地府诱惑，玩家学习基础操作并认识核心镇民。",
+      "weeks": "W1",
+      "priority": 0,
+      "key_npcs": ["lin_chaoyin", "chen_yuanzhou", "chen_haisheng"],
+      "ending_condition": "所有 W1 anchor beat 触发完成",
+      "beats": [
+        {
+          "id": "intro_heaven_notice",
+          "name": "天界绩效通知",
+          "type": "anchor",
+          "event_id": "intro_heaven_notice",
+          "earliest_day": 1,
+          "latest_day": 1,
+          "preferred_slot": "morning",
+          "preferred_location_hint": "temple",
+          "participants": ["heaven_messenger", "tudi_gong"],
+          "what_must_happen": "天庭使者向土地公送达60天绩效考核通知，告知香火目标100和命运织线器",
+          "narrative_goal": "开场引入核心玩法：60天考核压力 + 命运织线器界面"
+        },
+        {
+          "id": "intro_underworld_whisper",
+          "name": "地府低语诱惑",
+          "type": "anchor",
+          "event_id": "intro_underworld_whisper",
+          "earliest_day": 1,
+          "latest_day": 1,
+          "preferred_slot": "night",
+          "preferred_location_hint": "temple",
+          "participants": ["underworld_messenger", "tudi_gong"],
+          "what_must_happen": "地府使者诱惑土地公走阴德路线，暗示可以通过操控命运来达成目标",
+          "narrative_goal": "引入阴德路线选择，建立'正神 vs 邪神'的核心张力"
+        },
+        {
+          "id": "w1_first_week_summary",
+          "name": "第一次周结算",
+          "type": "anchor",
+          "event_id": "w1_first_week_summary",
+          "earliest_day": 7,
+          "latest_day": 7,
+          "preferred_slot": "night",
+          "preferred_location_hint": "temple",
+          "participants": [],
+          "what_must_happen": "第1周结束，展示香火、神力、阳德、阴德变化，玩家第一次看到周结算面板",
+          "narrative_goal": "教学：周结算机制"
+        },
+        {
+          "id": "chaoyin_yuanzhou_cafe",
+          "name": "潮音远舟咖啡馆日常",
+          "type": "opportunity",
+          "event_id": "w1_chaoyin_study",
+          "earliest_day": 1,
+          "latest_day": 7,
+          "preferred_slot": "afternoon",
+          "preferred_location_hint": "coffee_shop",
+          "participants": ["lin_chaoyin", "chen_yuanzhou"],
+          "what_must_happen": "林潮音与陈远舟在咖啡馆一起复习，展现两人的亲密关系和学习日常",
+          "narrative_goal": "建立青春线：潮音-远舟关系的日常基础"
+        },
+        {
+          "id": "chenhai_beach_routine",
+          "name": "陈海生海滩日常",
+          "type": "opportunity",
+          "event_id": "w1_fisher_net_repair",
+          "earliest_day": 1,
+          "latest_day": 7,
+          "preferred_slot": "morning",
+          "preferred_location_hint": "beach",
+          "participants": ["chen_haisheng"],
+          "what_must_happen": "陈海生在海滩修补渔网，展现他作为底层劳动者的日常艰辛",
+          "narrative_goal": "建立陈海生角色：底层劳动者形象，为后续怨气线铺垫"
+        },
+        {
+          "id": "clinic_intro",
+          "name": "诊所义诊引入",
+          "type": "opportunity",
+          "event_id": "w1_clinic_visit",
+          "earliest_day": 1,
+          "latest_day": 7,
+          "preferred_slot": "morning",
+          "preferred_location_hint": "clinic",
+          "participants": ["jiang_xueyi", "xu_qing"],
+          "what_must_happen": "江雪仪在诊所提供义诊，许晴帮忙，展现诊所的日常运作",
+          "narrative_goal": "建立诊所线：江雪仪-许晴关系"
+        }
+      ]
+    },
+    {
+      "id": "outsider_arc",
+      "name": "外来者入潮",
+      "description": "顾沉舟偷渡上岛、江雪仪接手诊所，外来势力开始渗透归潮镇。",
+      "weeks": "W2",
+      "priority": 0,
+      "key_npcs": ["gu_chenzhou", "jiang_xueyi", "he_laosan", "zhou_xingzhi"],
+      "ending_condition": "所有 W2 anchor beat 触发完成",
+      "beats": [
+        {
+          "id": "gus_cult_arrive",
+          "name": "顾沉舟偷渡上岛",
+          "type": "anchor",
+          "event_id": "w2_gus_cult_arrive",
+          "earliest_day": 8,
+          "latest_day": 8,
+          "preferred_slot": "night",
+          "preferred_location_hint": "port",
+          "participants": ["gu_chenzhou", "he_laosan"],
+          "what_must_happen": "顾沉舟通过何老三的灰色通道偷渡上岛，建立游客伪装身份",
+          "narrative_goal": "引入反派：顾沉舟正式入场，邪教渗透线启动"
+        },
+        {
+          "id": "doctor_arrive",
+          "name": "江雪仪接手诊所",
+          "type": "anchor",
+          "event_id": "w2_doctor_arrive",
+          "earliest_day": 9,
+          "latest_day": 9,
+          "preferred_slot": "morning",
+          "preferred_location_hint": "clinic",
+          "participants": ["jiang_xueyi", "xu_mingchuan"],
+          "what_must_happen": "江雪仪正式接手归潮镇诊所，凭借医术快速获得岛民信任",
+          "narrative_goal": "引入医疗线：江雪仪的双重身份（医生+邪教协助者）"
+        },
+        {
+          "id": "port_anomaly",
+          "name": "港口异常事件",
+          "type": "anchor",
+          "event_id": "w2_port_anomaly",
+          "earliest_day": 11,
+          "latest_day": 11,
+          "preferred_slot": "night",
+          "preferred_location_hint": "port",
+          "participants": ["zhou_xingzhi", "he_laosan"],
+          "what_must_happen": "周行知在港口发现异常渡口记录和可疑物资，获得调查线索",
+          "narrative_goal": "启动调查线：周行知的记者直觉发现第一块拼图"
+        },
+        {
+          "id": "gus_approach_chenhai",
+          "name": "顾沉舟接触陈海生",
+          "type": "key",
+          "event_id": "w2_gus_approach_chenhai",
+          "earliest_day": 12,
+          "latest_day": 14,
+          "preferred_slot": "night",
+          "preferred_location_hint": "port",
+          "participants": ["gu_chenzhou", "chen_haisheng"],
+          "what_must_happen": "顾沉舟以'底层劳动者'身份接触陈海生，煽动他对生活的不满",
+          "narrative_goal": "建立顾沉舟-陈海生怨气连接，为邪教转化埋下伏笔"
+        }
+      ]
+    },
+    {
+      "id": "daily_life_arc",
+      "name": "小镇日常",
+      "description": "归潮镇居民的日常生活，补充气氛和人际关系细节。不强制触发，编剧 Agent 根据 NPC 位置和调性规则灵活安排。",
+      "weeks": "W1-W3",
+      "priority": 2,
+      "key_npcs": [],
+      "ending_condition": "",
+      "beats": [
+        {
+          "id": "keke_gossip",
+          "name": "可可店内八卦",
+          "type": "opportunity",
+          "event_id": "w1_keke_gossip",
+          "earliest_day": 1,
+          "latest_day": 7,
+          "preferred_slot": "afternoon",
+          "preferred_location_hint": "coffee_shop",
+          "participants": ["ye_keke", "lin_chaoyin", "chen_yuanzhou"],
+          "what_must_happen": "叶可可在咖啡店与顾客闲聊，传播小镇八卦",
+          "narrative_goal": "气氛烘托：咖啡店作为信息枢纽"
+        },
+        {
+          "id": "temple_concern",
+          "name": "寺庙香火不足",
+          "type": "opportunity",
+          "event_id": "w1_temple_concern",
+          "earliest_day": 3,
+          "latest_day": 5,
+          "preferred_slot": "morning",
+          "preferred_location_hint": "temple",
+          "participants": ["huiyuan", "lin_yueqin"],
+          "what_must_happen": "慧圆发现寺庙香火收入不足，开始暗中克扣",
+          "narrative_goal": "铺垫寺庙腐败线"
+        }
+      ]
+    }
+  ],
+
+  "standalone_beats": [],
+
+  "tone_rules": [
+    {
+      "id": "multi_npc_social",
+      "description": "每周至少产生2个涉及3人以上的多人社交场景，保持小镇的活力和信息流动",
+      "applies_to": "weekly",
+      "min_occurrence": 2
+    },
+    {
+      "id": "night_tone",
+      "description": "夜晚时段优先推进悬疑、阴暗或情感冲突剧情，避免纯日常。悬疑类事件权重在夜晚翻倍",
+      "applies_to": "slot:night",
+      "weight_modifier": 2.0
+    },
+    {
+      "id": "morning_routine",
+      "description": "早晨时段优先安排角色日常和职业活动（修网、诊所、学校），建立生活节奏感",
+      "applies_to": "slot:morning"
+    },
+    {
+      "id": "weekend_light",
+      "description": "每周第6-7天可适当增加轻松日常，减少高风险事件（风险上限 Medium）",
+      "applies_to": "day",
+      "risk_cap": "Medium"
+    },
+    {
+      "id": "no_info_dump",
+      "description": "每个时段最多触发1个纯信息揭示类事件，避免连续灌输信息",
+      "applies_to": "slot",
+      "max_occurrence": 1
+    }
+  ],
+
+  "global_constraints": {
+    "max_events_per_slot": 3,
+    "max_events_per_npc_per_day": 2,
+    "anchor_priority_over_npc_intent": true
+  }
+}
