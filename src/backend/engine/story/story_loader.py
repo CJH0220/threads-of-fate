@@ -196,3 +196,41 @@ def clear_cache() -> None:
     """Clear cached outline (for testing)."""
     global _CACHED_OUTLINE
     _CACHED_OUTLINE = None
+
+
+# ── Event templates (即兴日常事件) ──
+
+_TEMPLATES_JSON = os.path.join(_design_data_dir(), "event_templates.json")
+_CACHED_TEMPLATES: Optional[dict] = None
+
+
+def load_event_templates(path: Optional[str] = None) -> dict:
+    """Load event templates for spontaneous daily events.
+
+    Returns a dict with keys: "templates" (list), "composition_rules" (dict).
+    Returns empty dict on failure.
+    """
+    global _CACHED_TEMPLATES
+    if _CACHED_TEMPLATES is not None:
+        return _CACHED_TEMPLATES
+
+    path = path or _TEMPLATES_JSON
+    if not os.path.exists(path):
+        print(f"[story_loader] Event templates not found: {path}")
+        return {}
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[story_loader] Failed to read templates: {e}")
+        return {}
+
+    _CACHED_TEMPLATES = data
+    print(f"[story_loader] Loaded {len(data.get('templates', []))} event templates")
+    return data
+
+
+def clear_template_cache() -> None:
+    global _CACHED_TEMPLATES
+    _CACHED_TEMPLATES = None

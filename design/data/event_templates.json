@@ -1,0 +1,101 @@
+{
+  "version": "1.0",
+  "description": "即兴日常事件模板。编剧 Agent 根据 NPC 实时状态选择模板并填充细节。",
+
+  "templates": [
+    {
+      "id": "chance_encounter",
+      "name": "偶遇",
+      "min_participants": 2,
+      "max_participants": 3,
+      "requires_bond": true,
+      "tone": "neutral",
+      "delta_budget": {
+        "bond": { "min": 0, "max": 2 },
+        "happiness": { "min": 0, "max": 1 }
+      },
+      "pattern": "在 {location}，{name_a} 恰好遇到 {name_b}，{detail}。两人简短交流后各自继续。",
+      "narrative_purpose": "维持小镇的人际网络感，让有缘线的 NPC 保持互动"
+    },
+    {
+      "id": "idle_chat",
+      "name": "闲聊",
+      "min_participants": 2,
+      "max_participants": 4,
+      "requires_bond": false,
+      "tone": "neutral",
+      "delta_budget": {
+        "bond": { "min": 0, "max": 1 },
+        "happiness": { "min": 0, "max": 0 }
+      },
+      "pattern": "{location}里，{name_a} 和 {others} 聊起了{topic}。{detail}。",
+      "narrative_purpose": "信息流动和气氛烘托，让小镇有生活气息"
+    },
+    {
+      "id": "minor_conflict",
+      "name": "小摩擦",
+      "min_participants": 2,
+      "max_participants": 2,
+      "requires_bond": true,
+      "tone": "tense",
+      "delta_budget": {
+        "bond": { "min": -3, "max": -1 },
+        "happiness": { "min": -3, "max": -1 }
+      },
+      "pattern": "在 {location}，{name_a} 因为 {reason} 与 {name_b} 发生了口角。{detail}。",
+      "narrative_purpose": "制造小型戏剧张力，为后续关键事件铺垫情绪基础"
+    },
+    {
+      "id": "mutual_help",
+      "name": "互助",
+      "min_participants": 2,
+      "max_participants": 2,
+      "requires_bond": true,
+      "tone": "warm",
+      "delta_budget": {
+        "bond": { "min": 1, "max": 3 },
+        "happiness": { "min": 1, "max": 2 }
+      },
+      "pattern": "{name_a} 在 {location} 遇到了困难——{problem}。{name_b} 主动出手相助，{detail}。",
+      "narrative_purpose": "强化正向关系，提供温暖的叙事节拍平衡紧张感"
+    },
+    {
+      "id": "solitude_reflection",
+      "name": "独处",
+      "min_participants": 1,
+      "max_participants": 1,
+      "requires_bond": false,
+      "tone": "neutral",
+      "delta_budget": {
+        "bond": { "min": 0, "max": 0 },
+        "happiness": { "min": -1, "max": 1 }
+      },
+      "pattern": "{name_a} 独自在 {location}，{action}。{detail}。",
+      "narrative_purpose": "展现角色的内心世界，给高压力 NPC 喘息空间"
+    },
+    {
+      "id": "discovery",
+      "name": "发现线索",
+      "min_participants": 1,
+      "max_participants": 2,
+      "requires_bond": false,
+      "tone": "mysterious",
+      "delta_budget": {
+        "bond": { "min": 0, "max": 1 },
+        "happiness": { "min": 0, "max": 0 }
+      },
+      "pattern": "在 {location}，{name_a} 意外注意到 {clue}。{detail}。",
+      "narrative_purpose": "推进调查线和悬疑氛围，为侦探线提供碎片线索"
+    }
+  ],
+
+  "composition_rules": {
+    "max_spontaneous_per_slot": 2,
+    "no_same_template_consecutive": true,
+    "forbidden_with_anchor": ["idle_chat", "solitude_reflection"],
+    "night_allowed_only": ["solitude_reflection", "discovery", "minor_conflict"],
+    "morning_preferred": ["idle_chat", "mutual_help", "solitude_reflection"],
+    "total_daily_bond_cap": 5,
+    "total_daily_happiness_cap": 3
+  }
+}

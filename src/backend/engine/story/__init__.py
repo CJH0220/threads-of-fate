@@ -21,7 +21,7 @@ from src.backend.engine.story.story_types import (
     ToneRule,
     TriggeredBeat,
 )
-from src.backend.engine.story.story_loader import load_story_outline
+from src.backend.engine.story.story_loader import load_event_templates, load_story_outline
 
 __all__ = [
     "GlobalConstraints",
@@ -35,4 +35,5 @@ __all__ = [
     "ToneRule",
     "TriggeredBeat",
     "load_story_outline",
+    "load_event_templates",
 ]

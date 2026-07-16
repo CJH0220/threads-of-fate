@@ -31,6 +31,8 @@ from src.backend.ai.screenwriter.prompts import (
     SYSTEM_PROMPT,
     build_user_prompt,
     format_beats_for_system_prompt,
+    format_composition_rules_for_system_prompt,
+    format_templates_for_system_prompt,
     format_tone_rules_for_system_prompt,
 )
 from src.backend.models.npc import Slot
@@ -53,6 +55,7 @@ async def screenwriter_think(
     phase_name: str,
     npc_intentions: List[Tuple[str, str, str, str]],
     llm: Optional["BaseLLMClient"] = None,
+    templates: Optional[dict] = None,
 ) -> Tuple[bool, List[Tuple[EventTemplate, Outcome]]]:
     """Run the Screenwriter Agent for one time slot.
 
@@ -65,10 +68,11 @@ async def screenwriter_think(
         phase_name: week phase name for atmosphere
         npc_intentions: [(npc_id, name, action_text, location), ...]
         llm: LLM client (None → fallback)
+        templates: event templates dict for spontaneous daily events
 
     Returns:
         (ok, events): ok=False means caller should fall back to CSV matching.
-        events list may be empty even when ok=True (no beats triggered this slot).
+        events list may be empty even when ok=True.
     """
     # Guard: no outline or no LLM → fallback
     if story_outline is None or llm is None:
@@ -85,13 +89,21 @@ async def screenwriter_think(
         eligible_beats, set(session.story.triggered_beats.keys()), day=day
     )
     tone_text = format_tone_rules_for_system_prompt(story_outline.tone_rules)
+    template_text = format_templates_for_system_prompt(templates) if templates else ""
+    comp_rules_text = format_composition_rules_for_system_prompt(templates) if templates else ""
     resource_summary = _summarize_resource(session)
     max_events = story_outline.global_constraints.max_events_per_slot
+    max_spontaneous = (
+        templates.get("composition_rules", {}).get("max_spontaneous_per_slot", 2)
+        if templates else 2
+    )
 
     system_prompt = SYSTEM_PROMPT.format(
         beat_descriptions=beat_descriptions,
+        template_descriptions=template_text,
         tone_rules_text=tone_text,
         max_events=max_events,
+        max_spontaneous=max_spontaneous,
     )
 
     user_prompt = build_user_prompt(
@@ -136,15 +148,31 @@ async def screenwriter_think(
     triggered = decisions.get("triggered_beats", [])
     beat_events = _build_events_from_beats(triggered, story_outline, session)
 
-    # 8. Update StoryState
+    # 8. Build spontaneous events from LLM output
+    spontaneous_raw = decisions.get("spontaneous_events", [])
+    spontaneous_events = _build_spontaneous_events(
+        spontaneous_raw, templates, session, day, slot
+    )
+
+    # 9. Merge: beat events first, then spontaneous, capped by max_events
+    all_events: List[Tuple[EventTemplate, Outcome]] = list(beat_events)
+    remaining = max_events - len(all_events)
+    for se in spontaneous_events:
+        if remaining <= 0:
+            break
+        all_events.append(se)
+        remaining -= 1
+
+    # 10. Update StoryState
     _update_story_state(session.story, triggered, story_outline, day, slot)
     _recalculate_arc_progress(session.story, story_outline)
 
-    if beat_events:
+    if all_events:
         print(f"[screenwriter] day={day} slot={slot.value}: "
-              f"{len(interventions)} interventions, {len(beat_events)} events triggered")
+              f"{len(interventions)} interventions, {len(beat_events)} beats, "
+              f"{len(spontaneous_events)} spontaneous → {len(all_events)} total")
 
-    return True, beat_events
+    return True, all_events
 
 
 # ═══════════════════════════════════════════════════
@@ -437,6 +465,162 @@ def _recalculate_arc_progress(state: StoryState, outline: StoryOutline) -> None:
             1 for b in arc.beats if b.id in state.triggered_beats
         )
         state.arc_progress[arc.id] = triggered / len(arc.beats)
+
+
+# ═══════════════════════════════════════════════════
+# Spontaneous events
+# ═══════════════════════════════════════════════════
+
+def _build_spontaneous_events(
+    spontaneous_raw: List[Dict[str, Any]],
+    templates: Optional[dict],
+    session: "GameSession",
+    day: int,
+    slot: Slot,
+) -> List[Tuple[EventTemplate, Outcome]]:
+    """Validate and build EventTemplate+Outcome from LLM spontaneous events."""
+    if not spontaneous_raw or not templates:
+        return []
+
+    tmpl_list = templates.get("templates", [])
+    rules = templates.get("composition_rules", {})
+    if not tmpl_list:
+        return []
+
+    tmpl_by_id = {t["id"]: t for t in tmpl_list}
+    result: List[Tuple[EventTemplate, Outcome]] = []
+    used_ids: set = set()
+
+    for raw in spontaneous_raw:
+        tid = _safe_str(raw.get("template_id"))
+        template = tmpl_by_id.get(tid)
+        if template is None:
+            print(f"[screenwriter] WARNING: unknown template_id '{tid}'")
+            continue
+
+        # Validate participants
+        participants = raw.get("participants", [])
+        if not isinstance(participants, list):
+            participants = []
+        n = len(participants)
+        if n < template.get("min_participants", 0) or n > template.get("max_participants", 99):
+            print(f"[screenwriter] WARNING: template '{tid}' requires "
+                  f"{template['min_participants']}-{template['max_participants']} "
+                  f"participants, got {n}")
+            continue
+
+        # Check all participants are valid NPCs
+        valid_ids = {a for a in session.agents.npc_ids}
+        if not all(p in valid_ids for p in participants):
+            print(f"[screenwriter] WARNING: unknown NPC in participants: {participants}")
+            continue
+
+        # Composition rules: no same template consecutive
+        if rules.get("no_same_template_consecutive"):
+            if tid in used_ids:
+                continue  # Skip duplicate, not an error
+
+        # Composition rules: night restriction
+        if slot == Slot.NIGHT:
+            allowed = rules.get("night_allowed_only", [])
+            if allowed and tid not in allowed:
+                print(f"[screenwriter] WARNING: template '{tid}' not allowed at night")
+                continue
+
+        # Validate delta budget
+        outcome_raw = raw.get("outcome", {}) or {}
+        db = template.get("delta_budget", {})
+
+        bond_delta = _validate_bond_delta(
+            outcome_raw.get("bond_delta", {}), db.get("bond", {}), participants
+        )
+        happiness_delta = _validate_happiness_delta(
+            outcome_raw.get("happiness_delta", {}), db.get("happiness", {})
+        )
+
+        # Build EventTemplate
+        location = _safe_str(raw.get("location"))
+        detail = _safe_str(raw.get("detail"), "一切如常")
+        pattern = template.get("pattern", "")
+
+        # Build description from pattern + detail
+        name_map = {a: session.agents.get(a).name if session.agents.get(a) else a
+                    for a in participants}
+        others = "、".join([name_map.get(p, p) for p in participants[1:]])
+        description = pattern.replace("{location}", location or "某处") \
+            .replace("{name_a}", name_map.get(participants[0], participants[0]) if participants else "某人") \
+            .replace("{name_b}", name_map.get(participants[1], participants[1]) if len(participants) > 1 else "旁人") \
+            .replace("{others}", others) \
+            .replace("{detail}", detail)
+
+        # Convert happiness_delta to npc_state_delta format
+        npc_state_delta = {}
+        for npc_id, val in happiness_delta.items():
+            npc_state_delta[npc_id] = {"happiness": val}
+
+        outcome = Outcome(
+            id=f"spon_{tid}_{day}_{slot.value}",
+            event_id=f"spontaneous_{tid}",
+            name=template.get("name", "日常"),
+            trigger_condition="default",
+            bond_delta=bond_delta,
+            npc_state_delta=npc_state_delta,
+            description=description,
+        )
+
+        template_evt = EventTemplate(
+            id=f"spontaneous_{tid}_{len(result)}",
+            name=template.get("name", "日常事件"),
+            event_type="Daily",
+            week_range="",
+            day_range="",
+            time_slot=slot.value,
+            location=location,
+            participants=list(participants),
+            weight=1,
+            risk_level="Low",
+            ai_text_policy="DialogueAllowed",
+            description=description,
+        )
+
+        result.append((template_evt, outcome))
+        used_ids.add(tid)
+
+    return result
+
+
+def _validate_bond_delta(
+    raw: dict, budget: dict, participants: List[str]
+) -> Dict[str, int]:
+    """Validate bond delta is within template budget."""
+    result: Dict[str, int] = {}
+    if not raw or not budget:
+        return result
+    lo = int(budget.get("min", 0))
+    hi = int(budget.get("max", 0))
+    for key, val in raw.items():
+        v = int(val)
+        if lo <= v <= hi:
+            result[str(key)] = v
+        else:
+            print(f"[screenwriter] WARNING: bond delta {key}:{v} outside budget [{lo},{hi}]")
+    return result
+
+
+def _validate_happiness_delta(raw: dict, budget: dict) -> Dict[str, int]:
+    """Validate happiness delta is within template budget."""
+    result: Dict[str, int] = {}
+    if not raw or not budget:
+        return result
+    lo = int(budget.get("min", 0))
+    hi = int(budget.get("max", 0))
+    for key, val in raw.items():
+        v = int(val)
+        if lo <= v <= hi:
+            result[str(key)] = v
+        else:
+            print(f"[screenwriter] WARNING: happiness delta {key}:{v} outside budget [{lo},{hi}]")
+    return result
 
 
 # ═══════════════════════════════════════════════════

@@ -453,7 +453,156 @@ class TestScreenwriterIntegration:
             )
         ok, events = asyncio.run(_run())
         assert not ok
+
+
+# ═══════════════════════════════════════════════════
+# Event template loading
+# ═══════════════════════════════════════════════════
+
+class TestTemplateLoading:
+    """Event template JSON loading and validation."""
+
+    def test_load_templates(self):
+        from src.backend.engine.story.story_loader import load_event_templates, clear_template_cache
+        clear_template_cache()
+        data = load_event_templates()
+        assert "templates" in data
+        assert len(data["templates"]) == 6
+        ids = {t["id"] for t in data["templates"]}
+        assert "chance_encounter" in ids
+        assert "idle_chat" in ids
+
+    def test_template_structure(self):
+        from src.backend.engine.story.story_loader import load_event_templates, clear_template_cache
+        clear_template_cache()
+        data = load_event_templates()
+        for t in data["templates"]:
+            assert "id" in t and "name" in t
+            assert "min_participants" in t and "max_participants" in t
+            assert "delta_budget" in t
+            db = t["delta_budget"]
+            assert "bond" in db and "happiness" in db
+
+
+# ═══════════════════════════════════════════════════
+# Spontaneous event building
+# ═══════════════════════════════════════════════════
+
+class TestSpontaneousEvents:
+    """Validation and building of spontaneous events."""
+
+    @staticmethod
+    def _templates():
+        from src.backend.engine.story.story_loader import load_event_templates, clear_template_cache
+        clear_template_cache()
+        return load_event_templates()
+
+    @staticmethod
+    def _session():
+        class S:
+            class Agents:
+                npc_ids = ["lin_chaoyin", "chen_yuanzhou", "chen_haisheng"]
+
+                def get(self, nid):
+                    return type("x", (), {"name": {"lin_chaoyin": "林潮音",
+                        "chen_yuanzhou": "陈远舟", "chen_haisheng": "陈海生"}.get(nid, "?")})() if nid in self.npc_ids else None
+            agents = Agents()
+        return S()
+
+    def test_build_valid_chance_encounter(self):
+        from src.backend.ai.screenwriter.screenwriter import _build_spontaneous_events
+        from src.backend.models.npc import Slot
+        raw = [{"template_id": "chance_encounter", "participants": ["lin_chaoyin", "chen_yuanzhou"],
+                 "location": "cafe", "detail": "两人相视一笑", "outcome": {"bond_delta": {"bond_chaoyin_yuanzhou": 2}}}]
+        events = _build_spontaneous_events(raw, self._templates(), self._session(), 5, Slot.NOON)
+        assert len(events) == 1
+        assert events[0][1].bond_delta == {"bond_chaoyin_yuanzhou": 2}
+
+    def test_rejects_unknown_template(self):
+        from src.backend.ai.screenwriter.screenwriter import _build_spontaneous_events
+        from src.backend.models.npc import Slot
+        raw = [{"template_id": "nonexistent", "participants": ["a"], "location": "x", "detail": "x", "outcome": {}}]
+        events = _build_spontaneous_events(raw, self._templates(), self._session(), 5, Slot.NOON)
         assert events == []
+
+    def test_rejects_wrong_participant_count(self):
+        from src.backend.ai.screenwriter.screenwriter import _build_spontaneous_events
+        from src.backend.models.npc import Slot
+        raw = [{"template_id": "solitude_reflection", "participants": ["lin_chaoyin", "chen_yuanzhou"],
+                 "location": "beach", "detail": "x", "outcome": {}}]
+        events = _build_spontaneous_events(raw, self._templates(), self._session(), 5, Slot.NOON)
+        assert events == []
+
+    def test_rejects_unknown_npc(self):
+        from src.backend.ai.screenwriter.screenwriter import _build_spontaneous_events
+        from src.backend.models.npc import Slot
+        raw = [{"template_id": "chance_encounter", "participants": ["fake_npc", "lin_chaoyin"],
+                 "location": "cafe", "detail": "test", "outcome": {}}]
+        events = _build_spontaneous_events(raw, self._templates(), self._session(), 5, Slot.NOON)
+        assert events == []
+
+    def test_night_rejects_daytime_templates(self):
+        from src.backend.ai.screenwriter.screenwriter import _build_spontaneous_events
+        from src.backend.models.npc import Slot
+        raw = [{"template_id": "idle_chat", "participants": ["lin_chaoyin", "chen_yuanzhou"],
+                 "location": "cafe", "detail": "chatting", "outcome": {}}]
+        events = _build_spontaneous_events(raw, self._templates(), self._session(), 5, Slot.NIGHT)
+        assert events == []
+
+    def test_night_allows_discovery(self):
+        from src.backend.ai.screenwriter.screenwriter import _build_spontaneous_events
+        from src.backend.models.npc import Slot
+        raw = [{"template_id": "discovery", "participants": ["chen_haisheng"],
+                 "location": "port", "detail": "noticed a strange boat", "outcome": {}}]
+        events = _build_spontaneous_events(raw, self._templates(), self._session(), 5, Slot.NIGHT)
+        assert len(events) == 1
+
+    def test_delta_out_of_budget_rejected(self):
+        from src.backend.ai.screenwriter.screenwriter import _build_spontaneous_events
+        from src.backend.models.npc import Slot
+        raw = [{"template_id": "chance_encounter", "participants": ["lin_chaoyin", "chen_yuanzhou"],
+                 "location": "cafe", "detail": "test",
+                 "outcome": {"bond_delta": {"bond_a_b": 999}, "happiness_delta": {"lin_chaoyin": 50}}}]
+        events = _build_spontaneous_events(raw, self._templates(), self._session(), 5, Slot.NOON)
+        assert len(events) == 1
+        o = events[0][1]
+        assert "bond_a_b" not in o.bond_delta  # 999 > 2 budget, rejected
+        assert o.npc_state_delta == {}  # 50 > 1 budget, rejected
+
+
+class TestScreenwriterIntegration:
+    """Full screenwriter_think flow with controlled LLM responses."""
+
+    @pytest.fixture
+    def mock_llm(self):
+        class MockLLM:
+            def __init__(self, response):
+                self._response = response
+            async def chat(self, messages, **kwargs):
+                return self._response
+            async def is_available(self):
+                return True
+        return MockLLM
+
+    @pytest.fixture
+    def mock_session(self):
+        from src.backend.engine.resource import ResourceState
+
+        class MockAgents:
+            def __init__(self):
+                self._agents = {}
+            def get(self, npc_id):
+                return self._agents.get(npc_id)
+            @property
+            def npc_ids(self):
+                return list(self._agents.keys())
+
+        class MockSession:
+            def __init__(self):
+                self.resource = ResourceState()
+                self.agents = MockAgents()
+                self.story = StoryState()
+        return MockSession()
 
     def test_screenwriter_returns_false_when_outline_none(self, mock_session):
         import asyncio

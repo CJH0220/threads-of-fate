@@ -56,6 +56,10 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
 
 {beat_descriptions}
 
+【事件模板库】
+你可以从以下模板中选择来生成即兴日常事件。不要凭空创造新的事件类型。每个模板定义了参与者数量、适用调性、delta 数值上限：
+{template_descriptions}
+
 【调性约束】
 以下规则你必须遵守：
 {tone_rules_text}
@@ -71,7 +75,8 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
       "reasoning": "为什么这样决定"
     }}
   ],
-  "triggered_beats": []
+  "triggered_beats": [],
+  "spontaneous_events": []
 }}
 
 interventions 数组中每个元素是一个 NPC 的判决。可选的 decision：
@@ -81,12 +86,25 @@ interventions 数组中每个元素是一个 NPC 的判决。可选的 decision�
 
 triggered_beats 数组中每个元素是要触发的节拍：
 - beat_id：节拍 ID
-- outcome_id：选定的结果分支 ID（通常是 "out_beatId" 或 "default"）
+- outcome_id：选定的结果分支 ID（通常是事件 ID 对应的结果）
 - reasoning：为什么现在触发
 
+spontaneous_events 数组中每个元素是一个即兴日常事件：
+- template_id：从事件模板库中选择的模板 ID（必填）
+- participants：参与 NPC 的英文 ID 列表（必填，人数需在模板 min/max 范围内）
+- location：发生地点（必填，需是 NPC 当前所在的地点）
+- detail：填充模板 pattern 中的 {{detail}} 部分（1-2句话，必填）
+- outcome：结果 delta（可选，数值必须在模板的 delta_budget 范围内）
+  - bond_delta: {{"bond_a_b": 2}} 格式
+  - happiness_delta: {{"npc_a": 1}} 格式（happiness 变化值）
+- reasoning：为什么选择这个模板（必填）
+
 注意事项：
-- 每个时段最多触发 {max_events} 个节拍
+- 每个时段最多触发 {max_events} 个节拍（triggered_beats + spontaneous_events 合计）
+- spontaneous_events 最多 {max_spontaneous} 个
 - anchor 节拍优先级最高，必须在 earliest_day 触发
+- 同一模板不能连续两个时段使用
+- 夜晚只允许 solitude_reflection / discovery / minor_conflict 模板
 - 不要输出任何 JSON 以外的内容
 """
 
@@ -216,3 +234,40 @@ def format_tone_rules_for_system_prompt(rules: List[ToneRule]) -> str:
     if not rules:
         return "（无特殊调性约束）"
     return "\n".join(f"- [{r.applies_to}] {r.description}" for r in rules)
+
+
+def format_templates_for_system_prompt(templates: dict) -> str:
+    """Format event templates into system prompt context."""
+    tmpl_list = templates.get("templates", []) if templates else []
+    if not tmpl_list:
+        return "（无可用事件模板）"
+
+    lines = []
+    for t in tmpl_list:
+        db = t.get("delta_budget", {})
+        bond_b = db.get("bond", {})
+        hap_b = db.get("happiness", {})
+        lines.append(
+            f"- [{t['id']}] {t['name']} "
+            f"({t.get('tone', '?')}) "
+            f"{t['min_participants']}-{t['max_participants']}人 "
+            f"bond[{bond_b.get('min',0)},{bond_b.get('max',0)}] "
+            f"happiness[{hap_b.get('min',0)},{hap_b.get('max',0)}]"
+        )
+    return "\n".join(lines)
+
+
+def format_composition_rules_for_system_prompt(templates: dict) -> str:
+    """Format composition rules into system prompt."""
+    rules = templates.get("composition_rules", {}) if templates else {}
+    if not rules:
+        return ""
+    lines = []
+    if rules.get("max_spontaneous_per_slot"):
+        lines.append(f"- 每时段最多 {rules['max_spontaneous_per_slot']} 个即兴事件")
+    if rules.get("no_same_template_consecutive"):
+        lines.append("- 禁止同一模板连续两个时段使用")
+    night = rules.get("night_allowed_only", [])
+    if night:
+        lines.append(f"- 夜晚只允许: {', '.join(night)}")
+    return "\n".join(lines)

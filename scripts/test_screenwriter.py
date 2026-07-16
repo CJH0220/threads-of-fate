@@ -20,7 +20,7 @@ sys.path.insert(0, _PROJECT_ROOT)
 
 from src.backend.server.state import init_session
 from src.backend.engine.event import load_events, match_events, execute_events
-from src.backend.engine.story import load_story_outline
+from src.backend.engine.story import load_event_templates, load_story_outline
 from src.backend.ai.screenwriter import screenwriter_think
 from src.backend.ai.llm_client.interface import BaseLLMClient
 from src.backend.models.npc import Slot
@@ -120,7 +120,7 @@ def print_events(matched, settlement):
 
 # ── 单时段推进 ──
 
-def advance_one_slot(session, outline, events, screenwriter_llm):
+def advance_one_slot(session, outline, events, screenwriter_llm, templates=None):
     """推进一个时段，使用新的编剧Agent流程。"""
     if not session.time.can_advance():
         print(f"\n[终局] 已到达第60天！")
@@ -173,6 +173,7 @@ def advance_one_slot(session, outline, events, screenwriter_llm):
             phase_name=result.phase_name,
             npc_intentions=npc_intentions,
             llm=screenwriter_llm,
+            templates=templates,
         )
     )
 
@@ -257,6 +258,7 @@ def main():
     session = init_session()
     events = load_events()
     outline = load_story_outline()
+    templates = load_event_templates()
 
     # 编剧Agent的 LLM（独立于 NPC agent 的 LLM）
     if USE_MOCK:
@@ -293,7 +295,7 @@ def main():
     print(f"{'═'*70}")
 
     for i in range(slots_to_advance):
-        if not advance_one_slot(session, outline, events, screenwriter_llm):
+        if not advance_one_slot(session, outline, events, screenwriter_llm, templates):
             break
         print_status(session)
 

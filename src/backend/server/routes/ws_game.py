@@ -22,7 +22,7 @@ from src.backend.server.state import (
     get_session, init_session, load_session, is_initialized,
 )
 from src.backend.engine.event import load_events, match_events, execute_events
-from src.backend.engine.story import load_story_outline
+from src.backend.engine.story import load_event_templates, load_story_outline
 from src.backend.ai.screenwriter import screenwriter_think
 from src.backend.ai.narrator.narrator import generate_narrator_beat
 
@@ -151,6 +151,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
 
     # 4. 编剧 Agent：大纲驱动的叙事编排
     outline = load_story_outline()
+    templates = load_event_templates()
     screenwriter_llm = None
     for aid in session.agents.npc_ids:
         agent = session.agents.get(aid)
@@ -167,6 +168,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
         phase_name=result.phase_name,
         npc_intentions=npc_intentions,
         llm=screenwriter_llm,
+        templates=templates,
     )
 
     # 5. CSV 事件匹配（补充/兜底）
