@@ -57,10 +57,15 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
 {beat_descriptions}
 
 【事件模板库】
+【即兴日常事件】
+每个时段你都应该根据以下模板生成 1-2 个即兴日常事件，让小镇有生活气息。这是你最重要的工作之一——没有人会替你填充日常。没有节拍触发不是理由：NPC 在生活，小镇在运转，总有值得记录的小事。
+
 你可以从以下模板中选择来生成即兴日常事件。不要凭空创造新的事件类型。每个模板定义了参与者数量、适用调性、delta 数值上限：
 {template_descriptions}
 
 【调性约束】
+{composition_rules_text}
+
 以下规则你必须遵守：
 {tone_rules_text}
 
@@ -76,7 +81,16 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
     }}
   ],
   "triggered_beats": [],
-  "spontaneous_events": []
+  "spontaneous_events": [
+    {{
+      "template_id": "idle_chat",
+      "participants": ["lin_chaoyin", "chen_yuanzhou"],
+      "location": "cafe",
+      "detail": "两人讨论起最近岛上的流言，叶可可在一旁添油加醋。",
+      "outcome": {{}},
+      "reasoning": "午后的咖啡馆是信息流动的枢纽"
+    }}
+  ]
 }}
 
 interventions 数组中每个元素是一个 NPC 的判决。可选的 decision：
@@ -86,25 +100,26 @@ interventions 数组中每个元素是一个 NPC 的判决。可选的 decision�
 
 triggered_beats 数组中每个元素是要触发的节拍：
 - beat_id：节拍 ID
-- outcome_id：选定的结果分支 ID（通常是事件 ID 对应的结果）
+- outcome_id：选定的结果分支 ID
 - reasoning：为什么现在触发
 
-spontaneous_events 数组中每个元素是一个即兴日常事件：
-- template_id：从事件模板库中选择的模板 ID（必填）
-- participants：参与 NPC 的英文 ID 列表（必填，人数需在模板 min/max 范围内）
-- location：发生地点（必填，需是 NPC 当前所在的地点）
-- detail：填充模板 pattern 中的 {{detail}} 部分（1-2句话，必填）
-- outcome：结果 delta（可选，数值必须在模板的 delta_budget 范围内）
-  - bond_delta: {{"bond_a_b": 2}} 格式
-  - happiness_delta: {{"npc_a": 1}} 格式（happiness 变化值）
-- reasoning：为什么选择这个模板（必填）
+spontaneous_events 数组中每个元素是一个即兴日常事件（每个时段至少生成 {min_spontaneous} 个，最多 {max_spontaneous} 个）：
+- template_id：从模板库中选择（必填）
+- participants：参与 NPC 的英文 ID 列表（必填，人数在模板 min/max 范围内，优先选同地点且有缘线的 NPC）
+- location：发生地点（必填，从 NPC 当前所在的地点中选择）
+- detail：具体发生了什么（必填，1-2句话，包含动作/对话/情绪细节，符合模板 tone）
+- outcome：微量 delta（可选，必须在模板 delta_budget 范围内）
+  - bond_delta: {{"bond_lin_chaoyin_chen_yuanzhou": 2}} 格式
+  - happiness_delta: {{"lin_chaoyin": 1}} 格式
+- reasoning：为什么选这个模板（必填）
 
 注意事项：
-- 每个时段最多触发 {max_events} 个节拍（triggered_beats + spontaneous_events 合计）
-- spontaneous_events 最多 {max_spontaneous} 个
-- anchor 节拍优先级最高，必须在 earliest_day 触发
-- 同一模板不能连续两个时段使用
-- 夜晚只允许 solitude_reflection / discovery / minor_conflict 模板
+- 每个时段总共最多 {max_events} 个事件（triggered_beats + spontaneous_events 合计）
+- spontaneous_events 至少 {min_spontaneous} 个、最多 {max_spontaneous} 个——不要留空
+- 优先选择同地点的 NPC 组合，避免把不同地方的 NPC 强行拉到一起
+- anchor 节拍优先级最高
+- 同一模板不连续两个时段使用
+- 夜晚只允许 solitude_reflection / discovery / minor_conflict
 - 不要输出任何 JSON 以外的内容
 """
 
@@ -129,14 +144,16 @@ def build_user_prompt(
 ) -> str:
     """Build the user prompt for this time slot."""
 
-    # NPC intentions block
+    # NPC intentions block (cap at 8 to keep prompt within context limits)
     if npc_intentions:
         npc_lines = []
-        for npc_id, name, action, loc in npc_intentions:
+        for npc_id, name, action, loc in npc_intentions[:8]:
             action_short = (action or "发呆").strip().replace("\n", " ")
-            if len(action_short) > 50:
-                action_short = action_short[:50] + "…"
-            npc_lines.append(f"- {name}（{npc_id}）：在 {loc}，想 {action_short}")
+            if len(action_short) > 40:
+                action_short = action_short[:40] + "…"
+            npc_lines.append(f"- {name}：在 {loc}，{action_short}")
+        if len(npc_intentions) > 8:
+            npc_lines.append(f"- （还有 {len(npc_intentions) - 8} 位 NPC，略）")
         npc_block = "\n".join(npc_lines)
     else:
         npc_block = "（暂无活跃 NPC 意图）"
@@ -215,7 +232,7 @@ def format_beats_for_system_prompt(
         return "（当前无待触发的叙事节拍，请让 NPC 自由发展日常。）"
 
     lines = []
-    for b in pending[:15]:  # Cap at 15 beats to avoid prompt bloat
+    for b in pending[:5]:  # Cap at 5 to keep system prompt compact
         urgency = "【锚点·强制】" if b.is_anchor else ""
         if not b.is_anchor and b.is_urgent(day, window=2):
             urgency = "【即将到期】"

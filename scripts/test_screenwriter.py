@@ -51,14 +51,53 @@ class MockScreenwriterLLM(BaseLLMClient):
             print(f"  ... (共 {len(user_msg)} 字符)")
         print(f"  {'─'*60}")
 
-        # 返回一个简单的 JSON 响应：放行所有 NPC + 可能触发一个节拍
+        # 根据时段生成不同的即兴事件（模拟编剧Agent的创作能力）
+        slot_hint = ""
+        for m in messages:
+            if m["role"] == "user":
+                # 从 user prompt 中提取当前时段
+                if "noon" in m["content"].lower():
+                    slot_hint = "noon"
+                elif "night" in m["content"].lower():
+                    slot_hint = "night"
+                elif "morning" in m["content"].lower():
+                    slot_hint = "morning"
+                break
+
+        spontaneous = []
+        if slot_hint == "morning":
+            spontaneous = [
+                {"template_id": "solitude_reflection", "participants": ["lin_chaoyin"],
+                 "location": "beach", "detail": "看着晨光洒在海面上，她深吸一口气，觉得今天应该是个好日子",
+                 "outcome": {"happiness_delta": {"lin_chaoyin": 1}}, "reasoning": "早晨适合独处反思"},
+                {"template_id": "chance_encounter", "participants": ["chen_yuanzhou", "su_wan"],
+                 "location": "shopping_street", "detail": "母子两人在市场偶然相遇，苏婉塞给远舟一包他爱吃的鱼干",
+                 "outcome": {"bond_delta": {"bond_chen_yuanzhou_su_wan": 1}}, "reasoning": "温暖的家庭偶遇"}
+            ]
+        elif slot_hint == "noon":
+            spontaneous = [
+                {"template_id": "idle_chat", "participants": ["lin_chaoyin", "chen_yuanzhou", "ye_keke"],
+                 "location": "cafe", "detail": "聊起了最近岛上的流言——据说港口半夜有陌生船进出",
+                 "outcome": {}, "reasoning": "午后的咖啡店信息流动"}
+            ]
+        elif slot_hint == "night":
+            spontaneous = [
+                {"template_id": "discovery", "participants": ["chen_haisheng"],
+                 "location": "port", "detail": "发现何老三正在卸一批从未见过的木箱，箱子上没有任何标记",
+                 "outcome": {}, "reasoning": "夜晚港口的悬疑线索"},
+                {"template_id": "solitude_reflection", "participants": ["lin_chaoyin"],
+                 "location": "temple", "detail": "月光下独自坐在庙前，感应到一阵奇异的灵力波动",
+                 "outcome": {"happiness_delta": {"lin_chaoyin": -1}}, "reasoning": "夜晚的灵力感应让她不安"}
+            ]
+
         return json.dumps({
-            "narrator_insight": "一切平静，小镇按部就班地运转着。",
+            "narrator_insight": "小镇的日常在平静中暗藏涟漪。",
             "interventions": [
                 {"npc_id": "lin_chaoyin", "decision": "pass", "reasoning": "行为与大纲一致"},
                 {"npc_id": "chen_yuanzhou", "decision": "pass", "reasoning": "行为与大纲一致"},
             ],
-            "triggered_beats": []  # 模拟模式下不自动触发节拍，让 CSV 补充
+            "triggered_beats": [],  # 模拟模式下不自动触发节拍，让 CSV 补充
+            "spontaneous_events": spontaneous,
         }, ensure_ascii=False)
 
     async def chat_stream(self, messages, **kwargs):
@@ -178,10 +217,17 @@ def advance_one_slot(session, outline, events, screenwriter_llm, templates=None)
     )
 
     if screenwriter_ok:
-        print(f"    编剧编排成功 ✓  (生成 {len(beat_events)} 个节拍事件)")
-        if beat_events:
-            for t, o in beat_events:
-                print(f"      → {t.name} ({t.id}) outcome={o.id}")
+        # 区分节拍事件和即兴事件
+        beat_only = [e for e in beat_events if not e[0].id.startswith("spontaneous_")]
+        spon_only = [e for e in beat_events if e[0].id.startswith("spontaneous_")]
+        print(f"    编剧编排成功 ✓  (节拍{len(beat_only)}个 + 即兴{len(spon_only)}个)")
+        if spon_only:
+            for t, o in spon_only:
+                desc = (t.description or "")[:60]
+                print(f"      🎭 {t.name}: {desc}")
+        if beat_only:
+            for t, o in beat_only:
+                print(f"      ◆ {t.name} ({t.id}) outcome={o.id}")
     else:
         print(f"    编剧不可用，回退 CSV 匹配")
 

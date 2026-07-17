@@ -62,7 +62,7 @@ def _create_llm_client() -> BaseLLMClient:
     print(f"[state] 使用 LoadBalancedClient (llama.cpp) endpoint={endpoint}")
     return LoadBalancedClient(
         endpoints=[endpoint],
-        per_endpoint_concurrency=2,
+        per_endpoint_concurrency=10,
         timeout=30.0,
         max_retries=2,
         default_extra_body={"chat_template_kwargs": {"enable_thinking": False}},

@@ -28,7 +28,7 @@
         "bond": { "min": 0, "max": 1 },
         "happiness": { "min": 0, "max": 0 }
       },
-      "pattern": "{location}里，{name_a} 和 {others} 聊起了{topic}。{detail}。",
+      "pattern": "{location}里，{name_a} 和 {others} {detail}。",
       "narrative_purpose": "信息流动和气氛烘托，让小镇有生活气息"
     },
     {
@@ -42,7 +42,7 @@
         "bond": { "min": -3, "max": -1 },
         "happiness": { "min": -3, "max": -1 }
       },
-      "pattern": "在 {location}，{name_a} 因为 {reason} 与 {name_b} 发生了口角。{detail}。",
+      "pattern": "在 {location}，{name_a} 与 {name_b} 发生了口角——{detail}",
       "narrative_purpose": "制造小型戏剧张力，为后续关键事件铺垫情绪基础"
     },
     {
@@ -56,7 +56,7 @@
         "bond": { "min": 1, "max": 3 },
         "happiness": { "min": 1, "max": 2 }
       },
-      "pattern": "{name_a} 在 {location} 遇到了困难——{problem}。{name_b} 主动出手相助，{detail}。",
+      "pattern": "{name_a} 在 {location} 遇到了困难，{name_b} 主动出手相助——{detail}",
       "narrative_purpose": "强化正向关系，提供温暖的叙事节拍平衡紧张感"
     },
     {
@@ -70,7 +70,7 @@
         "bond": { "min": 0, "max": 0 },
         "happiness": { "min": -1, "max": 1 }
       },
-      "pattern": "{name_a} 独自在 {location}，{action}。{detail}。",
+      "pattern": "{name_a} 独自在 {location}，{detail}",
       "narrative_purpose": "展现角色的内心世界，给高压力 NPC 喘息空间"
     },
     {
@@ -84,7 +84,7 @@
         "bond": { "min": 0, "max": 1 },
         "happiness": { "min": 0, "max": 0 }
       },
-      "pattern": "在 {location}，{name_a} 意外注意到 {clue}。{detail}。",
+      "pattern": "在 {location}，{name_a} {detail}",
       "narrative_purpose": "推进调查线和悬疑氛围，为侦探线提供碎片线索"
     }
   ],

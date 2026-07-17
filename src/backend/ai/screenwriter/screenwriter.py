@@ -97,13 +97,16 @@ async def screenwriter_think(
         templates.get("composition_rules", {}).get("max_spontaneous_per_slot", 2)
         if templates else 2
     )
+    min_spontaneous = 1  # 每个时段至少生成 1 个即兴事件
 
     system_prompt = SYSTEM_PROMPT.format(
         beat_descriptions=beat_descriptions,
         template_descriptions=template_text,
+        composition_rules_text=comp_rules_text,
         tone_rules_text=tone_text,
         max_events=max_events,
         max_spontaneous=max_spontaneous,
+        min_spontaneous=min_spontaneous,
     )
 
     user_prompt = build_user_prompt(
@@ -531,11 +534,11 @@ def _build_spontaneous_events(
         outcome_raw = raw.get("outcome", {}) or {}
         db = template.get("delta_budget", {})
 
-        bond_delta = _validate_bond_delta(
-            outcome_raw.get("bond_delta", {}), db.get("bond", {}), participants
+        bond_delta = _validate_delta(
+            outcome_raw.get("bond_delta", {}), db.get("bond", {}), "bond"
         )
-        happiness_delta = _validate_happiness_delta(
-            outcome_raw.get("happiness_delta", {}), db.get("happiness", {})
+        happiness_delta = _validate_delta(
+            outcome_raw.get("happiness_delta", {}), db.get("happiness", {}), "happiness"
         )
 
         # Build EventTemplate
@@ -546,12 +549,26 @@ def _build_spontaneous_events(
         # Build description from pattern + detail
         name_map = {a: session.agents.get(a).name if session.agents.get(a) else a
                     for a in participants}
+        name_a = name_map.get(participants[0], participants[0]) if participants else "某人"
+        name_b = name_map.get(participants[1], participants[1]) if len(participants) > 1 else "旁人"
         others = "、".join([name_map.get(p, p) for p in participants[1:]])
-        description = pattern.replace("{location}", location or "某处") \
-            .replace("{name_a}", name_map.get(participants[0], participants[0]) if participants else "某人") \
-            .replace("{name_b}", name_map.get(participants[1], participants[1]) if len(participants) > 1 else "旁人") \
-            .replace("{others}", others) \
-            .replace("{detail}", detail)
+
+        # Substitution: known placeholders first, catch-all for remaining ones → detail
+        subs = {
+            "location": location or "某处",
+            "name_a": name_a,
+            "name_b": name_b,
+            "others": others,
+            "detail": detail,
+        }
+        description = pattern
+        for key, val in subs.items():
+            description = description.replace("{" + key + "}", val)
+        # Catch-all: {topic}, {reason}, {problem}, {action}, {clue}, etc. → detail
+        # (exclude already-substituted keys to avoid double-replacement)
+        import re as _re
+        known = "|".join(subs.keys())
+        description = _re.sub(r"\{(?!" + known + r"\})[^}]*\}", detail, description)
 
         # Convert happiness_delta to npc_state_delta format
         npc_state_delta = {}
@@ -589,37 +606,23 @@ def _build_spontaneous_events(
     return result
 
 
-def _validate_bond_delta(
-    raw: dict, budget: dict, participants: List[str]
-) -> Dict[str, int]:
-    """Validate bond delta is within template budget."""
+def _validate_delta(raw: dict, budget: dict, label: str) -> Dict[str, int]:
+    """Validate delta values are within template budget. Handles non-numeric gracefully."""
     result: Dict[str, int] = {}
     if not raw or not budget:
         return result
     lo = int(budget.get("min", 0))
     hi = int(budget.get("max", 0))
     for key, val in raw.items():
-        v = int(val)
+        try:
+            v = int(val)
+        except (ValueError, TypeError):
+            print(f"[screenwriter] WARNING: {label} delta {key}:{val} is not numeric, skipping")
+            continue
         if lo <= v <= hi:
             result[str(key)] = v
         else:
-            print(f"[screenwriter] WARNING: bond delta {key}:{v} outside budget [{lo},{hi}]")
-    return result
-
-
-def _validate_happiness_delta(raw: dict, budget: dict) -> Dict[str, int]:
-    """Validate happiness delta is within template budget."""
-    result: Dict[str, int] = {}
-    if not raw or not budget:
-        return result
-    lo = int(budget.get("min", 0))
-    hi = int(budget.get("max", 0))
-    for key, val in raw.items():
-        v = int(val)
-        if lo <= v <= hi:
-            result[str(key)] = v
-        else:
-            print(f"[screenwriter] WARNING: happiness delta {key}:{v} outside budget [{lo},{hi}]")
+            print(f"[screenwriter] WARNING: {label} delta {key}:{v} outside budget [{lo},{hi}]")
     return result
 
 
