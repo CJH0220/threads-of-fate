@@ -1,5 +1,5 @@
 ea4bc82a6ad023ab7ee23ee620429895
-::res://::1784443757
+::res://::1784628606
 ::res://assets/::1782980013
 ::res://assets/backgrounds/::1784443742
 beach.jpg::CompressedTexture2D/CompressedTexture2D::6078056077325825846::1784439147::1784443742::1::::<><><>0<>0<>40098c8ecbdb9245136a7c0ebc9859eb<>res://.godot/imported/beach.jpg-9e482b809d177fa86a4947ddda22afd9.ctex::
@@ -95,8 +95,8 @@ game_state.json::JSON/JSON::-1::1782637274::0::1::::<><><>0<>0<><>::
 interventions.json::JSON/JSON::-1::1784015246::0::1::::<><><>0<>0<><>::
 locations.json::JSON/JSON::-1::1782979573::0::1::::<><><>0<>0<><>::
 ::res://scenes/::1782637274
-::res://scenes/main/::1784442232
-Main.tscn::PackedScene/PackedScene::4817807583023517961::1784442232::0::1::::<><><>0<>0<><>::uid://dmcx14adkjn8x::::res://scripts/app/main.gd<>res://scenes/ui/SettlementPanel.tscn<>res://scenes/ui/ConfirmDialog.tscn<>res://scenes/ui/PauseMenu.tscn<>res://scenes/ui/SettingsScreen.tscn<>res://scenes/ui/CreditsScreen.tscn<>res://scenes/ui/FinalSummaryScreen.tscn<>res://scenes/ui/EndingScreen.tscn<>res://scenes/ui/GameOverScreen.tscn<>res://scenes/ui/WeekSummaryScreen.tscn<>res://scenes/ui/TutorialOverlay.tscn<>res://scenes/ui/EventHistoryScreen.tscn<>res://scenes/ui/EndingGalleryScreen.tscn
+::res://scenes/main/::1784443760
+Main.tscn::PackedScene::4817807583023517961::1784443760::0::1::::<><><>0<>0<><>::uid://dmcx14adkjn8x::::res://scripts/app/main.gd<>res://scenes/ui/SettlementPanel.tscn<>res://scenes/ui/ConfirmDialog.tscn<>res://scenes/ui/PauseMenu.tscn<>res://scenes/ui/SettingsScreen.tscn<>res://scenes/ui/CreditsScreen.tscn<>res://scenes/ui/FinalSummaryScreen.tscn<>res://scenes/ui/EndingScreen.tscn<>res://scenes/ui/GameOverScreen.tscn<>res://scenes/ui/WeekSummaryScreen.tscn<>res://scenes/ui/TutorialOverlay.tscn<>res://scenes/ui/EventHistoryScreen.tscn<>res://scenes/ui/EndingGalleryScreen.tscn
 ::res://scenes/ui/::1784025508
 BlessingDecisionDialog.tscn::PackedScene/PackedScene::-1::1784015638::0::1::::<><><>0<>0<><>::res://scripts/ui/blessing_decision_dialog.gd
 BondView.tscn::PackedScene/PackedScene::-1::1782981866::0::1::::<><><>0<>0<><>::res://scripts/ui/bond_view.gd
