@@ -53,6 +53,16 @@
 *.json text
 *.txt text
 *.md text
+# =========== Python 后端 ===========
+*.py text eol=lf
+# =========== Godot 前端 ===========
+*.gd text eol=lf
+*.gdshader text eol=lf
+*.tscn text eol=lf
+*.tres text eol=lf
+*.godot text eol=lf
+*.cfg text eol=lf
+*.import text eol=lf
 # =========== 配置文件 ===========
 *.json text
 *.xml text
