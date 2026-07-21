@@ -80,6 +80,10 @@ func _init() -> void:
 	Backend.save_completed.connect(_on_save_completed)
 	Backend.load_completed.connect(_on_load_completed)
 	Backend.npc_response.connect(_on_npc_response)
+	## 打印后端 Agent 交互进度到 Godot output（不改状态，仅可视化）
+	Backend.npc_actions_start.connect(_on_npc_actions_start)
+	Backend.npc_action.connect(_on_npc_action_log)
+	Backend.narrator_beat.connect(_on_narrator_beat_log)
 	## 加载与 Mock 共用的静态数据（描述、日程、干预定义等 backend 不推送的字段）
 	_load_static_data()
 	## 初始化缓存
@@ -147,6 +151,21 @@ var _last_npc_response: Dictionary = {}
 func _on_npc_response(data: Dictionary) -> void:
 	_last_npc_response = data
 	## 可添加信号通知 UI 对话已响应
+
+## 打印后端 Agent 交互到 Godot output，便于调试 LLM 决策链。
+func _on_npc_actions_start(_data: Dictionary) -> void:
+	print("[Agent] === NPC 开始并发思考 ===")
+
+func _on_npc_action_log(data: Dictionary) -> void:
+	var name := String(data.get("npc_name", data.get("npc_id", "?")))
+	var action := String(data.get("action", ""))
+	print("[Agent] %s → %s" % [name, action])
+
+func _on_narrator_beat_log(data: Dictionary) -> void:
+	var day := int(data.get("day", 0))
+	var slot := String(data.get("slot", ""))
+	var text := String(data.get("text", ""))
+	print("[Narrator] Day%d %s: %s" % [day, slot, text])
 
 func reset_to_new_game() -> void:
 	## 通过后端创建新局
@@ -436,16 +455,24 @@ func advance_time() -> Dictionary:
 	## 发送 WebSocket 请求，等待结算完成信号后再返回结果
 	Backend.send_advance_time()
 
-	## 超时兜底：15 秒内未收到 settlement_complete 则降级到 Mock
-	var timeout_sec: float = 15.0
+	## 超时兜底：LLM 全链路（NPC思考 + 编剧编排 + 对白管线）可能耗时较长，
+	## 给 180s 冗余；到时未收到 settlement_complete 才降级到 Mock。
+	var timeout_sec: float = 180.0
 	var settled: bool = false
 	var _cb := func(_data: Dictionary) -> void: settled = true
 	Backend.settlement_complete.connect(_cb, CONNECT_ONE_SHOT)
 	var start_time: float = Time.get_ticks_msec()
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
+	var last_log_bucket: int = 0
 	while not settled:
 		await tree.process_frame
-		if (Time.get_ticks_msec() - start_time) / 1000.0 >= timeout_sec:
+		var elapsed: float = (Time.get_ticks_msec() - start_time) / 1000.0
+		## 每 10 秒心跳一次，便于观察是否卡死
+		var bucket: int = int(elapsed / 10.0)
+		if bucket != last_log_bucket:
+			last_log_bucket = bucket
+			print("[BackendGameState] advance_time 已等待 %ds…" % int(elapsed))
+		if elapsed >= timeout_sec:
 			break
 	## 清理：若超时先到，断开回调避免野指针
 	if not settled:
@@ -583,6 +610,11 @@ func _on_time_advanced(data: Dictionary) -> void:
 ## 前端 UI 语义映射：outcome_name→outcome, resource_changes→resource_delta。
 ## 后端未提供 location_id / risk_level / description / available_interventions 字段，此处置默认值。
 func _on_event_triggered(data: Dictionary) -> void:
+	print("[Event] %s @ %s (%s)" % [
+		String(data.get("event_name", "?")),
+		String(data.get("location_id", "?")),
+		String(data.get("outcome_name", data.get("outcome", "-")))
+	])
 	## 转换为前端事件格式
 	var event_data: Dictionary = {
 		"event_id": String(data.get("event_id", "")),

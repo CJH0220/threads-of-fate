@@ -23,11 +23,13 @@ signal load_completed(state: Dictionary)
 ## WebSocket 服务端推送事件
 signal time_advanced(data: Dictionary)
 signal event_triggered(data: Dictionary)
+signal npc_actions_start(data: Dictionary)
 signal npc_action(data: Dictionary)
 signal settlement_complete(data: Dictionary)
 signal npc_response(data: Dictionary)
 signal intervention_applied(data: Dictionary)
 signal narrator_beat(data: Dictionary)
+signal game_over(data: Dictionary)
 
 ## 后端地址配置
 ## 注意：使用 127.0.0.1 而不是 localhost —— Windows 上 localhost 有时会走 IPv6
@@ -277,6 +279,8 @@ func _dispatch_ws_message(raw: String) -> void:
 			time_advanced.emit(payload)
 		"event_triggered":
 			event_triggered.emit(payload)
+		"npc_actions_start":
+			npc_actions_start.emit(payload)
 		"npc_action":
 			npc_action.emit(payload)
 		"settlement_complete":
@@ -295,6 +299,8 @@ func _dispatch_ws_message(raw: String) -> void:
 			intervention_applied.emit(payload)
 		"narrator_beat":
 			narrator_beat.emit(payload)
+		"game_over":
+			game_over.emit(payload)
 		"error":
 			error.emit(String(payload.get("message", "未知错误")))
 
