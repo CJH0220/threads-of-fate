@@ -18,7 +18,7 @@ config/name="命运的织线"
 config/description="2D pixel-art fate intervention narrative simulation."
 config/version="0.1.0"
 run/main_scene="res://scenes/main/Main.tscn"
-config/features=PackedStringArray("4.6")
+config/features=PackedStringArray("4.4")
 
 [audio]
 
