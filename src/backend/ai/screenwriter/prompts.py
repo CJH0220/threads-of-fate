@@ -87,6 +87,14 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
       "participants": ["lin_chaoyin", "chen_yuanzhou"],
       "location": "cafe",
       "detail": "两人讨论起最近岛上的流言，叶可可在一旁添油加醋。",
+      "dialogue_skeleton": {{
+        "goal": "轻松的日常闲聊中暗含对未来的担忧",
+        "tone": "轻松中带一丝不安",
+        "line_steps": [
+          {{"actor": "chen_yuanzhou", "intent": "试探潮音最近是否压力大", "must_convey": "关心但不直白", "must_avoid": "提及考试压力"}},
+          {{"actor": "lin_chaoyin", "intent": "回答但不愿透露太多", "must_convey": "最近去了寺庙", "must_avoid": "提到巫女身份"}}
+        ]
+      }},
       "outcome": {{}},
       "reasoning": "午后的咖啡馆是信息流动的枢纽"
     }}
@@ -108,6 +116,14 @@ spontaneous_events 数组中每个元素是一个即兴日常事件（每个时�
 - participants：参与 NPC 的英文 ID 列表（必填，人数在模板 min/max 范围内，优先选同地点且有缘线的 NPC）
 - location：发生地点（必填，从 NPC 当前所在的地点中选择）
 - detail：具体发生了什么（必填，1-2句话，包含动作/对话/情绪细节，符合模板 tone）
+- dialogue_skeleton：对话骨架（可选，当事件有≥2个S/A级参与者时提供，含 goal/tone/line_steps）
+  - goal：场景叙事目的（如"慧圆试探潮音是否已察觉寺庙腐败"）
+  - tone：氛围调性（如"隐晦紧张""轻松日常""暧昧温情"）
+  - line_steps：台词步列表，每个参与者至少1步
+    - actor：说话者 NPC 的英文 ID
+    - intent：该 NPC 说这句话的意图（如"假意关心，实则观察"）
+    - must_convey：这句话必须传达的信息
+    - must_avoid：这句话必须避免的内容
 - outcome：微量 delta（可选，必须在模板 delta_budget 范围内）
   - bond_delta: {{"bond_lin_chaoyin_chen_yuanzhou": 2}} 格式
   - happiness_delta: {{"lin_chaoyin": 1}} 格式
@@ -186,6 +202,13 @@ def build_user_prompt(
     else:
         progress_block = "（无）"
 
+    # NPC personality/emotion summaries for dialogue skeleton writing
+    npc_summaries = _build_npc_summaries(npc_intentions, recent_memories)
+    if npc_summaries:
+        npc_summary_block = '\n'.join(npc_summaries)
+    else:
+        npc_summary_block = '（无）'
+
     # Recent memories (last 1-3 per active NPC)
     if recent_memories:
         mem_lines = []
@@ -205,6 +228,8 @@ def build_user_prompt(
         f"【待触发的叙事节拍】\n{beat_block}\n"
         f"\n"
         f"【已完成节拍】\n{', '.join(sorted(triggered_beat_ids)) if triggered_beat_ids else '（无）'}\n"
+        f"\n"
+        f"【NPC 人设摘要】\n{npc_summary_block}\n"
         f"\n"
         f"【NPC 近期记忆】\n{memory_block}\n"
         f"\n"
@@ -288,3 +313,24 @@ def format_composition_rules_for_system_prompt(templates: dict) -> str:
     if night:
         lines.append(f"- 夜晚只允许: {', '.join(night)}")
     return "\n".join(lines)
+
+
+def _build_npc_summaries(
+    npc_intentions: list,
+    recent_memories: dict,
+) -> list:
+    """Build compact NPC personality/emotion summaries for dialogue skeleton writing."""
+    # This is a placeholder that returns basic summaries from available data.
+    # The actual personality/emotion data comes from the agent objects, not from
+    # npc_intentions tuples alone. The caller should expand this if richer data is needed.
+    lines = []
+    for item in npc_intentions:
+        if len(item) >= 4:
+            npc_id, name, action, loc = item[0], item[1], item[2], item[3]
+            mems = recent_memories.get(npc_id, [])
+            mem_tail = ('; '.join(mems[-2:]) if mems else '暂无近期记忆')
+            lines.append(
+                f"- {name}({npc_id})：在{loc}，{action[:30]}。" +
+                f"近期：{mem_tail}"
+            )
+    return lines

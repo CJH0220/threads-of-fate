@@ -215,3 +215,124 @@ def build_decision_prompt(
 - "留在家里看书复习。"
 """
     return base + decision_instruction
+
+
+# ═══════════════════════════════════════════════════
+# fill_scene Prompt
+# ═══════════════════════════════════════════════════
+
+FILL_SCENE_PROMPT = """你是{name}，{age}岁的{occupation}，生活在归潮镇。
+
+【你的性格】
+{personality_desc}
+
+【当前状态】
+你身处{location}，情绪{emotion}，精力{energy}%，幸福度{happiness}%。
+
+{bond_context}
+
+{memory_context}
+
+【场景】
+你现在处于以下场景中——
+地点：{scene_location}
+场景目的：{goal}
+氛围调性：{tone}
+
+【完整剧本骨架】
+以下是这场戏的完整剧本骨架，标注了每个人该说什么、传递什么信息、避免什么内容：
+
+{full_skeleton}
+
+【你的任务】
+你扮演{name}，请根据骨架中 actor="{name}"（或 actor="{npc_id}"）的台词步，写出你的台词。
+
+输出严格 JSON（不要 markdown 代码块，不要解释）：
+{{"lines":[
+  {{"step_ref":"台词步ID","type":"action或dialogue或thought","text":"你的台词或动作描述"}}
+]}}
+
+规则：
+- step_ref 必须对应骨架中 actor 是你的台词步ID
+- type: action=动作描述, dialogue=对白, thought=内心独白
+- 每个台词步至少输出1行，可以根据需要输出多行（action + dialogue）
+- 要用你自己的语气和性格去执行骨架中的 intent
+- 必须传达骨架中 must_convey 的信息
+- 必须避开骨架中 must_avoid 的内容
+- 你只能写自己的行，不能替其他角色说话
+- 语言自然口语化，符合{name}的身份和性格
+"""
+
+
+def build_fill_scene_prompt(
+    static: NpcStatic,
+    skeleton: dict,
+    location: str,
+    emotion: str,
+    energy: int,
+    happiness: int,
+    memory_context: str = "",
+    bond_manager=None,
+    name_map: dict = None,
+) -> str:
+    """构建 fill_scene 的 prompt。
+
+    Args:
+        static: NPC 静态数据
+        skeleton: 编剧产出的对话骨架 {goal, tone, line_steps: [{step_id, actor, intent, must_convey, must_avoid}]}
+        location: NPC 当前位置
+        emotion: NPC 当前情绪
+        energy: 精力值
+        happiness: 幸福度
+        memory_context: 记忆上下文
+        bond_manager: BondManager 实例
+        name_map: {npc_id: chinese_name}
+    """
+    bond_context = build_bond_context(static.id, bond_manager, name_map)
+
+    # Format full skeleton for actor awareness
+    steps_text = _format_skeleton_steps(skeleton.get("line_steps", []), name_map or {})
+
+    return FILL_SCENE_PROMPT.format(
+        name=static.name,
+        npc_id=static.id,
+        age=static.age,
+        occupation=static.occupation,
+        personality_desc=_describe_personality(static.personality),
+        location=location,
+        emotion=emotion,
+        energy=energy,
+        happiness=happiness,
+        bond_context=bond_context,
+        memory_context=memory_context or "（暂无近期记忆）",
+        scene_location=skeleton.get("location", location),
+        goal=skeleton.get("goal", "一次日常对话"),
+        tone=skeleton.get("tone", "日常"),
+        full_skeleton=steps_text,
+    )
+
+
+def _format_skeleton_steps(line_steps: list, name_map: dict) -> str:
+    """Format line steps into readable text for the actor to see the full script.
+
+    如果 step 缺少 step_id，自动生成 s1, s2, ...。
+    """
+    if not line_steps:
+        return "（无骨架）"
+
+    lines = []
+    for i, step in enumerate(line_steps):
+        actor_id = step.get("actor", "?")
+        actor_name = name_map.get(actor_id, actor_id)
+        step_id = step.get("step_id") or f"s{i + 1}"
+        intent = step.get("intent", "")
+        must_convey = step.get("must_convey", "")
+        must_avoid = step.get("must_avoid", "")
+
+        lines.append(
+            f"[{step_id}] {actor_name}:\n"
+            f"  意图: {intent}\n"
+            f"  必须传达: {must_convey}\n"
+            f"  必须避免: {must_avoid}"
+        )
+    return "\n".join(lines)

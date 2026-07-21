@@ -123,18 +123,18 @@ async def screenwriter_think(
     )
 
     messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
+        {"role": "user", "content": system_prompt + "\n\n" + user_prompt},
     ]
 
     # 4. Call LLM
     try:
-        reply = await llm.chat(messages, max_tokens=1024, temperature=0.7)
+        reply = await llm.chat(messages, max_tokens=4096, temperature=0.7)
     except Exception as e:
         print(f"[screenwriter] LLM call failed: {type(e).__name__}: {e}")
         return False, []
 
     if not reply:
+        print("[screenwriter] LLM returned empty reply")
         return False, []
 
     # 5. Parse JSON
@@ -297,7 +297,10 @@ def _apply_interventions(
             continue
 
         memory_text = _safe_str(inv.get("memory_to_inject"))
-        importance = int(inv.get("importance") or 5)
+        try:
+            importance = int(inv.get("importance") or 5)
+        except (ValueError, TypeError):
+            importance = 5
 
         if decision == "soft_guidance":
             if memory_text:
@@ -577,7 +580,7 @@ def _build_spontaneous_events(
 
         outcome = Outcome(
             id=f"spon_{tid}_{day}_{slot.value}",
-            event_id=f"spontaneous_{tid}",
+            event_id=f"spontaneous_{tid}_{len(result)}",
             name=template.get("name", "日常"),
             trigger_condition="default",
             bond_delta=bond_delta,
@@ -598,6 +601,7 @@ def _build_spontaneous_events(
             risk_level="Low",
             ai_text_policy="DialogueAllowed",
             description=description,
+            dialogue_skeleton=raw.get("dialogue_skeleton"),
         )
 
         result.append((template_evt, outcome))
