@@ -11,6 +11,8 @@ S 级 Agent 使用完整 LLM 交互；A/B 级可降级为规则决策。
 
 from __future__ import annotations
 
+import json
+import re
 from typing import Dict, List, Optional
 
 from src.backend.models.npc import (
@@ -205,6 +207,86 @@ class NpcAgent:
     def _default_response(self, context: str) -> str:
         """规则兜底：默认对话回应。"""
         return "……（沉默）" if self.static.personality.sensibility < 0.4 else "嗯。"
+
+    # ── JSON 解析 ──────────────────────────────────
+
+    def _parse_decision_json(self, raw: str) -> Optional[dict]:
+        """尝试从 LLM 原始输出中提取 JSON。兼容纯 JSON / markdown 代码块 / 前后带文字。"""
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            pass
+        md_match = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', raw)
+        if md_match:
+            try:
+                return json.loads(md_match.group(1).strip())
+            except json.JSONDecodeError:
+                pass
+        brace_match = re.search(r'\{[\s\S]*\}', raw)
+        if brace_match:
+            try:
+                return json.loads(brace_match.group(0))
+            except json.JSONDecodeError:
+                pass
+        return None
+
+    # ── 场景补全 ──────────────────────────────────
+
+    async def fill_scene(self, skeleton: dict, day: int, slot: Slot) -> dict:
+        """根据对话骨架补全自己的台词。
+
+        Args:
+            skeleton: 编剧产出的对话骨架 {goal, tone, line_steps: [{step_id, actor, ...}]}
+            day: 当前天数
+            slot: 当前时段
+
+        Returns:
+            {"actor": npc_id, "lines": [{"step_ref": "b1", "type": "dialogue", "text": "..."}]}
+            失败时返回兜底模板
+        """
+        from src.backend.ai.npc_agent.templates import build_fill_scene_prompt
+
+        state = self.dynamic.current
+
+        # 检索记忆上下文
+        retrieval_result = self._pipeline.retrieve(
+            memory=self.memory,
+            semantic=self.semantic,
+            dynamic=state,
+            day=day,
+            slot=slot,
+        )
+        memory_context = retrieval_result_to_context(retrieval_result)
+
+        # 构建 prompt
+        prompt = build_fill_scene_prompt(
+            static=self.static,
+            skeleton=skeleton,
+            location=state.location.value,
+            emotion=state.emotion.value,
+            energy=state.energy,
+            happiness=state.happiness,
+            memory_context=memory_context,
+            bond_manager=self._bond_manager,
+            name_map=self._name_map,
+        )
+
+        messages = [{"role": "system", "content": prompt}]
+        reply = await self.llm.chat(messages, max_tokens=512, temperature=0.8)
+
+        if reply:
+            parsed = self._parse_decision_json(reply.strip())
+            if parsed and "lines" in parsed:
+                return {"actor": self.npc_id, "lines": parsed["lines"]}
+
+        # 兜底：一条沉默 action
+        return {
+            "actor": self.npc_id,
+            "lines": [
+                {"step_ref": "fallback", "type": "action",
+                 "text": f"{self.name}沉默着。"}
+            ],
+        }
 
     # ── 记忆 ──────────────────────────────────────
 

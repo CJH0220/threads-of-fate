@@ -25,6 +25,7 @@ from src.backend.engine.event import load_events, match_events, execute_events
 from src.backend.engine.story import load_event_templates, load_story_outline
 from src.backend.ai.screenwriter import screenwriter_think
 from src.backend.ai.narrator.narrator import generate_narrator_beat
+from src.backend.ai.dialogue_designer.pipeline import run_dialogue_pipeline
 
 router = APIRouter()
 
@@ -130,6 +131,8 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
     npc_intentions: list = []  # [(npc_id, name, action_text, location), ...]
 
     async def _think_and_collect(agent):
+        if agent is None:
+            return None
         if agent.static.tier.value in ("S", "A"):
             action = await agent.think(result.day, result.slot)
             return (agent.npc_id, agent.name, action,
@@ -171,6 +174,29 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
         templates=templates,
     )
 
+    # 打印编剧产出
+    if screenwriter_ok and beat_events:
+        spon = [e for e in beat_events if e[0].id.startswith("spontaneous_")]
+        beat = [e for e in beat_events if not e[0].id.startswith("spontaneous_")]
+        print(f"\n{'='*60}")
+        print(f"[编剧] Day{result.day} {result.slot.value} | "
+              f"节拍{len(beat)}个 + 即兴{len(spon)}个")
+        for t, o in beat:
+            print(f"  ◆ 节拍: {t.name} ({t.id}) → {o.id}")
+        for t, o in spon:
+            delta_info = []
+            if o.bond_delta:
+                delta_info.append(f"缘线:{o.bond_delta}")
+            if o.npc_state_delta:
+                delta_info.append(f"NPC:{o.npc_state_delta}")
+            delta_str = " | ".join(delta_info) if delta_info else "无delta"
+            print(f"  🎭 即兴: {t.name} | {t.location or '?'} | {t.participants}")
+            print(f"     {(t.description or '')[:120]}")
+            print(f"     delta: {delta_str}")
+        print(f"{'='*60}\n")
+    elif not screenwriter_ok:
+        print(f"[编剧] Day{result.day} {result.slot.value} | 不可用，回退CSV匹配")
+
     # 5. CSV 事件匹配（补充/兜底）
     locs = {}
     for aid in session.agents.npc_ids:
@@ -202,7 +228,47 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
         if csv_pair[0].id not in beat_event_ids:
             all_matched.append(csv_pair)
 
-    # 6. 执行事件
+    # 6. 对白管线：为有骨架的事件生成完整对白
+    event_dialogues: dict = {}  # event_id → dialogue dict
+
+    # Collect one LLM client for dialogue pipeline use
+    dialogue_llm = screenwriter_llm  # reuse screenwriter's LLM
+    if dialogue_llm is None:
+        for aid in session.agents.npc_ids:
+            ag = session.agents.get(aid)
+            if ag and ag.static.tier.value in ("S", "A"):
+                dialogue_llm = ag.llm
+                break
+
+    if dialogue_llm:
+        for (evt_template, _) in all_matched:
+            skeleton = getattr(evt_template, "dialogue_skeleton", None)
+            if not skeleton:
+                continue
+            participants = evt_template.participants or []
+            s_a_count = sum(
+                1 for pid in participants
+                if session.agents.get(pid) and
+                session.agents.get(pid).static.tier.value in ("S", "A")
+            )
+            if s_a_count < 2:
+                continue  # 至少 2 个 S/A 才值得跑管线
+
+            try:
+                dialogue = await run_dialogue_pipeline(
+                    evt_template, session, result.day, result.slot, dialogue_llm,
+                )
+                if dialogue:
+                    event_dialogues[evt_template.id] = dialogue
+                    # 回填 description 为纯文本版（兜底用）
+                    from src.backend.ai.dialogue_designer.pipeline import dialogue_to_description
+                    desc = dialogue_to_description(dialogue)
+                    if desc:
+                        evt_template.description = desc
+            except Exception as e:
+                print(f"[对白管线] event={evt_template.id} 失败: {type(e).__name__}: {e}")
+
+    # 7. 执行事件
     if all_matched:
         id_name_map: dict = {}
         for aid in session.agents.npc_ids:
@@ -216,6 +282,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
             participants_ids = list(evt_template.participants or [])
             participants_names = [id_name_map.get(pid, pid) for pid in participants_ids]
             location_id = getattr(evt_template, "location", "") or ""
+            dialogue = event_dialogues.get(evt_template.id)
             await _send(ws, "event_triggered", {
                 "event_id": r.event_id,
                 "event_name": r.event_name,
@@ -229,6 +296,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                 "location_id": location_id,
                 "risk_level": getattr(evt_template, "risk_level", "Low"),
                 "description": getattr(evt_template, "description", ""),
+                "dialogue": dialogue,  # 对白管线产出，前端可选渲染
             }, request_id)
 
             if r.bond_changes:

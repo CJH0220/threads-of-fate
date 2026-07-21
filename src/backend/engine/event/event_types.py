@@ -46,6 +46,7 @@ class EventTemplate:
     ai_text_policy: str = ""          # "None" | "DialogueAllowed"
     outcomes: List[Outcome] = field(default_factory=list)
     description: str = ""
+    dialogue_skeleton: Optional[Dict] = None  # 编剧产出的对话骨架 {goal, tone, line_steps}
 
     @property
     def is_anchor(self) -> bool:

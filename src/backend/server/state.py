@@ -7,12 +7,26 @@ Demo 阶段：使用模块级单例持有 GameSession。
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Optional
+
+# 自动加载项目根目录的 .env 文件
+try:
+    from dotenv import load_dotenv, find_dotenv
+    _env_path = find_dotenv(usecwd=True)
+    if not _env_path:
+        # fallback: 从当前文件向上找到项目根
+        _project_root = Path(__file__).resolve().parent.parent.parent.parent
+        _env_path = str(_project_root / ".env")
+    load_dotenv(_env_path)
+except ImportError:
+    pass  # python-dotenv 未安装时静默跳过
 
 from src.backend.ai.npc_agent.manager import AgentManager
 from src.backend.data.npc_loader import load_npcs
 from src.backend.ai.llm_client.interface import BaseLLMClient
 from src.backend.ai.llm_client.anthropic_client import AnthropicClient
+from src.backend.ai.llm_client.deepseek_client import DeepSeekClient
 from src.backend.ai.llm_client.load_balanced import LoadBalancedClient
 from src.backend.engine.bond import BondManager
 from src.backend.engine.karma import KarmaManager
@@ -26,6 +40,7 @@ from src.backend.engine.game_session import GameSession
 ## LLM 后端切换开关（环境变量 LLM_BACKEND）：
 ##   "llama"（默认）    -> 走本地 llama.cpp（172.21.125.241:8080），响应快、免公网
 ##   "anthropic"        -> 走 Volcengine Ark Anthropic 兼容端点（公网、有额度限制）
+##   "deepseek"         -> 走 DeepSeek API（公网、OpenAI 兼容、需 API Key）
 LLM_BACKEND = os.environ.get("LLM_BACKEND", "llama").lower()
 
 ## Anthropic 兼容端点兜底配置（env 未设置时使用）。
@@ -38,6 +53,20 @@ _FALLBACK_ANTHROPIC_TOKEN = "ark-2fd6a835-b807-4f74-817f-b3d1bd8b4073-9fabe"
 
 def _create_llm_client() -> BaseLLMClient:
     """创建 LLM 客户端。根据 LLM_BACKEND 环境变量切换实现。"""
+    if LLM_BACKEND == "deepseek":
+        api_key = os.environ.get("DEEPSEEK_API_KEY") or ""
+        base_url = os.environ.get("DEEPSEEK_BASE_URL") or "https://api.deepseek.com/v1/chat/completions"
+        model = os.environ.get("DEEPSEEK_MODEL") or "deepseek-chat"
+        timeout = float(os.environ.get("LLM_TIMEOUT", "60.0"))
+        print(f"[state] 使用 DeepSeekClient base_url={base_url} model={model} key={'已配置' if api_key else '缺失'}")
+        return DeepSeekClient(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            timeout=timeout,
+            max_retries=2,
+        )
+
     if LLM_BACKEND == "anthropic":
         # Anthropic 兼容端点（火山方舟 Coding）
         base_url = os.environ.get("ANTHROPIC_BASE_URL") or _FALLBACK_ANTHROPIC_BASE_URL

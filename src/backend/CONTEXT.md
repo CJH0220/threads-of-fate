@@ -78,7 +78,12 @@
 | **剧情大纲** | Story Outline | 编剧 Agent 的核心输入。以"节拍表"替代旧 CSV 的"时刻表"，描述每段故事要讲什么，但不限定具体时间地点 |
 | **故事弧线** | Story Arc | 跨越数周的叙事线（如邪教渗透线、巫女线），包含一组有序节拍 |
 | **叙事节拍** | Story Beat | 弧线内的单个叙事节点。包含 `what_must_happen`（叙事内容）、`latest_by`（最晚触发时间）、`outcomes`（结果分支） |
-| **编剧 Agent** | Screenwriter Agent | 替代旧 `match_events()` 的 AI 编排器。读取大纲 + NPC 意图 → 放行/软引导/硬编排 → 生成事件 |
+| **台词步** | Line Step | 对话骨架中单个 NPC 的一句话/动作单元。指定 actor（谁说）、intent（意图）、must_convey（必须传达的信息）、must_avoid（必须避免的话）。区别于 Story Beat |
+| **编剧 Agent** | Screenwriter Agent | 替代旧 `match_events()` 的 AI 编排器。读取大纲 + NPC 意图 → 放行/软引导/硬编排 → 生成事件。新增职责：为每个事件产出对话骨架（Dialogue Skeleton） |
+| **对话骨架** | Dialogue Skeleton | 编剧 Agent 为每个事件产出的场景蓝图。包含 goal（场景目的）、tone（调性）、line_steps（台词步列表）、max_length。不含最终对白文本 |
+| **场景** | Scene | 对话骨架内的一个场景单元，对应一个地点一段连续时间。由多个台词步组成 |
+| **SceneFilled** | SceneFilled | NPC 根据对话骨架中自己 actor 的台词步补出的台词集合。含 line 类型（action/dialogue/thought）和对应文本 |
+| **对白设计师** | Dialogue Designer | 只做文本审美的 Agent。接收拼接后的 SceneFilled，直接输出润色后完整定稿对白（同骨架 scenes + lines 结构）。不改结算数据、不加角色、不改事件走向 |
 | **软引导** | Soft Guidance | 编剧 Agent 通过 `agent.remember()` 向 NPC 注入暗示记忆，NPC 下次 `think()` 自主决定是否采纳。不破坏 NPC 自主性 |
 | **硬编排** | Hard Orchestration | 编剧 Agent 直接调用 `agent.dynamic.set_location()` 移动 NPC，仅在锚点事件或 `latest_by` 即将到期时使用 |
 | **调性约束** | Tone Rule | 全局叙事规则（如"夜晚优先悬疑""每周至少 2 个多人社交场景"），注入编剧 Agent 的 system prompt |
