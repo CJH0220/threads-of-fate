@@ -1,9 +1,9 @@
 # 《命运的织线》策划文档索引
 
-> 文档状态：整理版  
-> 更新日期：2026-06-12  
-> 项目方向：Godot / 2D 像素风 / 低成本叙事模拟  
-> 当前阶段：概念与系统策划整理
+> 文档状态：整合版  
+> 更新日期：2026-07-21  
+> 项目方向：Godot 4.4 / 2D 像素风 / 叙事模拟  
+> 当前阶段：系统策划完成，剧情大纲 v3.0 完成
 
 ---
 
@@ -69,13 +69,20 @@
 | `system/结局系统.md` | Game Over、60 天总评、路线结局 | 当前权威 |
 | `system/存档系统.md` | 自动保存、手动保存、读档、结局记录和版本兼容 | 当前权威 |
 | `system/AI生成边界.md` | AI 可写文本、禁止内容、规则边界和降级策略 | 当前权威 |
+| `system/剧情大纲系统.md` | 剧情大纲数据结构、编剧 Agent 工作流、NPC 协作协议 | 当前权威（部分实现） |
 | `system/README.md` | 系统策划目录说明与后续拆分路线 | 已整理 |
 
 ### 2.5 数据表权威
 
+> **事件表三层权威**：`事件配置表.csv`（策划主表，可编辑）→ `events_complete.csv`（英文导出，勿手动编辑）→ `godot/data/mock/events.json`（Mock 子集）。详见 `data/README.md §2.1`。
+
 | 文件 | 用途 | 状态 |
 |---|---|---|
-| `data/事件配置表.csv` | 事件池、触发时机、参与 NPC、AI 文本边界 | P0 草案 |
+| `data/事件配置表.csv` | 事件池（55行中文），策划主表 | P0 权威 |
+| `data/events_complete.csv` | 事件池展开版（195行英文），导出自主表 | 导出 |
+| `data/event_outcomes_complete.csv` | 事件结果映射（114行英文），导出自主表 | 导出 |
+| `data/event_templates.json` | 即兴日常事件模板（6种），编剧 Agent 消费 | 当前权威 |
+| `data/story_outline.json` | 剧情大纲 v3.0（72 beats），后端运行时数据 | v3.0 权威 |
 | `data/NPC基础表.csv` | NPC 基础身份、地点、剧情优先级和 MVP 优先级 | P0 草案 |
 | `data/地点配置表.csv` | 地点功能、出现 NPC、开放时段和视觉优先级 | P0 草案 |
 | `data/资源数值表.csv` | 核心资源和扩展镇域状态资源 | P0 草案 |
@@ -108,13 +115,45 @@
 
 ---
 
-## 3. 旧稿与归档建议
+### 2.8 剧情大纲
 
-| 文件 | 建议处理 | 原因 |
+| 文件 | 用途 | 状态 |
 |---|---|---|
-| `部分固定开局.md` | 保留为旧稿或后续移动到 `archive/` | 已被 `content/开局固定剧情.md` 整合取代 |
+| `story/story_outline_full.md` | 全 9 周剧情大纲（可读版，叙事圣经 v3.0） | v3.0 当前权威 |
+| `story/story_outline_full.json` | 全 9 周剧情大纲（机器版，编剧 Agent 消费） | v3.0 当前权威 |
+| `data/story_outline.json` | 后端运行时读取的大纲副本 | 与 story/ 同步（v3.0） |
+| `data/剧情大纲.md` | 叙事大纲 v2.0（已被 v3.0 取代） | 参考 |
 
-如果后续创建 `archive/` 目录，建议将旧稿、废弃设定、历史版本统一迁移到该目录，避免研发误用。
+### 2.9 多 Agent 架构
+
+| 文件 | 用途 | 状态 |
+|---|---|---|
+| `gdd/NPC-多代理人架构.md` | NPC 多 Agent 行为架构（编剧→NPC→对白设计师管线） | 当前权威 |
+
+### 2.10 架构决策
+
+| 文件 | 用途 | 状态 |
+|---|---|---|
+| `架构决策/框架与相关问题.md` | 技术框架选型（Godot+Python, FastAPI 等） | 当前权威 |
+
+### 2.11 AI 辅助与提示词
+
+| 文件 | 用途 | 状态 |
+|---|---|---|
+| `art/character-pixel-portrait-prompts.md` | 角色像素头像 AI 生成提示词（v5.1） | 当前权威 |
+| `art/location-background-prompts.md` | 地点背景 AI 生成提示词 | 当前权威 |
+
+---
+
+## 3. 旧稿与归档
+
+| 文件 | 状态 | 原因 |
+|---|---|---|
+| `_archive/work_v1.8.md` | 已归档 | 总体策划案旧版，已被 `总体策划案.md` v1.9 取代 |
+| `_archive/story_outline_v1.json` | 已归档 | 剧情大纲 v1.0（仅 W1-W2），已被 v3.0 取代 |
+| `_archive/部分固定开局_旧稿.md` | 已归档 | 已被 `content/开局固定剧情.md` 取代 |
+| `_archive/event-pool-design_deprecated.md` | 已归档 | 事件池早期草案，已被 `system/事件系统.md` 取代 |
+| `_archive/ui-spec-intervention-panel_deprecated.md` | 已归档 | 干预面板 UI 规格，前端重构后已弃用 |
 
 ---
 
