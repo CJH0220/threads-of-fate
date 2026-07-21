@@ -595,6 +595,13 @@ func _on_event_triggered(data: Dictionary) -> void:
 		"resource_delta": data.get("resource_changes", data.get("resource_delta", {})),
 		"available_interventions": data.get("available_interventions", []),
 	}
+	## 后端对白管线可能附带 dialogue: {location, lines:[{actor, type, text}]}
+	## 转换为前端 VN 期望的 dialogue_segments 格式（speaker_id/line_type/position/text）。
+	var raw_dialogue = data.get("dialogue", null)
+	if raw_dialogue is Dictionary:
+		var segs: Array = _dialogue_to_segments(raw_dialogue as Dictionary)
+		if not segs.is_empty():
+			event_data["dialogue_segments"] = segs
 	_pending_events.append(event_data)
 	_events.append(event_data)
 
@@ -613,6 +620,50 @@ func _on_event_triggered(data: Dictionary) -> void:
 		"risk_level": String(data.get("risk_level", "Low")),
 		"participant_names": data.get("participants", []),
 	})
+
+## 将后端对白管线产出的 dialogue（{location, lines:[{actor,type,text}]}）
+## 转换为前端 VN 期望的 dialogue_segments（[{speaker_id, speaker_name, line_type, position, text}]）。
+## 类型映射：action→narration；dialogue→speech；thought→thought。
+## position 分配：叙述固定 center；首个出场角色 left，第二个 right，之后按首次分配复用。
+func _dialogue_to_segments(dialogue: Dictionary) -> Array:
+	var lines: Array = dialogue.get("lines", []) if dialogue.get("lines") is Array else []
+	if lines.is_empty():
+		return []
+	var segs: Array = []
+	var slot_map: Dictionary = {}  # actor_id → "left" | "right"
+	for line in lines:
+		if not (line is Dictionary):
+			continue
+		var actor_id: String = String(line.get("actor", ""))
+		var ltype_raw: String = String(line.get("type", "dialogue"))
+		var text: String = String(line.get("text", ""))
+		if text.is_empty():
+			continue
+		var line_type: String
+		match ltype_raw:
+			"action":
+				line_type = "narration"
+			"thought":
+				line_type = "thought"
+			_:
+				line_type = "speech"
+		var position: String = "center"
+		var speaker_name: String = ""
+		var is_narrator: bool = actor_id.is_empty() or actor_id == "narrator" or actor_id == "?"
+		if line_type != "narration" and not is_narrator:
+			if not slot_map.has(actor_id):
+				slot_map[actor_id] = "left" if slot_map.size() % 2 == 0 else "right"
+			position = String(slot_map[actor_id])
+			var static_data: Dictionary = _static_character_index.get(actor_id, {}) as Dictionary
+			speaker_name = String(static_data.get("display_name", actor_id))
+		segs.append({
+			"speaker_id": "" if is_narrator else actor_id,
+			"speaker_name": speaker_name,
+			"line_type": line_type,
+			"position": position,
+			"text": text,
+		})
+	return segs
 
 ## 响应结算完成推送（时间推进流程最后一步）。
 ## 后端 ws_game._handle_advance_time 发送的 settlement_complete payload：
