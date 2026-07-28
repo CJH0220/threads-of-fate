@@ -114,6 +114,7 @@ class NpcAgent:
         memory_context = retrieval_result_to_context(retrieval_result)
 
         # 2. 构建 prompt
+        dream_context = self._build_dream_context()
         system_prompt = build_system_prompt(
             static=self.static,
             memory_context=memory_context,
@@ -123,6 +124,7 @@ class NpcAgent:
             happiness=state.happiness,
             bond_manager=self._bond_manager,
             name_map=self._name_map,
+            dream_context=dream_context,
         )
         decision_prompt = build_decision_prompt(
             static=self.static,
@@ -133,6 +135,7 @@ class NpcAgent:
             happiness=state.happiness,
             bond_manager=self._bond_manager,
             name_map=self._name_map,
+            dream_context=dream_context,
         )
 
         # 3. 调用 LLM（可能降级返回 None）
@@ -179,6 +182,7 @@ class NpcAgent:
             happiness=state.happiness,
             bond_manager=self._bond_manager,
             name_map=self._name_map,
+            dream_context=self._build_dream_context(),
         )
 
         user_message = f"{speaker_name}对你说：{context}\n\n请以{self.name}的身份回应。记住你的性格和当前情绪。"
@@ -232,13 +236,18 @@ class NpcAgent:
 
     # ── 场景补全 ──────────────────────────────────
 
-    async def fill_scene(self, skeleton: dict, day: int, slot: Slot) -> dict:
-        """根据对话骨架补全自己的台词。
+    async def fill_scene(
+        self, skeleton: dict, day: int, slot: Slot,
+        player_context: dict = None,
+    ) -> dict:
+        """根据对话骨架补全自己的台词（v2：支持感知玩家介入）。
 
         Args:
             skeleton: 编剧产出的对话骨架 {goal, tone, line_steps: [{step_id, actor, ...}]}
             day: 当前天数
             slot: 当前时段
+            player_context: v2 新增——玩家在时段预告窗的介入结果
+                {"blessed_event_ids": [...], "blessed_targets": [...], "extra_investment_ids": [...]}
 
         Returns:
             {"actor": npc_id, "lines": [{"step_ref": "b1", "type": "dialogue", "text": "..."}]}
@@ -248,7 +257,6 @@ class NpcAgent:
 
         state = self.dynamic.current
 
-        # 检索记忆上下文
         retrieval_result = self._pipeline.retrieve(
             memory=self.memory,
             semantic=self.semantic,
@@ -258,7 +266,21 @@ class NpcAgent:
         )
         memory_context = retrieval_result_to_context(retrieval_result)
 
-        # 构建 prompt
+        # Build dream context (v2)
+        dream_context = self._build_dream_context()
+
+        # Determine if this NPC perceives blessing (v2)
+        blessed_event_ids = (player_context or {}).get("blessed_event_ids", [])
+        blessed_targets = (player_context or {}).get("blessed_targets", [])
+        perceives_blessing = (
+            self.npc_id in blessed_targets or
+            any(eid for eid in blessed_event_ids if self.npc_id in str(eid))
+        )
+        blessing_perceived = any(
+            self.npc_id in (player_context or {}).get("participants_map", {}).get(eid, [])
+            for eid in blessed_event_ids
+        ) or self.npc_id in blessed_targets
+
         prompt = build_fill_scene_prompt(
             static=self.static,
             skeleton=skeleton,
@@ -269,6 +291,8 @@ class NpcAgent:
             memory_context=memory_context,
             bond_manager=self._bond_manager,
             name_map=self._name_map,
+            dream_context=dream_context,
+            perceives_blessing=blessing_perceived,
         )
 
         messages = [{"role": "system", "content": prompt}]
@@ -277,28 +301,96 @@ class NpcAgent:
         if reply:
             parsed = self._parse_decision_json(reply.strip())
             if parsed and "lines" in parsed:
-                return {"actor": self.npc_id, "lines": parsed["lines"]}
+                result = {"actor": self.npc_id, "lines": parsed["lines"]}
+                if blessing_perceived:
+                    result["perceived_blessing"] = True
+                return result
 
-        # 兜底：一条沉默 action
-        return {
+        # 兜底：一条沉默 action（v2: 仍携带赐福感知标志）
+        result = {
             "actor": self.npc_id,
             "lines": [
                 {"step_ref": "fallback", "type": "action",
                  "text": f"{self.name}沉默着。"}
             ],
         }
+        if blessing_perceived:
+            result["perceived_blessing"] = True
+        return result
 
     # ── 记忆 ──────────────────────────────────────
 
     def remember(self, day: int, slot: Slot, description: str,
-                 importance: int = 5, emotion: Optional[Emotion] = None) -> None:
-        """记录一条记忆。"""
+                 importance: int = 5, emotion: Optional[Emotion] = None,
+                 source: str = "event", event_id: str = "",
+                 participants: list = None,
+                 dream_incense_snapshot: int = 0, dream_text: str = "") -> None:
+        """记录一条记忆。v2 扩展：支持 source 分类与托梦字段。"""
         self.memory.remember(
             day=day,
             slot=slot,
             description=description,
             importance=importance,
             emotion=emotion or self.dynamic.current.emotion,
+            event_id=event_id,
+            participants=participants or [],
+            source=source,
+            dream_incense_snapshot=dream_incense_snapshot,
+            dream_text=dream_text,
+        )
+
+    def receive_dream(self, dream_text: str, incense_snapshot: int,
+                      day: int, slot: Slot) -> None:
+        """接收玩家托梦，写入一条 source=dream 的记忆。
+
+        NPC 在后续 think/fill_scene 中通过 _build_dream_context 读取此记忆，
+        由 prompt 自判分量。香火快照固定记录，事后不追溯。
+        """
+        importance = 5  # 默认重要度，NPC 可在读入时自评上调
+        self.memory.remember(
+            day=day,
+            slot=slot,
+            description=f"（梦中）土地公托梦：{dream_text}",
+            importance=importance,
+            emotion=Emotion.EXCITED,
+            event_id="",
+            participants=[],
+            source="dream",
+            dream_incense_snapshot=incense_snapshot,
+            dream_text=dream_text,
+        )
+        print(f"[NpcAgent] {self.name} receive_dream: "
+              f"incense={incense_snapshot}, dream={dream_text[:40]}...")
+
+    def _build_dream_context(self) -> str:
+        """构建托梦上下文文本（供 fill_scene / think 的 prompt 使用）。
+
+        读取 source=dream 的近期记忆，附加香火分段语义锚点说明。
+        """
+        dream_mems = self.memory.by_source("dream")
+        if not dream_mems:
+            return ""
+
+        # 取最近一条托梦
+        latest = dream_mems[-1]
+        incense = latest.dream_incense_snapshot
+        text = latest.dream_text or latest.description
+
+        # 香火分段语义锚点（§8.3）
+        if incense <= 40:
+            weight = "几乎被遗忘——梦像一次偶发的杂念"
+        elif incense <= 100:
+            weight = "一份心里挥之不去的暗示"
+        elif incense <= 150:
+            weight = "仿佛有人在耳边低语的确切感觉"
+        else:
+            weight = "神谕般的确信"
+
+        return (
+            f"【神明的托梦】\n"
+            f"昨夜，你在梦中感知到土地公的低语：\"{text}\"\n"
+            f"托梦时镇上香火为 {incense}，这份梦对你而言：{weight}。\n"
+            f"请将此反映到你的动机、情绪、行动和台词中。"
         )
 
     # ── 状态更新 ──────────────────────────────────

@@ -202,7 +202,7 @@ def advance_one_slot(session, outline, events, screenwriter_llm, templates=None)
     print(f"\n  [编剧Agent] LLM={'Mock' if USE_MOCK else '真实'} "
           f"outline={'✓' if outline else '✗'}")
 
-    screenwriter_ok, beat_events = asyncio.run(
+    sw_result = asyncio.run(
         screenwriter_think(
             session=session,
             story_outline=outline,
@@ -216,7 +216,8 @@ def advance_one_slot(session, outline, events, screenwriter_llm, templates=None)
         )
     )
 
-    if screenwriter_ok:
+    beat_events = sw_result.events
+    if sw_result.ok:
         # 区分节拍事件和即兴事件
         beat_only = [e for e in beat_events if not e[0].id.startswith("spontaneous_")]
         spon_only = [e for e in beat_events if e[0].id.startswith("spontaneous_")]

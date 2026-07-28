@@ -451,7 +451,7 @@ class TestScreenwriterIntegration:
                 day=1, slot=Slot.MORNING, week=1, phase_name="测试",
                 npc_intentions=[], llm=None,
             )
-        ok, events = asyncio.run(_run())
+        sw_result = asyncio.run(_run()); ok = sw_result.ok; events = sw_result.events
         assert not ok
 
 
@@ -616,7 +616,7 @@ class TestScreenwriterIntegration:
                 day=1, slot=Slot.MORNING, week=1, phase_name="测试",
                 npc_intentions=[], llm=None,
             )
-        ok, events = asyncio.run(_run())
+        sw_result = asyncio.run(_run()); ok = sw_result.ok; events = sw_result.events
         assert not ok
 
     def test_screenwriter_passes_through_valid_json(self, mock_session, mock_llm):
@@ -641,7 +641,7 @@ class TestScreenwriterIntegration:
                 ],
                 llm=llm,
             )
-        ok, events = asyncio.run(_run())
+        sw_result = asyncio.run(_run()); ok = sw_result.ok; events = sw_result.events
         assert ok
         assert events == []
 
@@ -680,7 +680,7 @@ class TestScreenwriterIntegration:
                 ],
                 llm=llm,
             )
-        ok, events = asyncio.run(_run())
+        sw_result = asyncio.run(_run()); ok = sw_result.ok; events = sw_result.events
         assert ok
         assert len(events) == 1
         template, outcome = events[0]
@@ -732,7 +732,7 @@ class TestScreenwriterIntegration:
                 ],
                 llm=llm,
             )
-        ok, events = asyncio.run(_run())
+        sw_result = asyncio.run(_run()); ok = sw_result.ok; events = sw_result.events
         assert ok
         assert events == []
         assert agent.memory.event_count >= 1
@@ -751,5 +751,5 @@ class TestScreenwriterIntegration:
                 day=1, slot=Slot.MORNING, week=1, phase_name="测试",
                 npc_intentions=[], llm=llm,
             )
-        ok, events = asyncio.run(_run())
+        sw_result = asyncio.run(_run()); ok = sw_result.ok; events = sw_result.events
         assert not ok

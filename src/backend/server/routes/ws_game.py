@@ -1,8 +1,8 @@
 """WebSocket 游戏主通道。
 
 双向实时通信：
-    客户端 → 服务端: advance_time / chat / get_state
-    服务端 → 客户端: 时间、事件、资源、NPC行动（流式）
+    客户端 → 服务端: advance_time / chat / get_state / slot_preview_response
+    服务端 → 客户端: 时间、事件、资源、NPC行动（流式）、slot_preview
 
 消息格式（架构文档 §2.4）：
     {"type": "advance_time", "payload": {...}, "timestamp": 0, "request_id": "..."}
@@ -23,14 +23,18 @@ from src.backend.server.state import (
 )
 from src.backend.engine.event import load_events, match_events, execute_events
 from src.backend.engine.story import load_event_templates, load_story_outline
-from src.backend.ai.screenwriter import screenwriter_think
+from src.backend.ai.screenwriter import screenwriter_think, ScreenwriterResult
 from src.backend.ai.narrator.narrator import generate_narrator_beat
 from src.backend.ai.dialogue_designer.pipeline import run_dialogue_pipeline
+from src.backend.models.npc import Emotion
 
 router = APIRouter()
 
 # 单连接（单局游戏）
 _active_ws: Optional[WebSocket] = None
+
+# v2: slot_preview 回合的响应 Future
+_slot_response_future: Optional[asyncio.Future] = None
 
 
 def _msg(msg_type: str, payload: dict = None, request_id: str = None) -> dict:
@@ -84,6 +88,8 @@ async def ws_game(ws: WebSocket):
                 await _handle_save_game(ws, payload, request_id)
             elif msg_type == "apply_intervention":
                 await _handle_apply_intervention(ws, payload, request_id)
+            elif msg_type == "slot_preview_response":
+                await _handle_slot_preview_response(ws, payload, request_id)
             else:
                 await _send(ws, "error", {"message": f"未知的消息类型: {msg_type}"}, request_id)
 
@@ -98,7 +104,10 @@ async def ws_game(ws: WebSocket):
 # ═══════════════════════════════════════════════════
 
 async def _handle_advance_time(ws: WebSocket, request_id: str):
-    """推进一个时段：时间 → NPC思考 → 编剧编排 → 事件结算 → 旁白。"""
+    """推进一个时段（v2：时段预告窗 + 冲突分分流）。
+
+    流程: 时间推进 → NPC思考 → 编剧编排 → 时段预告窗 → 对白管线(按冲突分分流) → 事件结算
+    """
     if not is_initialized():
         await _send(ws, "error", {"message": "游戏未初始化"}, request_id)
         return
@@ -125,10 +134,10 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
     if result.is_new_day:
         session.resource.apply_daily()
 
-    # 3. NPC 行为决策（S/A 级并发）—— 移到事件匹配之前
+    # 3. NPC 行为决策（S/A 级并发）
     await _send(ws, "npc_actions_start", {}, request_id)
 
-    npc_intentions: list = []  # [(npc_id, name, action_text, location), ...]
+    npc_intentions: list = []
 
     async def _think_and_collect(agent):
         if agent is None:
@@ -155,14 +164,9 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
     # 4. 编剧 Agent：大纲驱动的叙事编排
     outline = load_story_outline()
     templates = load_event_templates()
-    screenwriter_llm = None
-    for aid in session.agents.npc_ids:
-        agent = session.agents.get(aid)
-        if agent and agent.static.tier.value == "S":
-            screenwriter_llm = agent.llm
-            break
+    screenwriter_llm = _get_llm(session)
 
-    screenwriter_ok, beat_events = await screenwriter_think(
+    sw_result = await screenwriter_think(
         session=session,
         story_outline=outline,
         day=result.day,
@@ -174,46 +178,20 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
         templates=templates,
     )
 
-    # 打印编剧产出
-    if screenwriter_ok and beat_events:
-        spon = [e for e in beat_events if e[0].id.startswith("spontaneous_")]
-        beat = [e for e in beat_events if not e[0].id.startswith("spontaneous_")]
-        print(f"\n{'='*60}")
-        print(f"[编剧] Day{result.day} {result.slot.value} | "
-              f"节拍{len(beat)}个 + 即兴{len(spon)}个")
-        for t, o in beat:
-            print(f"  ◆ 节拍: {t.name} ({t.id}) → {o.id}")
-        for t, o in spon:
-            delta_info = []
-            if o.bond_delta:
-                delta_info.append(f"缘线:{o.bond_delta}")
-            if o.npc_state_delta:
-                delta_info.append(f"NPC:{o.npc_state_delta}")
-            delta_str = " | ".join(delta_info) if delta_info else "无delta"
-            print(f"  🎭 即兴: {t.name} | {t.location or '?'} | {t.participants}")
-            print(f"     {(t.description or '')[:120]}")
-            print(f"     delta: {delta_str}")
-        print(f"{'='*60}\n")
-    elif not screenwriter_ok:
+    _print_screenwriter_log(sw_result, result)
+
+    if not sw_result.ok:
         print(f"[编剧] Day{result.day} {result.slot.value} | 不可用，回退CSV匹配")
+        beat_events = []
+    else:
+        beat_events = sw_result.events
 
     # 5. CSV 事件匹配（补充/兜底）
-    locs = {}
-    for aid in session.agents.npc_ids:
-        agent = session.agents.get(aid)
-        if agent:
-            locs[aid] = agent.dynamic.current.location.value
-    locs.update({
-        "heaven_messenger": "temple", "tudi_gong": "temple",
-        "underworld_messenger": "temple", "town_representative": "plaza",
-    })
-
+    locs = _build_location_map(session)
     csv_matched = match_events(events, day=result.day, slot=result.slot,
                                week=result.week, participant_locations=locs)
 
-    # Merge: screenwriter beat events first, then CSV events (deduped by event_id)
     max_total = outline.global_constraints.max_events_per_slot if outline else 3
-    # Build dedup set: both beat_id and any CSV event_id the beat references
     beat_event_ids: set = {e[0].id for e in beat_events}
     if outline:
         for e, _ in beat_events:
@@ -228,84 +206,165 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
         if csv_pair[0].id not in beat_event_ids:
             all_matched.append(csv_pair)
 
-    # 6. 对白管线：为有骨架的事件生成完整对白
-    event_dialogues: dict = {}  # event_id → dialogue dict
+    # ─── v2: 时段预告窗 ───────────────────────────────────
 
-    # Collect one LLM client for dialogue pipeline use
-    dialogue_llm = screenwriter_llm  # reuse screenwriter's LLM
-    if dialogue_llm is None:
-        for aid in session.agents.npc_ids:
-            ag = session.agents.get(aid)
-            if ag and ag.static.tier.value in ("S", "A"):
-                dialogue_llm = ag.llm
-                break
+    player_context = None
+    player_impact_flags: dict = {}
+
+    if sw_result.ok:
+        # Build blessing slots from high-drama events
+        blessing_slots = _build_blessing_slots(sw_result, session)
+        if blessing_slots:
+            await _send(ws, "slot_preview", {
+                "day": result.day,
+                "slot": result.slot.value,
+                "summary": sw_result.slot_summary,
+                "blessing_slots": blessing_slots,
+                "timeout_sec": 30,
+            }, request_id)
+
+            # Wait for player response (30s timeout)
+            player_context = await _wait_for_slot_response(timeout=30.0)
+            if player_context is None:
+                print(f"[slot_preview] timeout or no response for day={result.day} slot={result.slot.value}")
+
+            # Build player_impact_flags for event_triggered messages
+            if player_context:
+                for decision in player_context.get("decisions", []):
+                    eid = decision.get("event_id", "")
+                    if decision.get("action") == "bless":
+                        player_impact_flags[eid] = {
+                            "blessed": True,
+                            "coin_success": decision.get("coin_result", {}).get("success", False),
+                            "extra_investment": decision.get("extra_investment", False),
+                        }
+
+    # ─── v2: 冲突分分流 — 对白管线 ────────────────────────
+
+    event_dialogues: dict = {}
+    dialogue_llm = _get_llm(session)
+
+    # Build participants map for blessing context
+    participants_map: dict = {}
+    for evt, _ in all_matched:
+        participants_map[evt.id] = evt.participants or []
+
+    pc_for_fill = {
+        "blessed_event_ids": list(player_impact_flags.keys()),
+        "blessed_targets": [],
+        "participants_map": participants_map,
+    }
 
     if dialogue_llm:
         for (evt_template, _) in all_matched:
-            skeleton = getattr(evt_template, "dialogue_skeleton", None)
-            if not skeleton:
+            score = evt_template.dramatic_score
+
+            if score <= 2:
+                # 环境氛围：只写记忆，不发 event_triggered
+                _write_ambient_memory(session, evt_template, result.day, result.slot)
                 continue
-            participants = evt_template.participants or []
-            s_a_count = sum(
-                1 for pid in participants
-                if session.agents.get(pid) and
-                session.agents.get(pid).static.tier.value in ("S", "A")
-            )
-            if s_a_count < 2:
-                continue  # 至少 2 个 S/A 才值得跑管线
 
-            try:
-                dialogue = await run_dialogue_pipeline(
-                    evt_template, session, result.day, result.slot, dialogue_llm,
+            elif score <= 5:
+                # 日常互动：轻量模板 — 只用 description，不走管线
+                continue
+
+            else:
+                # 显著戏剧 (6+)：完整对白管线
+                skeleton = getattr(evt_template, "dialogue_skeleton", None)
+                if not skeleton:
+                    continue
+                participants = evt_template.participants or []
+                s_a_count = sum(
+                    1 for pid in participants
+                    if session.agents.get(pid) and
+                    session.agents.get(pid).static.tier.value in ("S", "A")
                 )
-                if dialogue:
-                    event_dialogues[evt_template.id] = dialogue
-                    # 回填 description 为纯文本版（兜底用）
-                    from src.backend.ai.dialogue_designer.pipeline import dialogue_to_description
-                    desc = dialogue_to_description(dialogue)
-                    if desc:
-                        evt_template.description = desc
-            except Exception as e:
-                print(f"[对白管线] event={evt_template.id} 失败: {type(e).__name__}: {e}")
+                if s_a_count < 2:
+                    continue
 
-    # 7. 执行事件
+                try:
+                    dialogue = await run_dialogue_pipeline(
+                        evt_template, session, result.day, result.slot,
+                        dialogue_llm, player_context=pc_for_fill,
+                    )
+                    if dialogue:
+                        event_dialogues[evt_template.id] = dialogue
+                        from src.backend.ai.dialogue_designer.pipeline import dialogue_to_description
+                        desc = dialogue_to_description(dialogue)
+                        if desc:
+                            evt_template.description = desc
+                except Exception as e:
+                    print(f"[对白管线] event={evt_template.id} 失败: {type(e).__name__}: {e}")
+
+    # 7. 执行事件 + 推送（v2：跳过 score ≤ 2 的事件）
     if all_matched:
-        id_name_map: dict = {}
-        for aid in session.agents.npc_ids:
-            ag = session.agents.get(aid)
-            if ag:
-                id_name_map[aid] = ag.name
+        id_name_map = _build_name_map(session)
 
-        settlement = execute_events(all_matched, session.resource, session.agents,
-                                    day=result.day, slot=result.slot)
-        for (evt_template, _outcome), r in zip(all_matched, settlement):
-            participants_ids = list(evt_template.participants or [])
-            participants_names = [id_name_map.get(pid, pid) for pid in participants_ids]
-            location_id = getattr(evt_template, "location", "") or ""
-            dialogue = event_dialogues.get(evt_template.id)
-            await _send(ws, "event_triggered", {
-                "event_id": r.event_id,
-                "event_name": r.event_name,
-                "outcome_name": r.outcome_name,
-                "resource_changes": r.resource_changes,
-                "npc_changes": r.npc_changes,
-                "bonds_queued": r.bond_changes,
-                "karma_queued": r.karma_changes,
-                "participant_ids": participants_ids,
-                "participant_names": participants_names,
-                "location_id": location_id,
-                "risk_level": getattr(evt_template, "risk_level", "Low"),
-                "description": getattr(evt_template, "description", ""),
-                "dialogue": dialogue,  # 对白管线产出，前端可选渲染
-            }, request_id)
+        # Filter out ambient events (score <= 2) for execution
+        executable = [(e, o) for e, o in all_matched if e.dramatic_score > 2]
+        ambient = [(e, o) for e, o in all_matched if e.dramatic_score <= 2]
 
-            if r.bond_changes:
-                delta_parts = [f"bond_{k}:{v:+d}" for k, v in r.bond_changes.items()]
-                session.bonds.apply_delta(";".join(delta_parts))
+        # Execute ambient events silently (memory already written above)
+        for evt, _ in ambient:
+            for pid in (evt.participants or []):
+                agent = session.agents.get(pid)
+                if agent:
+                    agent.remember(
+                        day=result.day, slot=result.slot,
+                        description=evt.description or "日常氛围。",
+                        importance=2, source="ambient",
+                        event_id=evt.id, participants=evt.participants or [],
+                    )
 
-            if r.karma_changes:
-                delta_parts = [f"{k}:{v:+d}" for k, v in r.karma_changes.items()]
-                session.karma.apply_delta(";".join(delta_parts))
+        # Execute drama events normally
+        if executable:
+            settlement = execute_events(executable, session.resource, session.agents,
+                                        day=result.day, slot=result.slot)
+            for (evt_template, _outcome), r in zip(executable, settlement):
+                participants_ids = list(evt_template.participants or [])
+                participants_names = [id_name_map.get(pid, pid) for pid in participants_ids]
+                location_id = getattr(evt_template, "location", "") or ""
+                dialogue = event_dialogues.get(evt_template.id)
+                impact = player_impact_flags.get(evt_template.id, {})
+
+                await _send(ws, "event_triggered", {
+                    "event_id": r.event_id,
+                    "event_name": r.event_name,
+                    "outcome_name": r.outcome_name,
+                    "resource_changes": r.resource_changes,
+                    "npc_changes": r.npc_changes,
+                    "bonds_queued": r.bond_changes,
+                    "karma_queued": r.karma_changes,
+                    "participant_ids": participants_ids,
+                    "participant_names": participants_names,
+                    "location_id": location_id,
+                    "risk_level": getattr(evt_template, "risk_level", "Low"),
+                    "description": getattr(evt_template, "description", ""),
+                    "dialogue": dialogue,
+                    "dramatic_score": evt_template.dramatic_score,
+                    "player_impact_flags": impact,
+                }, request_id)
+
+                if r.bond_changes:
+                    delta_parts = [f"bond_{k}:{v:+d}" for k, v in r.bond_changes.items()]
+                    session.bonds.apply_delta(";".join(delta_parts))
+
+                if r.karma_changes:
+                    delta_parts = [f"{k}:{v:+d}" for k, v in r.karma_changes.items()]
+                    session.karma.apply_delta(";".join(delta_parts))
+
+                # Write event memory for participants
+                for pid in participants_ids:
+                    agent = session.agents.get(pid)
+                    if agent:
+                        agent.remember(
+                            day=result.day, slot=result.slot,
+                            description=evt_template.description or r.event_name,
+                            importance=min(evt_template.dramatic_score, 10),
+                            source="event",
+                            event_id=evt_template.id,
+                            participants=participants_ids,
+                        )
 
     await _send(ws, "settlement_complete", {
         "day": result.day,
@@ -317,7 +376,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
         },
     }, request_id)
 
-    # 7. 夜间旁白（土地公视角）
+    # 8. 夜间旁白（土地公视角）
     if result.slot.value == "night":
         try:
             recent_actions = [it for it in completed if it]
@@ -339,11 +398,12 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
 
 
 async def _handle_apply_intervention(ws: WebSocket, payload: dict, request_id: str):
-    """处理神力干预：把托梦/赐福写入相关 NPC 的记忆库。
+    """处理神力干预（v2：托梦携带香火快照，NPC self-receive）。
 
     前端已在本地做过命运硬币结算（可复现的确定性程序）。
-    后端只负责：
-    - 记录托梦文字到目标 NPC 的记忆（importance=8，emotion=hopeful）
+    后端负责：
+    - 读取当前香火值作为 incense_snapshot
+    - 调用目标 NPC 的 receive_dream() 写入 source=dream 的记忆
     - 记录赐福护佑感应到目标 NPC 的记忆（importance=7）
     - 广播 intervention_applied 供 UI 追加日志
     """
@@ -360,8 +420,7 @@ async def _handle_apply_intervention(ws: WebSocket, payload: dict, request_id: s
     session = get_session()
     day = session.time.day
     slot = session.time.slot
-
-    from src.backend.models.npc import Emotion
+    incense_snapshot = session.resource.incense  # v2: 香火快照
 
     affected: list = []
     for npc_id in target_npc_ids:
@@ -370,10 +429,12 @@ async def _handle_apply_intervention(ws: WebSocket, payload: dict, request_id: s
             continue
 
         if intervention_id == "dream_hint" and dream_text:
-            desc = f"（梦中）土地公托梦：{dream_text}"
-            agent.remember(
-                day=day, slot=slot, description=desc,
-                importance=8, emotion=Emotion.EXCITED,
+            # v2: 使用 receive_dream，携带香火快照
+            agent.receive_dream(
+                dream_text=dream_text,
+                incense_snapshot=incense_snapshot,
+                day=day,
+                slot=slot,
             )
         elif intervention_id == "blessing":
             outcome_flag = "感受到" if coin_result.get("success", False) else "隐约察觉"
@@ -381,6 +442,7 @@ async def _handle_apply_intervention(ws: WebSocket, payload: dict, request_id: s
             agent.remember(
                 day=day, slot=slot, description=desc,
                 importance=7, emotion=Emotion.HAPPY,
+                source="blessing_felt",
             )
         else:
             desc = f"命运的织线似乎被无形之手轻轻拨动了一下（{intervention_id}）。"
@@ -396,6 +458,7 @@ async def _handle_apply_intervention(ws: WebSocket, payload: dict, request_id: s
         "dream_text": dream_text,
         "coin_result": coin_result,
         "affected_npc_ids": affected,
+        "incense_snapshot": incense_snapshot,
     }, request_id)
 
 
@@ -486,3 +549,157 @@ async def _handle_save_game(ws: WebSocket, payload: dict, request_id: str):
     session = get_session()
     await storage.save(slot, session.to_dict())
     await _send(ws, "game_saved", {"slot": slot, "day": session.time.day}, request_id)
+
+
+# ═══════════════════════════════════════════════════
+# v2: slot_preview 回合处理
+# ═══════════════════════════════════════════════════
+
+async def _handle_slot_preview_response(ws: WebSocket, payload: dict, request_id: str):
+    """接收玩家在时段预告窗的决策，解挂 _slot_response_future。"""
+    global _slot_response_future
+    if _slot_response_future and not _slot_response_future.done():
+        _slot_response_future.set_result(payload)
+    await _send(ws, "slot_preview_ack", {"status": "received"}, request_id)
+
+
+async def _wait_for_slot_response(timeout: float = 30.0) -> Optional[dict]:
+    """等待前端 slot_preview_response，超时返回 None。"""
+    global _slot_response_future
+    _slot_response_future = asyncio.get_event_loop().create_future()
+    try:
+        result = await asyncio.wait_for(_slot_response_future, timeout=timeout)
+        return result
+    except asyncio.TimeoutError:
+        return None
+    finally:
+        _slot_response_future = None
+
+
+# ═══════════════════════════════════════════════════
+# v2: 辅助函数
+# ═══════════════════════════════════════════════════
+
+def _get_llm(session) -> Optional[object]:
+    """获取任意 S 级 NPC 的 LLM 客户端。"""
+    for aid in session.agents.npc_ids:
+        agent = session.agents.get(aid)
+        if agent and agent.static.tier.value == "S":
+            return agent.llm
+    # Fallback: any S/A
+    for aid in session.agents.npc_ids:
+        agent = session.agents.get(aid)
+        if agent and agent.static.tier.value in ("S", "A"):
+            return agent.llm
+    return None
+
+
+def _build_location_map(session) -> dict:
+    """构建 NPC 当前位置映射。"""
+    locs = {}
+    for aid in session.agents.npc_ids:
+        agent = session.agents.get(aid)
+        if agent:
+            locs[aid] = agent.dynamic.current.location.value
+    locs.update({
+        "heaven_messenger": "temple", "tudi_gong": "temple",
+        "underworld_messenger": "temple", "town_representative": "plaza",
+    })
+    return locs
+
+
+def _build_name_map(session) -> dict:
+    """构建 NPC ID → 中文名映射。"""
+    name_map = {}
+    for aid in session.agents.npc_ids:
+        ag = session.agents.get(aid)
+        if ag:
+            name_map[aid] = ag.name
+    return name_map
+
+
+def _build_blessing_slots(sw_result: ScreenwriterResult, session) -> list:
+    """从编剧产出构建赐福节点列表（推送给前端时段预告窗）。"""
+    slots = []
+    for evt, outcome in sw_result.blessing_events:
+        participants = evt.participants or []
+        id_map = _build_name_map(session)
+        names = [id_map.get(pid, pid) for pid in participants]
+        difficulty = "困难" if evt.dramatic_score >= 9 else "中等"
+        slots.append({
+            "event_id": evt.id,
+            "event_name": evt.name,
+            "location_id": evt.location or "",
+            "location_label": evt.location or "某处",
+            "participants": participants,
+            "participant_names": names,
+            "difficulty_hint": difficulty,
+            "base_cost": 3,
+            "dramatic_score": evt.dramatic_score,
+            "hint_text": f"你或可在他们的相遇处轻拨命运一二。" if evt.dramatic_score >= 9 else "",
+        })
+    return slots
+
+
+def _write_ambient_memory(session, evt, day, slot) -> None:
+    """为 score ≤ 2 的 ambient 事件写入低重要度记忆。"""
+    for pid in (evt.participants or []):
+        agent = session.agents.get(pid)
+        if agent:
+            agent.remember(
+                day=day, slot=slot,
+                description=evt.description or "日常氛围。",
+                importance=1,
+                source="ambient",
+                event_id=evt.id,
+                participants=evt.participants or [],
+            )
+
+
+def _print_screenwriter_log(sw_result: ScreenwriterResult, time_result) -> None:
+    """打印编剧产出日志。"""
+    if not sw_result.ok:
+        return
+    events = sw_result.events
+    if not events:
+        return
+
+    spon = [e for e in events if e[0].id.startswith("spontaneous_")]
+    beat = [e for e in events if not e[0].id.startswith("spontaneous_")]
+    high = sum(1 for e, _ in events if e.dramatic_score >= 6)
+    mid = sum(1 for e, _ in events if 3 <= e.dramatic_score <= 5)
+    low = sum(1 for e, _ in events if e.dramatic_score <= 2)
+
+    print(f"\n{'='*60}")
+    print(f"[编剧] Day{time_result.day} {time_result.slot.value} | "
+          f"节拍{len(beat)} + 即兴{len(spon)} "
+          f"→ {len(events)} total (高{high} 中{mid} 低{low})")
+    print(f"[预告] {sw_result.slot_summary[:120]}")
+    for t, o in beat:
+        print(f"  ◆ 节拍(score={t.dramatic_score}): {t.name} ({t.id}) → {o.id}")
+    for t, o in spon:
+        delta_info = []
+        if o.bond_delta:
+            delta_info.append(f"缘线:{o.bond_delta}")
+        if o.npc_state_delta:
+            delta_info.append(f"NPC:{o.npc_state_delta}")
+        delta_str = " | ".join(delta_info) if delta_info else "无delta"
+        print(f"  🎭 即兴(score={t.dramatic_score}): {t.name} | {t.location or '?'} | {t.participants}")
+        print(f"     {(t.description or '')[:120]}")
+        print(f"     delta: {delta_str}")
+    print(f"{'='*60}\n")
+
+
+# ═══════════════════════════════════════════════════
+# v2: 预留扩展点（§12.3）
+# ═══════════════════════════════════════════════════
+
+async def _maybe_reorchestrate(player_context: dict, events: list, session) -> list:
+    """应急二次编排钩子（首版暂不启用，预留接口）。
+
+    当玩家做出强干预（例：赐福 3 个节点全部加大投入）后，
+    编剧可以二次调用微调事件走向。首版不做——多一次 LLM 调用
+    带来的收益 vs. 成本不明。
+    """
+    # TODO: 未来实现
+    return events

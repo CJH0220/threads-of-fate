@@ -24,11 +24,12 @@ async def run_dialogue_pipeline(
     day: int,
     slot: "Slot",
     llm: "BaseLLMClient",
+    player_context: dict = None,
 ) -> Optional[dict]:
-    """为单个事件运行完整对白管线。
+    """为单个事件运行完整对白管线（v2：支持 player_context）。
 
     流程：
-    1. 对每个 S/A 级 participant 并发调用 fill_scene
+    1. 对每个 S/A 级 participant 并发调用 fill_scene（注入 player_context）
     2. 拼接所有 SceneFilled
     3. 对白设计师润色
     4. 返回定稿 dialogue dict（可直接发给前端）
@@ -39,6 +40,7 @@ async def run_dialogue_pipeline(
         day: 当前天数
         slot: 当前时段
         llm: LLM 客户端
+        player_context: v2 新增——玩家在时段预告窗的介入结果
 
     Returns:
         定稿 dialogue {location, lines: [{actor, type, text}]}，失败返回 None
@@ -51,14 +53,14 @@ async def run_dialogue_pipeline(
     if not participants:
         return None
 
-    # 1. 并发 fill_scene（仅 S/A 级 NPC）
+    # 1. 并发 fill_scene（仅 S/A 级 NPC，注入 player_context）
     async def _fill_one(npc_id: str):
         agent = session.agents.get(npc_id)
         if agent is None:
             return None
         if agent.static.tier.value not in ("S", "A"):
-            return None  # B/C 级不填台词
-        return await agent.fill_scene(skeleton, day, slot)
+            return None
+        return await agent.fill_scene(skeleton, day, slot, player_context=player_context)
 
     tasks = [_fill_one(pid) for pid in participants]
     filled = await asyncio.gather(*tasks, return_exceptions=True)

@@ -140,6 +140,9 @@ class MemoryEntry(BaseModel):
         default_factory=list, description="参与者 NPC ID 列表"
     )
     location: str = Field(default="", description="发生地点")
+    source: str = Field(default="event", description="来源: event | dream | blessing_felt | ambient")
+    dream_incense_snapshot: int = Field(default=0, description="若 source=dream，写入时的香火值快照")
+    dream_text: str = Field(default="", description="若 source=dream，玩家托梦原文")
 
 
 class Impression(BaseModel):

@@ -4,6 +4,6 @@ Replaces old CSV event matching with intelligent,
 outline-guided story beat triggering + NPC intervention.
 """
 
-from src.backend.ai.screenwriter.screenwriter import screenwriter_think
+from src.backend.ai.screenwriter.screenwriter import screenwriter_think, ScreenwriterResult
 
-__all__ = ["screenwriter_think"]
+__all__ = ["screenwriter_think", "ScreenwriterResult"]

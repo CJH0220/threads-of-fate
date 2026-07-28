@@ -8,8 +8,13 @@ Substitutes the old CSV match_events() with LLM-driven orchestration:
     5. Build (EventTemplate, Outcome) pairs for execute_events()
     6. Update session.story (StoryState)
 
+v2 additions:
+    - dramatic_score (0-10) for every event
+    - slot_summary for player preview window
+    - ScreenwriterResult replaces bare tuple return
+
 Fallback:
-    Returns (False, []) if LLM unavailable / outline missing / JSON unparseable.
+    Returns ScreenwriterResult(ok=False) if LLM unavailable / JSON unparseable.
     Caller (ws_game.py) falls back to old CSV match_events().
 """
 
@@ -17,6 +22,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from src.backend.engine.event.event_types import EventTemplate, Outcome
@@ -43,6 +49,41 @@ if TYPE_CHECKING:
 
 
 # ═══════════════════════════════════════════════════
+# ScreenwriterResult (v2)
+# ═══════════════════════════════════════════════════
+
+@dataclass
+class ScreenwriterResult:
+    """编剧 Agent 的单时段产出。"""
+    ok: bool = False
+    events: List[Tuple[EventTemplate, Outcome]] = field(default_factory=list)
+    slot_summary: str = ""
+    dramatic_scores: Dict[str, int] = field(default_factory=dict)  # event_id → score
+
+    # v2: per-event scores for the blessing preview window
+    # Reserved: _maybe_reorchestrate hook point (§12.3)
+    @property
+    def high_drama_events(self) -> List[Tuple[EventTemplate, Outcome]]:
+        """Events with dramatic_score >= 6 (need full dialogue pipeline)."""
+        return [(e, o) for e, o in self.events if e.dramatic_score >= 6]
+
+    @property
+    def medium_drama_events(self) -> List[Tuple[EventTemplate, Outcome]]:
+        """Events with dramatic_score 3-5 (lightweight template only)."""
+        return [(e, o) for e, o in self.events if 3 <= e.dramatic_score <= 5]
+
+    @property
+    def ambient_events(self) -> List[Tuple[EventTemplate, Outcome]]:
+        """Events with dramatic_score 0-2 (memory-only, no frontend display)."""
+        return [(e, o) for e, o in self.events if e.dramatic_score <= 2]
+
+    @property
+    def blessing_events(self) -> List[Tuple[EventTemplate, Outcome]]:
+        """Events with dramatic_score >= 6 that have blessing slots."""
+        return [(e, o) for e, o in self.events if e.dramatic_score >= 6]
+
+
+# ═══════════════════════════════════════════════════
 # Public API
 # ═══════════════════════════════════════════════════
 
@@ -56,8 +97,8 @@ async def screenwriter_think(
     npc_intentions: List[Tuple[str, str, str, str]],
     llm: Optional["BaseLLMClient"] = None,
     templates: Optional[dict] = None,
-) -> Tuple[bool, List[Tuple[EventTemplate, Outcome]]]:
-    """Run the Screenwriter Agent for one time slot.
+) -> ScreenwriterResult:
+    """Run the Screenwriter Agent for one time slot (v2).
 
     Args:
         session: current GameSession
@@ -71,12 +112,14 @@ async def screenwriter_think(
         templates: event templates dict for spontaneous daily events
 
     Returns:
-        (ok, events): ok=False means caller should fall back to CSV matching.
-        events list may be empty even when ok=True.
+        ScreenwriterResult with ok flag, events list, slot_summary, and dramatic_scores.
+        ok=False means caller should fall back to CSV matching.
     """
     # Guard: no outline or no LLM → fallback
     if story_outline is None or llm is None:
-        return False, []
+        return ScreenwriterResult(ok=False)
+
+    result = ScreenwriterResult(ok=True)
 
     # 1. Pre-filter eligible beats
     eligible_beats = _get_eligible_beats(story_outline, session.story, day)
@@ -97,7 +140,7 @@ async def screenwriter_think(
         templates.get("composition_rules", {}).get("max_spontaneous_per_slot", 2)
         if templates else 2
     )
-    min_spontaneous = 1  # 每个时段至少生成 1 个即兴事件
+    min_spontaneous = 1
 
     system_prompt = SYSTEM_PROMPT.format(
         beat_descriptions=beat_descriptions,
@@ -131,17 +174,22 @@ async def screenwriter_think(
         reply = await llm.chat(messages, max_tokens=4096, temperature=0.7)
     except Exception as e:
         print(f"[screenwriter] LLM call failed: {type(e).__name__}: {e}")
-        return False, []
+        return ScreenwriterResult(ok=False)
 
     if not reply:
         print("[screenwriter] LLM returned empty reply")
-        return False, []
+        return ScreenwriterResult(ok=False)
 
     # 5. Parse JSON
     decisions = _parse_llm_output(reply)
     if decisions is None:
         print("[screenwriter] Failed to parse LLM output, falling back to CSV")
-        return False, []
+        return ScreenwriterResult(ok=False)
+
+    # 5b. Extract slot_summary (v2)
+    result.slot_summary = _safe_str(decisions.get("slot_summary"))
+    if not result.slot_summary:
+        result.slot_summary = f"今日{slot.value}，镇上似乎有些动静。"
 
     # 6. Apply NPC interventions
     interventions = decisions.get("interventions", [])
@@ -166,16 +214,28 @@ async def screenwriter_think(
         all_events.append(se)
         remaining -= 1
 
+    result.events = all_events
+
+    # 9b. Collect dramatic_scores map (v2)
+    for evt, _ in all_events:
+        result.dramatic_scores[evt.id] = evt.dramatic_score
+
     # 10. Update StoryState
     _update_story_state(session.story, triggered, story_outline, day, slot)
     _recalculate_arc_progress(session.story, story_outline)
 
     if all_events:
+        high = sum(1 for e, _ in all_events if e.dramatic_score >= 6)
+        mid = sum(1 for e, _ in all_events if 3 <= e.dramatic_score <= 5)
+        low = sum(1 for e, _ in all_events if e.dramatic_score <= 2)
         print(f"[screenwriter] day={day} slot={slot.value}: "
-              f"{len(interventions)} interventions, {len(beat_events)} beats, "
-              f"{len(spontaneous_events)} spontaneous → {len(all_events)} total")
+              f"{len(interventions)} interventions, "
+              f"{len(beat_events)} beats, {len(spontaneous_events)} spontaneous "
+              f"→ {len(all_events)} total "
+              f"(high:{high} mid:{mid} low:{low}) "
+              f"summary:{len(result.slot_summary)}chars")
 
-    return True, all_events
+    return result
 
 
 # ═══════════════════════════════════════════════════
@@ -277,6 +337,15 @@ def _safe_str(val, default: str = "") -> str:
     return str(val).strip() if val else default
 
 
+def _safe_int(val, fallback: int = 5, min_val: int = 0, max_val: int = 10) -> int:
+    """Get an int from a JSON value, clamping to range. Returns fallback on invalid input."""
+    try:
+        v = int(val)
+        return max(min_val, min(max_val, v))
+    except (ValueError, TypeError):
+        return fallback
+
+
 def _apply_interventions(
     session: "GameSession",
     interventions: List[Dict[str, Any]],
@@ -346,33 +415,27 @@ def _build_events_from_beats(
     for trigger in triggers:
         beat_id = _safe_str(trigger.get("beat_id"))
         outcome_id = _safe_str(trigger.get("outcome_id"))
+        dramatic_score = _safe_int(trigger.get("dramatic_score"), fallback=5, min_val=0, max_val=10)
 
         beat = _find_beat(outline, beat_id)
         if beat is None:
             print(f"[screenwriter] WARNING: unknown beat_id '{beat_id}'")
             continue
 
-        # If beat references a CSV event, we don't convert here —
-        # the caller (ws_game.py) will match it via CSV match_events.
-        # This function only handles beats WITH inline outcomes.
         if beat.event_id:
-            # Beat references CSV → build a minimal EventTemplate for matching
-            template = _build_template_from_beat(beat)
-            # Pick the first inline outcome (if any) or create a stub
+            template = _build_template_from_beat(beat, dramatic_score)
             outcome_def = _find_outcome(beat, outcome_id)
             if outcome_def is not None:
                 outcome = _outcome_def_to_outcome(outcome_def, beat.id)
                 result.append((template, outcome))
             else:
-                # No inline outcomes → the caller adds this to CSV supplement
                 print(f"[screenwriter] Beat '{beat_id}' refs CSV event '{beat.event_id}' "
                       f"— deferring to CSV match_events")
         else:
-            # Beat has inline outcomes → build directly
-            template = _build_template_from_beat(beat)
+            template = _build_template_from_beat(beat, dramatic_score)
             outcome_def = _find_outcome(beat, outcome_id)
             if outcome_def is None and beat.outcomes:
-                outcome_def = beat.outcomes[0]  # Fallback to first outcome
+                outcome_def = beat.outcomes[0]
             if outcome_def is not None:
                 outcome = _outcome_def_to_outcome(outcome_def, beat.id)
                 result.append((template, outcome))
@@ -380,7 +443,7 @@ def _build_events_from_beats(
     return result
 
 
-def _build_template_from_beat(beat: StoryBeat) -> EventTemplate:
+def _build_template_from_beat(beat: StoryBeat, dramatic_score: int = 5) -> EventTemplate:
     """Build an EventTemplate from a StoryBeat."""
     return EventTemplate(
         id=beat.id,
@@ -395,6 +458,7 @@ def _build_template_from_beat(beat: StoryBeat) -> EventTemplate:
         risk_level="Medium",
         ai_text_policy="DialogueAllowed",
         description=beat.what_must_happen[:200],
+        dramatic_score=dramatic_score,
     )
 
 
@@ -602,6 +666,7 @@ def _build_spontaneous_events(
             ai_text_policy="DialogueAllowed",
             description=description,
             dialogue_skeleton=raw.get("dialogue_skeleton"),
+            dramatic_score=_safe_int(raw.get("dramatic_score"), fallback=5),
         )
 
         result.append((template_evt, outcome))

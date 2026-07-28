@@ -644,6 +644,18 @@ class MemoryStore:
         key.sort(key=lambda e: e.importance, reverse=True)
         return key[:n]
 
+    def by_source(self, source: str) -> List[MemoryEntry]:
+        """按来源筛选记忆（v2 新增）。
+
+        Args:
+            source: "event" | "dream" | "blessing_felt" | "ambient"
+        Returns:
+            按时段排序的记忆列表（最早的在前）
+        """
+        matched = [e for e in self.struct.all() if e.source == source]
+        matched.sort(key=lambda e: (e.day, e.slot.value))
+        return matched
+
     def get_impression(self, npc_id: str) -> Optional[Impression]:
         return self._impressions.get(npc_id)
 
@@ -663,11 +675,16 @@ class MemoryStore:
         participants: Optional[List[str]] = None,
         location: str = "",
         embedding: Optional[List[float]] = None,
+        source: str = "event",
+        dream_incense_snapshot: int = 0,
+        dream_text: str = "",
     ) -> MemoryEntry:
         """记录一条情景记忆 → 写入双库。
 
         自动判定：
         - event_chain 超过上限 → 触发溢出精简
+
+        v2 新增字段：source / dream_incense_snapshot / dream_text
         """
         entry = MemoryEntry(
             day=day,
@@ -678,6 +695,9 @@ class MemoryStore:
             emotion=emotion,
             participants=participants or [],
             location=location,
+            source=source,
+            dream_incense_snapshot=dream_incense_snapshot,
+            dream_text=dream_text,
         )
 
         # 写入结构库

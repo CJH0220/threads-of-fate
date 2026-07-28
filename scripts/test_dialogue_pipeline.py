@@ -61,17 +61,18 @@ async def main():
     print(f"  outline={outline is not None}  templates={templates is not None}  llm={screenwriter_llm is not None}")
 
     if outline and screenwriter_llm:
-        ok, events = await screenwriter_think(
+        sw_result = await screenwriter_think(
             session=session, story_outline=outline,
             day=day, slot=slot, week=week, phase_name=phase_name,
             npc_intentions=npc_intentions, llm=screenwriter_llm, templates=templates,
         )
-        print(f"  screenwriter ok={ok}  events={len(events)}")
+        events = sw_result.events
+        print(f"  screenwriter ok={sw_result.ok}  events={len(events)}")
     else:
         print(f"  SKIP: outline={outline is not None} llm={screenwriter_llm is not None}")
         return
 
-    if not ok or not events:
+    if not sw_result.ok or not events:
         print("  无事件产出，结束。")
         return
 

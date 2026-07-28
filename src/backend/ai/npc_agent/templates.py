@@ -73,12 +73,20 @@ SYSTEM_PROMPT_TEMPLATE = """你是{name}，{age}岁的{occupation}，生活在�
 
 {memory_context}
 
+{dream_context}
+
 【行为规则】
 1. 你只做符合你性格和身份的事。你不会干超出你能力或认知范围的事情。
 2. 你只基于你的记忆和当前处境做决定，不会利用上帝视角。
 3. 你的回应用中文，语气要符合你当前的情绪状态。
 4. 你不会意识到自己是游戏角色，也不会提到"玩家"、"系统"、"AI"等概念。
 5. 如果不知道该怎么回应，就按直觉给出最自然的反应。
+6. 你是一个凡人，无法直接看到神明。但你对"神迹的分量"有直觉——
+   如果有标注 <incense_snapshot> 的托梦记忆，请根据香火高低自行判断神明的关注程度：
+   - 香火很低（0–40）：梦更像一次偶发的杂念，你可以怀疑、忽略
+   - 香火中等（40–100）：是一份心里挥之不去的暗示，你会认真考虑但不必盲从
+   - 香火较高（100–150）：是仿佛耳边低语的确切感觉，你倾向遵循，但不受本心约束
+   - 香火极高（150+）：你把它当作神谕，除非违背本心最深处，否则会照做
 
 现在，请根据以上设定，以{name}的身份回应："""
 
@@ -150,6 +158,7 @@ def build_system_prompt(
     happiness: int = 50,
     bond_manager = None,
     name_map: dict = None,
+    dream_context: str = "",
 ) -> str:
     """为 NPC 构建完整的 system_prompt。
 
@@ -161,6 +170,7 @@ def build_system_prompt(
         energy: 精力值
         happiness: 幸福度
         bond_manager: BondManager 实例（可选）
+        dream_context: v2 新增——托梦上下文（由 agent._build_dream_context 生成）
     """
     bond_context = build_bond_context(static.id, bond_manager, name_map)
 
@@ -177,6 +187,7 @@ def build_system_prompt(
         happiness=happiness,
         bond_context=bond_context,
         memory_context=memory_context,
+        dream_context=dream_context or "",
     )
 
 
@@ -189,6 +200,7 @@ def build_decision_prompt(
     happiness: int,
     bond_manager=None,
     name_map: dict = None,
+    dream_context: str = "",
 ) -> str:
     """为 NPC 行为决策构建 prompt。
 
@@ -203,6 +215,7 @@ def build_decision_prompt(
         happiness=happiness,
         bond_manager=bond_manager,
         name_map=name_map,
+        dream_context=dream_context,
     )
     decision_instruction = f"""
 【当前时段：你需要做一个决定】
@@ -233,6 +246,10 @@ FILL_SCENE_PROMPT = """你是{name}，{age}岁的{occupation}，生活在归潮�
 
 {memory_context}
 
+{dream_context}
+
+{blessing_context}
+
 【场景】
 你现在处于以下场景中——
 地点：{scene_location}
@@ -261,6 +278,7 @@ FILL_SCENE_PROMPT = """你是{name}，{age}岁的{occupation}，生活在归潮�
 - 必须避开骨架中 must_avoid 的内容
 - 你只能写自己的行，不能替其他角色说话
 - 语言自然口语化，符合{name}的身份和性格
+- 如果你感知到神明的赐福（{blessing_context}提示），你的台词可以体现"心头一暖"或"被关注"的感觉，但不要直接说"神明赐福"这类出戏的词汇
 """
 
 
@@ -274,8 +292,10 @@ def build_fill_scene_prompt(
     memory_context: str = "",
     bond_manager=None,
     name_map: dict = None,
+    dream_context: str = "",
+    perceives_blessing: bool = False,
 ) -> str:
-    """构建 fill_scene 的 prompt。
+    """构建 fill_scene 的 prompt（v2 扩展：托梦上下文 + 赐福感知）。
 
     Args:
         static: NPC 静态数据
@@ -287,11 +307,16 @@ def build_fill_scene_prompt(
         memory_context: 记忆上下文
         bond_manager: BondManager 实例
         name_map: {npc_id: chinese_name}
+        dream_context: v2 新增——托梦上下文
+        perceives_blessing: v2 新增——该 NPC 是否感知到神明赐福
     """
     bond_context = build_bond_context(static.id, bond_manager, name_map)
 
-    # Format full skeleton for actor awareness
     steps_text = _format_skeleton_steps(skeleton.get("line_steps", []), name_map or {})
+
+    blessing_text = ""
+    if perceives_blessing:
+        blessing_text = "你在本场戏中感知到神明的眷顾——仿佛有一股温暖的力量在你身边。"
 
     return FILL_SCENE_PROMPT.format(
         name=static.name,
@@ -305,6 +330,8 @@ def build_fill_scene_prompt(
         happiness=happiness,
         bond_context=bond_context,
         memory_context=memory_context or "（暂无近期记忆）",
+        dream_context=dream_context or "",
+        blessing_context=blessing_text,
         scene_location=skeleton.get("location", location),
         goal=skeleton.get("goal", "一次日常对话"),
         tone=skeleton.get("tone", "日常"),

@@ -47,6 +47,7 @@ class EventTemplate:
     outcomes: List[Outcome] = field(default_factory=list)
     description: str = ""
     dialogue_skeleton: Optional[Dict] = None  # 编剧产出的对话骨架 {goal, tone, line_steps}
+    dramatic_score: int = 5          # 0-10 戏剧冲突性评分（v2 新增）
 
     @property
     def is_anchor(self) -> bool:
@@ -70,3 +71,6 @@ class SettlementResult:
     bond_changes: Dict[str, int] = field(default_factory=dict)
     karma_changes: Dict[str, int] = field(default_factory=dict)
     town_changes: Dict[str, int] = field(default_factory=dict)
+
+    # v2: player intervention flags for frontend rendering
+    player_impact_flags: Dict[str, bool] = field(default_factory=dict)

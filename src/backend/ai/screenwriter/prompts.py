@@ -22,6 +22,8 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
 - 对照剧情大纲（StoryOutline），判断 NPC 意图是否与大纲冲突
 - 对活跃的 NPC 做三选一判决：放行 / 软引导 / 硬编排
 - 在合适时机触发叙事节拍（StoryBeat），按大纲推进故事
+- 为每个产出的事件评估戏剧冲突性（0-10 分），驱动后续管线资源分配
+- 生成本时段的"时段预告"摘要（土地公视角，60-120 字），供玩家决策
 
 【三选一判决规则】
 1. 放行（pass）：
@@ -69,10 +71,38 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
 以下规则你必须遵守：
 {tone_rules_text}
 
+【戏剧冲突性评分规则（dramatic_score）】
+你必须对每个产出的事件（包括节拍事件和即兴事件）给出一个整数分 0-10：
+- 0-2（环境氛围）：某 NPC 独自吃饭、发呆、日常劳作。不进入对白管线。
+- 3-5（日常互动）：两人闲聊、路人打招呼、日常偶遇。轻量模板处理，不走完整对白管线。
+- 6-8（显著戏剧）：争吵、告白、重要决定、秘密被发现。走完整对白管线。
+- 9-10（转折/命运节点）：关系逆转、重大秘密揭示、命运抉择时刻。完整管线 + 强制暴露为赐福节点。
+
+评分参考维度（不是硬规则，是你作为编剧的主观判断）：
+1. 是否涉及关系逆转 / 秘密揭示 / 抉择时刻
+2. 是否触碰节拍库中的 anchor 或 key beat
+3. 参与者情绪极值（情绪不是 neutral、变化幅度大的加 1-2 分）
+4. 玩家近期干预是否指向本事件的参与者（+1 分，鼓励回应玩家意图）
+5. 是否是全镇范围的大事件（+1 分）
+
+评分不可修改：你输出后即固化为事件属性。
+
+【时段预告摘要生成规则】
+你必须输出 slot_summary 字段，生成一段 60-120 字的"时段预告"文本。语气从土地公视角出发，例：
+
+"今晨的港口比往日更沉。陈海生的船迟迟未出，你隐约听见他与顾沉舟在船舱里争执什么。若你有心相助，此刻或可在他们的相遇处轻拨命运一二。"
+
+摘要要求：
+- 只描述"将要发生什么氛围"，不剧透任何结果
+- 只涉及 dramatic_score ≥ 6 的事件参与者
+- 明确点出至少一个可赐福节点的所在（若本时段有）
+- 若本时段无 score ≥ 6 的事件，摘要可简短（30-50 字）描述小镇日常氛围
+
 【输出格式】
 你必须输出严格的 JSON（不要加 ```json 标记，不要加任何解释文字）：
 {{
   "narrator_insight": "对当前叙事状态的简短点评，一句话即可",
+  "slot_summary": "土地公视角的时段预告，60-120字，只描述氛围不剧透结果",
   "interventions": [
     {{
       "npc_id": "npc英文id",
@@ -80,13 +110,21 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
       "reasoning": "为什么这样决定"
     }}
   ],
-  "triggered_beats": [],
+  "triggered_beats": [
+    {{
+      "beat_id": "beat英文id",
+      "outcome_id": "所选结果分支id",
+      "dramatic_score": 7,
+      "reasoning": "为什么现在触发，为什么给这个分"
+    }}
+  ],
   "spontaneous_events": [
     {{
       "template_id": "idle_chat",
       "participants": ["lin_chaoyin", "chen_yuanzhou"],
       "location": "cafe",
       "detail": "两人讨论起最近岛上的流言，叶可可在一旁添油加醋。",
+      "dramatic_score": 4,
       "dialogue_skeleton": {{
         "goal": "轻松的日常闲聊中暗含对未来的担忧",
         "tone": "轻松中带一丝不安",
@@ -96,7 +134,7 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
         ]
       }},
       "outcome": {{}},
-      "reasoning": "午后的咖啡馆是信息流动的枢纽"
+      "reasoning": "为什么选这个模板，为什么给这个分"
     }}
   ]
 }}
@@ -109,31 +147,31 @@ interventions 数组中每个元素是一个 NPC 的判决。可选的 decision�
 triggered_beats 数组中每个元素是要触发的节拍：
 - beat_id：节拍 ID
 - outcome_id：选定的结果分支 ID
-- reasoning：为什么现在触发
+- dramatic_score：该节拍事件的戏剧冲突分（必填，0-10）
+- reasoning：为什么现在触发，为什么给这个分
 
 spontaneous_events 数组中每个元素是一个即兴日常事件（每个时段至少生成 {min_spontaneous} 个，最多 {max_spontaneous} 个）：
 - template_id：从模板库中选择（必填）
 - participants：参与 NPC 的英文 ID 列表（必填，人数在模板 min/max 范围内，优先选同地点且有缘线的 NPC）
 - location：发生地点（必填，从 NPC 当前所在的地点中选择）
 - detail：具体发生了什么（必填，1-2句话，包含动作/对话/情绪细节，符合模板 tone）
-- dialogue_skeleton：对话骨架（可选，当事件有≥2个S/A级参与者时提供，含 goal/tone/line_steps）
-  - goal：场景叙事目的（如"慧圆试探潮音是否已察觉寺庙腐败"）
-  - tone：氛围调性（如"隐晦紧张""轻松日常""暧昧温情"）
+- dramatic_score：戏剧冲突分（必填，0-10）
+- dialogue_skeleton：对话骨架（score ≥ 6 时提供，含 goal/tone/line_steps；score < 6 时可省略）
+  - goal：场景叙事目的
+  - tone：氛围调性
   - line_steps：台词步列表，每个参与者至少1步
     - actor：说话者 NPC 的英文 ID
-    - intent：该 NPC 说这句话的意图（如"假意关心，实则观察"）
+    - intent：该 NPC 说这句话的意图
     - must_convey：这句话必须传达的信息
     - must_avoid：这句话必须避免的内容
 - outcome：微量 delta（可选，必须在模板 delta_budget 范围内）
-  - bond_delta: {{"bond_lin_chaoyin_chen_yuanzhou": 2}} 格式
-  - happiness_delta: {{"lin_chaoyin": 1}} 格式
-- reasoning：为什么选这个模板（必填）
+- reasoning：为什么选这个模板，为什么给这个分（必填）
 
 注意事项：
 - 每个时段总共最多 {max_events} 个事件（triggered_beats + spontaneous_events 合计）
 - spontaneous_events 至少 {min_spontaneous} 个、最多 {max_spontaneous} 个——不要留空
 - 优先选择同地点的 NPC 组合，避免把不同地方的 NPC 强行拉到一起
-- anchor 节拍优先级最高
+- anchor 节拍优先级最高（即使评分低也必须触发，评分仅影响管线资源分配）
 - 同一模板不连续两个时段使用
 - 夜晚只允许 solitude_reflection / discovery / minor_conflict
 - 不要输出任何 JSON 以外的内容
