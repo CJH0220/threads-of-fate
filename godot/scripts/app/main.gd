@@ -99,6 +99,8 @@ func _ready() -> void:
 	if USE_BACKEND:
 		## 真实后端：先检查健康，失败自动降级到 Mock
 		Backend.health_completed.connect(_on_backend_health, CONNECT_ONE_SHOT)
+		Backend.error.connect(_on_backend_error)
+		Backend.disconnected.connect(_on_backend_disconnected)
 		Backend.check_health()
 	else:
 		## 本地 Mock
@@ -114,8 +116,17 @@ func _on_backend_health(healthy: bool) -> void:
 		## 自动连接 WS
 		Backend.connect_ws()
 	else:
+		show_toast("后端不可达，已切换到本地 Mock 模式")
 		game_state = MockGameState.new()
 	_connect_game_state()
+
+## 后端错误信号透传：WS/HTTP 失败时提示玩家，避免静默
+func _on_backend_error(message: String) -> void:
+	show_toast("后端异常：%s" % message)
+
+## WebSocket 断线时提示；Backend 内部会自动 3s 重连
+func _on_backend_disconnected() -> void:
+	show_toast("后端连接已断开，正在自动重连…")
 
 ## 连接 game_state 的 state_changed 信号（用于 UI 刷新）
 func _connect_game_state() -> void:
