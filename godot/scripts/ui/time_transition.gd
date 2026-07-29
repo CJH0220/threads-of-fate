@@ -31,6 +31,23 @@ func _ready() -> void:
 func _on_close_pressed() -> void:
 	_hide_now()
 
+## 加载态：立刻弹出"命运流转中……"提示，等待后端返回。
+## 不显示继续按钮、不绑定 finished，仅作为 loading 遮罩。
+## 调用方在后端返回后须调用 play(before, after, settlement_data) 补上结算与继续按钮。
+func show_loading(before_label: String) -> void:
+	visible = true
+	modulate = Color(1, 1, 1, 1)
+	title_label.text = "命运流转中……"
+	time_label.text = before_label
+	if close_button != null:
+		close_button.visible = false
+	## 织线动画预置为半态,营造"进行中"的错觉
+	thread.scale = Vector2(0.35, 1)
+	thread.modulate = Color(1, 1, 1, 0.8)
+	## loading 阶段不渲染结算内容
+	if settlement_box != null:
+		settlement_box.visible = false
+
 ## 兼容老调用：只传两个 label 也能跑，settlement_data 用默认空字典。
 func play(before_label: String, after_label: String, settlement_data: Dictionary = {}) -> void:
 	visible = true

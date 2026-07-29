@@ -58,12 +58,31 @@ SYSTEM_PROMPT = """你是《命运的织线》的编剧 Agent（Screenwriter）�
 
 {beat_descriptions}
 
+【时间背景】
+当前时段是 {slot_label}。请根据时段特征选择事件类型：
+- 早晨（morning）：适合晨练、买菜、上学路上、开始一天的工作。气氛清新，节奏舒缓。
+- 下午（noon）：适合工作间隙、逛街、偶遇、喝茶聊天。气氛活跃，节奏中等。
+- 夜晚（night）：适合独处反思、秘密会面、夜间工作、酒吧闲聊。气氛沉静或暧昧，节奏较慢。
+你的事件选择应反映当前时段的自然节律——不要让 NPC 在深夜买菜或在清晨去酒吧。
+
+【有效地点列表】
+以下是归潮镇的全部地点，事件只能在这些地点中发生。每个地点的英文 ID 和中文名一一对应：
+{location_list}
+事件中的 location 字段必须使用上述英文 ID，detail 和 dialogue_skeleton 中则使用中文名。
+
 【事件模板库】
-【即兴日常事件】
-每个时段你都应该根据以下模板生成 1-2 个即兴日常事件，让小镇有生活气息。这是你最重要的工作之一——没有人会替你填充日常。没有节拍触发不是理由：NPC 在生活，小镇在运转，总有值得记录的小事。
+每个时段你都必须生成 {min_spontaneous}-{max_spontaneous} 个即兴日常事件，让小镇有呼吸感。这是你最重要的工作——没有人会替你填充日常。即使没有任何节拍触发，NPC 也在生活，小镇在运转，总有值得记录的小事。请尽量选择 2-3 人互动的模板，避免每时段都是单人独处。
 
 你可以从以下模板中选择来生成即兴日常事件。不要凭空创造新的事件类型。每个模板定义了参与者数量、适用调性、delta 数值上限：
 {template_descriptions}
+
+【对话骨架要求（重要！）】
+对于戏剧分 >= 3 的即兴事件，你必须提供 dialogue_skeleton，让后续对白管线能生成角色之间的实际对话。没有 dialogue_skeleton 的事件会是无声的——这会让游戏体验大打折扣。
+dialogue_skeleton 格式：{{"goal": "场景目的", "tone": "氛围", "line_steps": [{{"actor": "npc_id", "intent": "意图", "must_convey": "必须传达", "must_avoid": "必须避免"}}]}}
+- goal: 这个场景的叙事目的（一句话）
+- tone: 氛围调性（warm/tense/mysterious/intimate/neutral）
+- line_steps: 每个参与者至少 1 步，每步包含 intent（意图）、must_convey（必须传达的信息）、must_avoid（必须避免的内容）
+- 一个好的 dialogue_skeleton 应该让每个角色有 2-3 步台词，形成对话的起承转合
 
 【调性约束】
 {composition_rules_text}
@@ -150,16 +169,16 @@ triggered_beats 数组中每个元素是要触发的节拍：
 - dramatic_score：该节拍事件的戏剧冲突分（必填，0-10）
 - reasoning：为什么现在触发，为什么给这个分
 
-spontaneous_events 数组中每个元素是一个即兴日常事件（每个时段至少生成 {min_spontaneous} 个，最多 {max_spontaneous} 个）：
+spontaneous_events 数组中每个元素是一个即兴日常事件（每个时段至少生成 {min_spontaneous} 个，最多 {max_spontaneous} 个，请尽量生成 {max_spontaneous} 个！）：
 - template_id：从模板库中选择（必填）
-- participants：参与 NPC 的英文 ID 列表（必填，人数在模板 min/max 范围内，优先选同地点且有缘线的 NPC）
+- participants：参与 NPC 的英文 ID 列表（必填，人数在模板 min/max 范围内，优先选同地点且有缘线的 NPC，优先选 2-3 人互动的模板）
 - location：发生地点（必填，从 NPC 当前所在的地点中选择）
-- detail：具体发生了什么（必填，1-2句话，包含动作/对话/情绪细节，符合模板 tone）
-- dramatic_score：戏剧冲突分（必填，0-10）
-- dialogue_skeleton：对话骨架（score ≥ 6 时提供，含 goal/tone/line_steps；score < 6 时可省略）
+- detail：具体发生了什么（必填，2-3句话，包含动作/对话/情绪细节，必须生动具体，符合模板 tone）
+- dramatic_score：戏剧冲突分（必填，0-10，鼓励给出 3-7 分的日常互动，避免全给低分）
+- dialogue_skeleton：对话骨架（dramatic_score >= 3 时必须提供！这是生成对白的必要条件，没有它事件就是哑的）
   - goal：场景叙事目的
   - tone：氛围调性
-  - line_steps：台词步列表，每个参与者至少1步
+  - line_steps：台词步列表，每个参与者至少 2 步！形成对话的起承转合
     - actor：说话者 NPC 的英文 ID
     - intent：该 NPC 说这句话的意图
     - must_convey：这句话必须传达的信息
@@ -335,6 +354,28 @@ def format_templates_for_system_prompt(templates: dict) -> str:
             f"happiness[{hap_b.get('min',0)},{hap_b.get('max',0)}]"
         )
     return "\n".join(lines)
+
+
+# Time slot Chinese labels
+_SLOT_LABELS = {"morning": "早晨", "noon": "下午", "night": "夜晚"}
+
+
+def format_locations_for_system_prompt() -> str:
+    """Format all valid locations into system prompt context."""
+    locations = [
+        ("temple", "土地庙"), ("plaza", "广场"), ("beach", "沙滩"), ("school", "学校"),
+        ("clinic", "诊所"), ("shopping_street", "商业街"), ("bookstore", "书店"),
+        ("cafe", "咖啡馆"), ("police_station", "警局"), ("mountain_forest", "山林"),
+        ("port", "港口"), ("residence", "住所"), ("coffee_shop", "咖啡店"),
+        ("wine_bar", "酒吧"), ("seafood_shop", "海鲜店"), ("dock", "码头"),
+        ("church", "教堂"), ("hospital", "医院"), ("park", "公园"),
+        ("market", "市场"), ("restaurant", "餐馆"), ("library", "图书馆"),
+        ("gym", "健身房"), ("office", "办公楼"), ("factory", "工厂"),
+        ("station", "车站"), ("seaside", "海边"), ("bathhouse", "澡堂"),
+        ("teahouse", "茶馆"), ("kitchen", "厨房"), ("backyard", "后院"),
+        ("rooftop", "天台"),
+    ]
+    return "\n".join(f"- {eid}: {cname}" for eid, cname in locations)
 
 
 def format_composition_rules_for_system_prompt(templates: dict) -> str:

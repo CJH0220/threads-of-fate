@@ -40,6 +40,8 @@ from src.backend.ai.screenwriter.prompts import (
     format_composition_rules_for_system_prompt,
     format_templates_for_system_prompt,
     format_tone_rules_for_system_prompt,
+    format_locations_for_system_prompt,
+    _SLOT_LABELS,
 )
 from src.backend.models.npc import Slot
 
@@ -140,7 +142,10 @@ async def screenwriter_think(
         templates.get("composition_rules", {}).get("max_spontaneous_per_slot", 2)
         if templates else 2
     )
-    min_spontaneous = 1
+    min_spontaneous = 2
+
+    location_list = format_locations_for_system_prompt()
+    slot_label = _SLOT_LABELS.get(slot.value, slot.value)
 
     system_prompt = SYSTEM_PROMPT.format(
         beat_descriptions=beat_descriptions,
@@ -148,6 +153,8 @@ async def screenwriter_think(
         composition_rules_text=comp_rules_text,
         tone_rules_text=tone_text,
         max_events=max_events,
+        location_list=location_list,
+        slot_label=slot_label,
         max_spontaneous=max_spontaneous,
         min_spontaneous=min_spontaneous,
     )

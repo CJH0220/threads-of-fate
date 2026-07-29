@@ -25,7 +25,7 @@ from src.backend.engine.event import load_events, match_events, execute_events
 from src.backend.engine.story import load_event_templates, load_story_outline
 from src.backend.ai.screenwriter import screenwriter_think, ScreenwriterResult
 from src.backend.ai.narrator.narrator import generate_narrator_beat
-from src.backend.ai.dialogue_designer.pipeline import run_dialogue_pipeline
+from src.backend.ai.dialogue_designer.pipeline import run_dialogue_pipeline, run_light_dialogue
 from src.backend.models.npc import Emotion
 
 router = APIRouter()
@@ -47,7 +47,36 @@ def _msg(msg_type: str, payload: dict = None, request_id: str = None) -> dict:
 
 
 async def _send(ws: WebSocket, msg_type: str, payload: dict = None, request_id: str = None):
+    """所有主消息通过此函数发出。单个 WebSocket 由 asyncio 天然串行,只要不
+    fire-and-forget 就不会并发写。"""
     await ws.send_json(_msg(msg_type, payload, request_id))
+
+
+async def _log_push(source: str, message: str, level: str = "info") -> None:
+    """本地 print + 主流程内 await 推送到 WS。
+
+    async 版:必须 await,和主消息一起串行,不做 fire-and-forget。
+    前端 Godot 侧订阅 server_log 可以按顺序看到后端进度。
+    """
+    print(f"[{source}] {message}")
+    ws = _active_ws
+    if ws is None:
+        return
+    try:
+        await ws.send_json(_msg("server_log", {
+            "level": level,
+            "source": source,
+            "message": message,
+            "ts": time.time(),
+        }))
+    except Exception:
+        # send 失败(连接断了/编码错)只影响这条日志,不抛给主流程
+        pass
+
+
+def _log_and_push(source: str, message: str, level: str = "info") -> None:
+    """同步版:仅本地 print,不推 WS。给非 async 上下文用(如 print_screenwriter_log)。"""
+    print(f"[{source}] {message}")
 
 
 # ═══════════════════════════════════════════════════
@@ -108,11 +137,36 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
 
     流程: 时间推进 → NPC思考 → 编剧编排 → 时段预告窗 → 对白管线(按冲突分分流) → 事件结算
     """
+    try:
+        await _handle_advance_time_inner(ws, request_id)
+    except Exception as e:
+        import traceback
+        await _log_push("ws_game", f"advance_time 未捕获异常: {type(e).__name__}: {e}", "error")
+        await _log_push("ws_game", f"trace: {traceback.format_exc()}", "error")
+        # 兜底：无论如何都要发 settlement_complete,否则前端会一直等到超时
+        try:
+            session = get_session()
+            await _send(ws, "settlement_complete", {
+                "day": session.time.day,
+                "slot": session.time.slot.value if hasattr(session.time.slot, "value") else str(session.time.slot),
+                "resource": {
+                    "incense": session.resource.incense,
+                    "divine_power": session.resource.divine_power,
+                    "divine_power_max": session.resource.divine_power_max,
+                },
+                "error_recovered": True,
+            }, request_id)
+        except Exception as e2:
+            await _log_push("ws_game", f"兜底 settlement_complete 也失败: {e2}", "error")
+
+
+async def _handle_advance_time_inner(ws: WebSocket, request_id: str):
     if not is_initialized():
         await _send(ws, "error", {"message": "游戏未初始化"}, request_id)
         return
 
     session = get_session()
+    await _log_push("advance", "STEP_1_ENTER 开始推进时间")
     events = load_events()
 
     # 1. 推进时间
@@ -133,6 +187,8 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
     # 2. 每日结算
     if result.is_new_day:
         session.resource.apply_daily()
+
+    await _log_push("advance", f"STEP_2_TIME_ADVANCED day={result.day} slot={result.slot.value}")
 
     # 3. NPC 行为决策（S/A 级并发）
     await _send(ws, "npc_actions_start", {}, request_id)
@@ -166,6 +222,8 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
     templates = load_event_templates()
     screenwriter_llm = _get_llm(session)
 
+    await _log_push("advance", f"STEP_3_NPC_DONE npc_intentions={len(npc_intentions)}, 开始编剧")
+
     sw_result = await screenwriter_think(
         session=session,
         story_outline=outline,
@@ -178,10 +236,10 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
         templates=templates,
     )
 
-    _print_screenwriter_log(sw_result, result)
+    await _print_screenwriter_log(sw_result, result)
 
     if not sw_result.ok:
-        print(f"[编剧] Day{result.day} {result.slot.value} | 不可用，回退CSV匹配")
+        await _log_push("编剧", f"Day{result.day} {result.slot.value} | 不可用，回退CSV匹配", "warn")
         beat_events = []
     else:
         beat_events = sw_result.events
@@ -226,7 +284,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
             # Wait for player response (30s timeout)
             player_context = await _wait_for_slot_response(timeout=30.0)
             if player_context is None:
-                print(f"[slot_preview] timeout or no response for day={result.day} slot={result.slot.value}")
+                await _log_push("slot_preview", f"timeout or no response for day={result.day} slot={result.slot.value}", "warn")
 
             # Build player_impact_flags for event_triggered messages
             if player_context:
@@ -243,6 +301,8 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
 
     event_dialogues: dict = {}
     dialogue_llm = _get_llm(session)
+
+    await _log_push("advance", f"STEP_4_MATCHED events={len(all_matched)}, 开始对白管线")
 
     # Build participants map for blessing context
     participants_map: dict = {}
@@ -265,7 +325,19 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                 continue
 
             elif score <= 5:
-                # 日常互动：轻量模板 — 只用 description，不走管线
+                # 日常互动：轻量单次 LLM 生成 2-4 行短对白（不走 fill_scene/polish 全管线）
+                try:
+                    light = await run_light_dialogue(
+                        evt_template, session, result.day, result.slot, dialogue_llm,
+                    )
+                    if light:
+                        event_dialogues[evt_template.id] = light
+                        from src.backend.ai.dialogue_designer.pipeline import dialogue_to_description
+                        desc = dialogue_to_description(light)
+                        if desc:
+                            evt_template.description = desc
+                except Exception as e:
+                    await _log_push("对白管线-轻量", f"event={evt_template.id} 失败: {type(e).__name__}: {e}", "error")
                 continue
 
             else:
@@ -294,11 +366,13 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                         if desc:
                             evt_template.description = desc
                 except Exception as e:
-                    print(f"[对白管线] event={evt_template.id} 失败: {type(e).__name__}: {e}")
+                    await _log_push("对白管线", f"event={evt_template.id} 失败: {type(e).__name__}: {e}", "error")
 
     # 7. 执行事件 + 推送（v2：跳过 score ≤ 2 的事件）
     if all_matched:
         id_name_map = _build_name_map(session)
+
+        await _log_push("advance", f"STEP_5_DIALOGUE_DONE 对白完成 event_dialogues={len(event_dialogues)}, 开始执行事件")
 
         # Filter out ambient events (score <= 2) for execution
         executable = [(e, o) for e, o in all_matched if e.dramatic_score > 2]
@@ -337,7 +411,8 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                     "karma_queued": r.karma_changes,
                     "participant_ids": participants_ids,
                     "participant_names": participants_names,
-                    "location_id": location_id,
+                    "location_id": _location_cn(location_id),
+                    "location_label": _location_cn(location_id),
                     "risk_level": getattr(evt_template, "risk_level", "Low"),
                     "description": getattr(evt_template, "description", ""),
                     "dialogue": dialogue,
@@ -365,6 +440,8 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                             event_id=evt_template.id,
                             participants=participants_ids,
                         )
+
+    await _log_push("advance", "STEP_6_SEND_SETTLEMENT 发送 settlement_complete")
 
     await _send(ws, "settlement_complete", {
         "day": result.day,
@@ -394,7 +471,7 @@ async def _handle_advance_time(ws: WebSocket, request_id: str):
                     "text": beat,
                 }, request_id)
         except Exception as e:
-            print(f"[ws_game] narrator_beat 生成失败：{type(e).__name__}: {e}")
+            await _log_push("ws_game", f"narrator_beat 生成失败：{type(e).__name__}: {e}", "error")
 
 
 async def _handle_apply_intervention(ws: WebSocket, payload: dict, request_id: str):
@@ -436,6 +513,19 @@ async def _handle_apply_intervention(ws: WebSocket, payload: dict, request_id: s
                 day=day,
                 slot=slot,
             )
+            # v2.1: NPC 收到托梦后生成内心思考，发回前端弹窗展示
+            try:
+                reflection = await _generate_dream_reflection(agent, dream_text, incense_snapshot, day, slot)
+                if reflection:
+                    await _send(ws, "dream_reflection", {
+                        "npc_id": npc_id,
+                        "npc_name": agent.name,
+                        "dream_text": dream_text,
+                        "reflection": reflection,
+                        "incense_snapshot": incense_snapshot,
+                    }, request_id)
+            except Exception as e:
+                await _log_push("ws_game", f"dream_reflection 生成失败: {type(e).__name__}: {e}", "warn")
         elif intervention_id == "blessing":
             outcome_flag = "感受到" if coin_result.get("success", False) else "隐约察觉"
             desc = f"{outcome_flag}一股温暖的护佑降临身上，仿佛神明的赐福。"
@@ -594,6 +684,31 @@ def _get_llm(session) -> Optional[object]:
     return None
 
 
+# 位置 ID → 中文名映射
+_LOCATION_CN: dict = {
+    "temple": "土地庙", "plaza": "广场", "beach": "沙滩", "school": "学校",
+    "clinic": "诊所", "shopping_street": "商业街", "bookstore": "书店", "cafe": "咖啡馆",
+    "police_station": "警局", "mountain_forest": "山林", "port": "港口", "residence": "住所",
+    "coffee_shop": "咖啡店", "wine_bar": "酒吧", "seafood_shop": "海鲜店",
+    "dock": "码头", "church": "教堂", "hospital": "医院", "park": "公园",
+    "market": "市场", "restaurant": "餐馆", "library": "图书馆", "gym": "健身房",
+    "office": "办公楼", "factory": "工厂", "station": "车站",
+    "seaside": "海边", "bathhouse": "澡堂", "teahouse": "茶馆",
+    "kitchen": "厨房", "backyard": "后院", "rooftop": "天台",
+    "xu_mingchuan_home": "许明川家", "xu_qing_home": "许晴家",
+    "lin_chaoyin_home": "林潮音家", "chen_haisheng_home": "陈海生家",
+    "gu_chenzhou_home": "顾沉舟家", "jiang_xueyi_home": "江雪仪家",
+    "huiyuan_room": "慧圆禅房", "lin_yueqin_home": "林月琴家",
+    "su_wan_home": "苏婉家", "zhou_xingzhi_home": "周行知家",
+    "chen_yuanzhou_home": "陈远舟家",
+}
+
+
+def _location_cn(loc_id: str) -> str:
+    """将位置英文 ID 转为中文名，未知则返回原值。"""
+    return _LOCATION_CN.get(loc_id, loc_id)
+
+
 def _build_location_map(session) -> dict:
     """构建 NPC 当前位置映射。"""
     locs = {}
@@ -656,8 +771,8 @@ def _write_ambient_memory(session, evt, day, slot) -> None:
             )
 
 
-def _print_screenwriter_log(sw_result: ScreenwriterResult, time_result) -> None:
-    """打印编剧产出日志。"""
+async def _print_screenwriter_log(sw_result: ScreenwriterResult, time_result) -> None:
+    """打印编剧产出日志(async: 通过 _log_push 推到前端)。"""
     if not sw_result.ok:
         return
     events = sw_result.events
@@ -671,12 +786,13 @@ def _print_screenwriter_log(sw_result: ScreenwriterResult, time_result) -> None:
     low = sum(1 for e, _ in events if e.dramatic_score <= 2)
 
     print(f"\n{'='*60}")
-    print(f"[编剧] Day{time_result.day} {time_result.slot.value} | "
-          f"节拍{len(beat)} + 即兴{len(spon)} "
-          f"→ {len(events)} total (高{high} 中{mid} 低{low})")
-    print(f"[预告] {sw_result.slot_summary[:120]}")
+    await _log_push(
+        "编剧",
+        f"Day{time_result.day} {time_result.slot.value} | 节拍{len(beat)} + 即兴{len(spon)} → {len(events)} total (高{high} 中{mid} 低{low})",
+    )
+    await _log_push("预告", (sw_result.slot_summary or "")[:120])
     for t, o in beat:
-        print(f"  ◆ 节拍(score={t.dramatic_score}): {t.name} ({t.id}) → {o.id}")
+        await _log_push("节拍", f"score={t.dramatic_score} | {t.name} ({t.id}) → {o.id}")
     for t, o in spon:
         delta_info = []
         if o.bond_delta:
@@ -684,10 +800,61 @@ def _print_screenwriter_log(sw_result: ScreenwriterResult, time_result) -> None:
         if o.npc_state_delta:
             delta_info.append(f"NPC:{o.npc_state_delta}")
         delta_str = " | ".join(delta_info) if delta_info else "无delta"
-        print(f"  🎭 即兴(score={t.dramatic_score}): {t.name} | {t.location or '?'} | {t.participants}")
-        print(f"     {(t.description or '')[:120]}")
-        print(f"     delta: {delta_str}")
+        await _log_push(
+            "即兴",
+            f"score={t.dramatic_score} | {t.name} | {t.location or '?'} | {t.participants} | {(t.description or '')[:120]} | delta: {delta_str}",
+        )
     print(f"{'='*60}\n")
+
+
+# ═══════════════════════════════════════════════════
+# v2.1: 托梦后 NPC 内心思考
+# ═══════════════════════════════════════════════════
+
+_DREAM_REFLECTION_PROMPT = """你是一个角色内心独白生成器。根据 NPC 的性格和刚收到的托梦内容，生成一段简短的内心思考。
+
+要求：
+- 只用 2-4 句话，50-100 字
+- 第一人称视角（"我……"）
+- 结合 NPC 的性格、当前处境、与土地公的关系
+- 反映托梦内容对其心理的影响（困惑、感激、怀疑、决心等）
+- 只输出纯文本，不加引号、不加角色名、不加解释"""
+
+
+async def _generate_dream_reflection(agent, dream_text: str, incense_snapshot: int, day: int, slot) -> str:
+    """让 NPC 对刚收到的托梦生成内心思考。"""
+    if agent.llm is None:
+        return ""
+
+    # 构建 prompt
+    personality = agent.static.personality
+    traits_desc = f"性格：开放性{personality.openness}，尽责性{personality.conscientiousness}，外向性{personality.extraversion}，宜人性{personality.agreeableness}，敏感性{personality.sensibility}"
+
+    user_prompt = (
+        f"NPC 信息：\n"
+        f"- 名字：{agent.name}\n"
+        f"- 身份：{agent.static.occupation}\n"
+        f"- {traits_desc}\n"
+        f"- 当前心情：{agent.emotion.value}\n"
+        f"- 背景：{agent.static.background[:100]}\n\n"
+        f"第 {day} 天 {slot.value}，{agent.name} 在梦中收到了土地公的低语：\n"
+        f"「{dream_text}」\n"
+        f"当时镇上香火为 {incense_snapshot}。\n\n"
+        f"请以 {agent.name} 的第一人称视角，写出 TA 醒来后内心的想法。"
+    )
+
+    messages = [
+        {"role": "system", "content": _DREAM_REFLECTION_PROMPT},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    try:
+        reply = await agent.llm.chat(messages, max_tokens=256, temperature=0.9)
+        if reply:
+            return reply.strip()
+    except Exception:
+        pass
+    return ""
 
 
 # ═══════════════════════════════════════════════════

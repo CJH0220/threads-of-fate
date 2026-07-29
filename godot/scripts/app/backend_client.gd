@@ -30,6 +30,8 @@ signal npc_response(data: Dictionary)
 signal intervention_applied(data: Dictionary)
 signal narrator_beat(data: Dictionary)
 signal game_over(data: Dictionary)
+signal server_log(data: Dictionary)
+signal dream_reflection(data: Dictionary)
 
 ## 后端地址配置
 ## 注意：使用 127.0.0.1 而不是 localhost —— Windows 上 localhost 有时会走 IPv6
@@ -94,6 +96,9 @@ func _process(_delta: float) -> void:
 	## 无论是否已 CONNECTED，只要发起过连接就要持续 poll。
 	if _ws_active:
 		_poll_ws()
+	elif _ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
+		# _ws_active 应为 true 但实际为 false —— 异常状态
+		printerr("[Backend] BUG: WS OPEN but _ws_active=false!")
 
 # ──────────────────────────────────────────
 # HTTP API
@@ -243,6 +248,9 @@ func _poll_ws() -> void:
 				_ws_connected = true
 				print("[Backend] WS OPEN")
 				connected.emit()
+			var pkt_total := _ws.get_available_packet_count()
+			if pkt_total > 0:
+				print("[Backend] WS poll: %d packets" % pkt_total)
 			while _ws.get_available_packet_count() > 0:
 				var packet = _ws.get_packet().get_string_from_utf8()
 				_dispatch_ws_message(packet)
@@ -272,6 +280,7 @@ func _dispatch_ws_message(raw: String) -> void:
 		return
 	var msg = json.data as Dictionary
 	var msg_type = String(msg.get("type", ""))
+	print("[Backend] WS dispatch: type=" + msg_type)
 	var payload = msg.get("payload", {}) as Dictionary
 
 	match msg_type:
@@ -299,8 +308,20 @@ func _dispatch_ws_message(raw: String) -> void:
 			intervention_applied.emit(payload)
 		"narrator_beat":
 			narrator_beat.emit(payload)
+		"dream_reflection":
+			dream_reflection.emit(payload)
 		"game_over":
 			game_over.emit(payload)
+		"server_log":
+			var lvl := String(payload.get("level", "info"))
+			var src := String(payload.get("source", ""))
+			var text := String(payload.get("message", ""))
+			var line := "[Server:%s] %s | %s" % [lvl, src, text]
+			if lvl == "error":
+				printerr(line)
+			else:
+				print(line)
+			server_log.emit(payload)
 		"error":
 			error.emit(String(payload.get("message", "未知错误")))
 

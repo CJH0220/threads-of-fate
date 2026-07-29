@@ -69,6 +69,8 @@ var _completed_events: Dictionary = {}
 var _event_snapshots: Dictionary = {}
 ## 当前时段内的逐条资源变化日志（每次干预/赐福/托梦追加一条）。
 var _resource_change_log: Array = []
+## advance_time() 等待 settlement_complete 的标志位。由 _on_settlement_complete 置 true。
+var _settlement_arrived: bool = false
 
 func _init() -> void:
 	## 连接 Backend 信号
@@ -455,32 +457,29 @@ func advance_time() -> Dictionary:
 	## 发送 WebSocket 请求，等待结算完成信号后再返回结果
 	Backend.send_advance_time()
 
-	## 超时兜底：LLM 全链路（NPC思考 + 编剧编排 + 对白管线）可能耗时较长，
-	## 给 180s 冗余；到时未收到 settlement_complete 才降级到 Mock。
-	var timeout_sec: float = 180.0
-	var settled: bool = false
-	var _cb := func(_data: Dictionary) -> void: settled = true
-	Backend.settlement_complete.connect(_cb, CONNECT_ONE_SHOT)
+	## 超时兜底：LLM 全链路（NPC思考 + 编剧编排 + 对白管线 + 日常事件对白）可能耗时较长，
+	## 给 300s 冗余；到时未收到 settlement_complete 才降级到 Mock。
+	var timeout_sec: float = 300.0
+	_settlement_arrived = false
 	var start_time: float = Time.get_ticks_msec()
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
 	var last_log_bucket: int = 0
-	while not settled:
+	while not _settlement_arrived:
 		await tree.process_frame
+		# WebSocket disconnect -> immediate fallback
+		if not Backend.is_ws_connected():
+			printerr("[BackendGameState] advance_time: WS disconnected, fallback to Mock")
+			break
 		var elapsed: float = (Time.get_ticks_msec() - start_time) / 1000.0
-		## 每 10 秒心跳一次，便于观察是否卡死
 		var bucket: int = int(elapsed / 10.0)
 		if bucket != last_log_bucket:
 			last_log_bucket = bucket
-			print("[BackendGameState] advance_time 已等待 %ds…" % int(elapsed))
+			print("[BackendGameState] advance_time waiting %ds..." % int(elapsed))
 		if elapsed >= timeout_sec:
 			break
-	## 清理：若超时先到，断开回调避免野指针
-	if not settled:
-		if Backend.settlement_complete.is_connected(_cb):
-			Backend.settlement_complete.disconnect(_cb)
-		printerr("[BackendGameState] advance_time: %ds 超时，降级到本地 Mock" % int(timeout_sec))
+	if not _settlement_arrived:
+		printerr("[BackendGameState] advance_time: timeout/fallback after %ds" % int((Time.get_ticks_msec() - start_time) / 1000.0))
 		return _mock_advance_time()
-
 	return _last_advance_result.duplicate()
 
 ## Mock 降级模式的本地时间推进（保持前端可独立测试）。
@@ -591,10 +590,13 @@ func _on_time_advanced(data: Dictionary) -> void:
 	var slot = String(data.get("slot", "morning"))
 	if slot == "noon":
 		_state_cache["time_slot"] = "Afternoon"
+		_state_cache["time_slot_label"] = "下午"
 	elif slot == "night":
 		_state_cache["time_slot"] = "Night"
+		_state_cache["time_slot_label"] = "晚上"
 	else:
 		_state_cache["time_slot"] = "Morning"
+		_state_cache["time_slot_label"] = "早上"
 	_state_cache["week"] = data.get("week", 1)
 	## 保留 is_new_day / is_new_week 标记
 	_state_cache["is_new_day"] = bool(data.get("is_new_day", false))
@@ -702,6 +704,8 @@ func _dialogue_to_segments(dialogue: Dictionary) -> Array:
 ##   {day, slot, resource:{incense, divine_power, divine_power_max}}
 ## 注意资源字段嵌在 resource 子对象里；yin_de/yang_de 后端目前未在此消息推送，保留缓存值。
 func _on_settlement_complete(data: Dictionary) -> void:
+	print("[BackendGameState] settlement_complete signal received! data keys=" + str(data.keys()))
+	print("[BackendGameState] settlement_complete signal received!")
 	## 后端字段兼容：优先读嵌套 resource，缺失时回退到扁平字段，最后回退到缓存。
 	var res: Dictionary = data.get("resource", {}) if data.get("resource") is Dictionary else {}
 	_state_cache["incense"] = int(res.get("incense", data.get("incense", _state_cache.get("incense", 0))))
@@ -717,10 +721,13 @@ func _on_settlement_complete(data: Dictionary) -> void:
 		var slot_val = String(data.get("slot", "morning"))
 		if slot_val == "noon":
 			_state_cache["time_slot"] = "Afternoon"
+			_state_cache["time_slot_label"] = "下午"
 		elif slot_val == "night":
 			_state_cache["time_slot"] = "Night"
+			_state_cache["time_slot_label"] = "晚上"
 		else:
 			_state_cache["time_slot"] = "Morning"
+			_state_cache["time_slot_label"] = "早上"
 
 	## 更新 NPC 状态（位置/幸福度等可能变化）
 	if data.has("npcs"):
@@ -755,10 +762,12 @@ func _on_settlement_complete(data: Dictionary) -> void:
 	## 清空待处理事件队列和资源日志
 	_pending_events.clear()
 	_resource_change_log.clear()
-	## 最后触发状态刷新，UI 收到信号后读取新状态
-	state_changed.emit()
+	## 注意：不在此处触发 state_changed —— 由 UI 在过场动画结束后统一刷新，
+	## 避免 HUD 在结算面板显示前就变到新状态（视觉上"抢跑"）。
+	## HUD 刷新入口：main_game_ui._do_advance_time 在 time_transition.play() await 完成后手动调用。
+	print("[BackendGameState] _settlement_arrived = true")
+	_settlement_arrived = true
 
-## 获取事件可用的干预选项（从缓存事件中查询）。
 func get_interventions_for_event(event: Dictionary) -> Array:
 	var event_id = String(event.get("event_id", ""))
 	for evt in _events:

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from src.backend.ai.dialogue_designer.designer import polish_dialogue
 from src.backend.models.npc import Slot
@@ -116,3 +116,95 @@ def dialogue_to_description(dialogue: Optional[dict]) -> str:
         else:
             parts.append(f"{actor}：{text}")
     return "\n".join(parts)
+
+
+_LIGHT_SYSTEM_PROMPT = """你是一个对白编辑，为日常小事件写 6-12 行生动对白。
+要求：
+- 只输出 JSON,不加任何解释,不加 markdown
+- 每行控制在 35 字以内,自然口语化,符合角色性格和身份
+- 至少 2 个角色开口说话,每个角色至少 2 句台词
+- 穿插 2-3 个动作/神态/环境描写（type: action）
+- 对话要有起伏：问候/引出话题→展开讨论→情绪变化→结束或约定下次
+- 可以加入角色的小心思（type: thought），让对话更有层次
+- 根据角色的性格和关系来写：熟人说话和陌生人完全不同
+- 不要引入新人物或改变事件描述
+
+输出格式(严格 JSON):
+{
+  "location": "中文地点名",
+  "lines": [
+    {"actor": "角色id", "type": "action或dialogue或thought", "text": "文本"}
+  ]
+}
+
+好的例子（注意对话的自然流动和情绪的微妙变化）：
+{
+  "location": "码头",
+  "lines": [
+    {"actor": "chen_haisheng", "type": "action", "text": "陈海生站在码头边，朝海里扔了颗石子，水花溅起老高。"},
+    {"actor": "chen_haisheng", "type": "dialogue", "text": "老周，你说这潮水天天涨天天落，跟人心一样没个准数。"},
+    {"actor": "zhou_xingzhi", "type": "action", "text": "周行知靠在缆桩上，闻言笑了笑。"},
+    {"actor": "zhou_xingzhi", "type": "dialogue", "text": "你海生也有这种感慨？少见啊。是不是潮音那孩子又让你操心了？"},
+    {"actor": "chen_haisheng", "type": "thought", "text": "这小子什么都知道……"},
+    {"actor": "chen_haisheng", "type": "dialogue", "text": "不是她。是昨晚做了个梦，梦到以前的事了。算了，不提了。"},
+    {"actor": "zhou_xingzhi", "type": "dialogue", "text": "梦啊……有时候梦比醒着还真。走吧，去喝一杯，你这满腹心事的样子我看着难受。"}
+  ]
+}"""
+
+
+async def run_light_dialogue(
+    event: "EventTemplate",
+    session: "GameSession",
+    day: int,
+    slot: "Slot",
+    llm: "BaseLLMClient",
+) -> Optional[dict]:
+    """轻量短对白管线(score 3-5 日常事件用)。
+
+    单次 LLM 调用,不走 fill_scene/merge/polish 全流程,主打快。
+    产出与 run_dialogue_pipeline 相同结构的 dialogue dict。
+    """
+    participants = event.participants or []
+    if not participants:
+        return None
+
+    name_map: Dict[str, str] = {}
+    role_lines = []
+    for pid in participants:
+        ag = session.agents.get(pid)
+        if ag is None:
+            continue
+        name_map[pid] = ag.name
+        role_lines.append(f"- {pid}({ag.name})")
+
+    if not role_lines:
+        return None
+
+    desc = (event.description or event.name or "").strip()
+    location = event.location or ""
+    user_prompt = (
+        f"【事件】{event.name}\n"
+        f"【地点】{location}\n"
+        f"【发生】{desc}\n"
+        f"【参与者】\n" + "\n".join(role_lines) + "\n\n"
+        f"请为这个日常事件写 2-4 行简短对白,输出 JSON。"
+    )
+
+    messages = [
+        {"role": "system", "content": _LIGHT_SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    try:
+        reply = await llm.chat(messages, max_tokens=2048, temperature=0.85)
+    except Exception:
+        return None
+
+    if not reply:
+        return None
+
+    from src.backend.ai.dialogue_designer.designer import _parse_polish_output
+    parsed = _parse_polish_output(reply.strip())
+    if parsed and "location" not in parsed:
+        parsed["location"] = location
+    return parsed

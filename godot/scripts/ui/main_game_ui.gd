@@ -120,6 +120,9 @@ func _ready() -> void:
 	if backend != null and backend.has_signal("narrator_beat"):
 		if not backend.narrator_beat.is_connected(_on_narrator_beat):
 			backend.narrator_beat.connect(_on_narrator_beat)
+			if backend != null and backend.has_signal("dream_reflection"):
+				if not backend.dream_reflection.is_connected(_on_dream_reflection):
+					backend.dream_reflection.connect(_on_dream_reflection)
 
 func bind_state(next_state: RefCounted) -> void:
 	state = next_state
@@ -359,6 +362,17 @@ func _on_narrator_beat(payload: Dictionary) -> void:
 		toast_requested.emit("土地公（第 %d 夜）：%s" % [day, text])
 	else:
 		toast_requested.emit("土地公：%s" % text)
+
+## NPC 收到托梦后的内心思考弹窗。
+func _on_dream_reflection(data: Dictionary) -> void:
+	var npc_name: String = String(data.get("npc_name", ""))
+	var reflection: String = String(data.get("reflection", ""))
+	var dream_text: String = String(data.get("dream_text", ""))
+	if npc_name == "" or reflection == "":
+		return
+	# 用 dream_text_dialog 展示 NPC 的内心思考
+	if dream_text_dialog.has_method("show_reflection"):
+		dream_text_dialog.show_reflection(npc_name, dream_text, reflection)
 
 func _show_location_popup(location_id: String) -> void:
 	var location: Dictionary = state.find_location(location_id)
@@ -745,11 +759,31 @@ func _do_advance_time() -> void:
 	var before_label: String = "第 %d 天 · %s" % [before_state.get("day", 1), before_state.get("time_slot_label", "早上")]
 	var before_resources: Dictionary = _snapshot_resources(before_state)
 
+	## 立刻弹出"命运流转中……"loading 遮罩,让玩家知道正在推进,
+	## 避免"点了没反应,界面卡住"的错觉。
+	if time_transition.has_method("show_loading"):
+		time_transition.show_loading(before_label)
+
 	## 真实后端路径为异步（内部 await settlement_complete）；Mock 路径 await 会立即返回。
 	## state 静态类型为 MockGameState，静态分析器看不到 BackendGameState 的 await，
 	## 此处 await 在运行时对两种适配器都必要。
-	@warning_ignore("redundant_await")
-	var result: Dictionary = await state.advance_time()
+	var done_ref := [false]
+	var result_ref: Array = [{}]
+	_run_advance_time(done_ref, result_ref)
+
+	var elapsed := 0.0
+	const ADVANCE_TIMEOUT := 310.0
+	while not done_ref[0] and elapsed < ADVANCE_TIMEOUT:
+		await get_tree().process_frame
+		elapsed += get_process_delta_time()
+
+	if not done_ref[0]:
+		time_transition.visible = false
+		_advancing = false
+		toast_requested.emit("命运流转超时，请稍后再试。")
+		return
+
+	var result: Dictionary = result_ref[0]
 
 	var after_state: Dictionary = state.get_game_state()
 	var after_label: String = "第 %d 天 · %s" % [after_state.get("day", 1), after_state.get("time_slot_label", "早上")]
@@ -767,7 +801,21 @@ func _do_advance_time() -> void:
 		"event_changes": Array(result.get("event_changes", [])),
 	}
 
-	await time_transition.play(before_label, after_label, settlement_data)
+	var play_done := [false]
+	_run_play_transition(play_done, before_label, after_label, settlement_data)
+	var play_elapsed := 0.0
+	const PLAY_TIMEOUT := 60.0
+	while not play_done[0] and play_elapsed < PLAY_TIMEOUT:
+		await get_tree().process_frame
+		play_elapsed += get_process_delta_time()
+
+	if not play_done[0]:
+		time_transition.visible = false
+		_advancing = false
+		return
+	## 过场关闭后统一刷新 HUD（Backend 路径下适配器不再自动 emit）
+	if state.has_signal("state_changed"):
+		state.state_changed.emit()
 	_advancing = false
 
 	if bool(result.get("run_finished", false)):
@@ -778,6 +826,18 @@ func _do_advance_time() -> void:
 		return
 	## v1.2：结算摘要已在 TimeTransition 内嵌展示；不再额外弹出 SettlementPanel
 	## 以避免重复渲染。若后续需要明细（硬币翻面 / 托梦文本），可在此处恢复 emit。
+
+## 在独立协程中调用 state.advance_time()，结果写入 result_ref[0]，完成标记写入 done_ref[0]。
+## 若协程因异常终止，done_ref[0] 保持 false，主循环超时检测恢复 UI。
+func _run_advance_time(done_ref: Array, result_ref: Array) -> void:
+	var r = await state.advance_time()
+	result_ref[0] = r
+	done_ref[0] = true
+
+## 在独立协程中调用 time_transition.play()，完成标记写入 done_ref[0]。
+func _run_play_transition(done_ref: Array, before_label: String, after_label: String, settlement_data: Dictionary) -> void:
+	await time_transition.play(before_label, after_label, settlement_data)
+	done_ref[0] = true
 
 ## 从 game_state 快照中抽取四类资源的当前值。
 func _snapshot_resources(state_dict: Dictionary) -> Dictionary:

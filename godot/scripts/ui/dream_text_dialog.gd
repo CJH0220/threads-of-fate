@@ -26,6 +26,9 @@ func _ready() -> void:
 
 ## 打开弹窗。target_label 用于标题显示目标 NPC/事件名。
 func open(target_label: String = "") -> void:
+	text_edit.editable = true
+	confirm_button.text = "确定"
+	cancel_button.visible = true
 	_target_label = target_label
 	if target_label == "":
 		title_label.text = "托梦"
@@ -59,6 +62,18 @@ func _on_confirm() -> void:
 func _on_cancel() -> void:
 	visible = false
 	cancelled.emit()
+
+## 展示 NPC 收到托梦后的内心思考（只读弹窗，不可编辑）。
+func show_reflection(npc_name: String, dream_text: String, reflection: String) -> void:
+	_target_label = npc_name
+	title_label.text = "%s 的内心回响" % npc_name
+	hint_label.text = "你向 %s 托梦：\n「%s」" % [npc_name, dream_text]
+	text_edit.text = reflection
+	text_edit.editable = false
+	_update_counter()
+	visible = true
+	confirm_button.text = "继续"
+	cancel_button.visible = false
 
 func _unhandled_input(event: InputEvent) -> void:
 	if visible and event.is_action_pressed("ui_cancel"):
